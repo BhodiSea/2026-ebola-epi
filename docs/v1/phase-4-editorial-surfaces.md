@@ -1,0 +1,240 @@
+# Phase 4 — Editorial surfaces + read-only map stub
+
+## Goal
+
+Build the five public editorial routes (`/today`, `/outbreaks`, `/outbreaks/[pathogen]/[country]/[onset]`, `/sitreps`, `/sources`) plus the auth route (`/about/data-sources`) that publicly enumerates each source's terms-of-use posture. Embed a server-rendered SVG choropleth stub on `/today` and the Geography tab of outbreak detail — so a journalist can answer "where is the outbreak and how many people have it?" on a cold load without waiting for the full map command center in Phase 5. Every rendered figure must carry `source_quote_id` via `<Figure>`.
+
+---
+
+## Entry preconditions
+
+- Phase 3 exit gate met: `<Figure>`, `<SourceQuoteCard>`, and `<SourceQuoteDrawer>` all work end-to-end on `/methods`.
+- At least one `outbreaks` row and several `case_counts` rows (with non-null `source_quote_id`) exist in the database from Phase 2 extraction.
+- `geo.admin1` table exists (schema created in Phase 1), even if geometry data is sparse or from seed.
+- The Phase 3 global chrome (TopBar, NavRail, CommandBar) is in place.
+
+---
+
+## Deliverables
+
+### Code — `/today`
+
+**`apps/web/app/page.tsx`** (Server Component — calls `redirect("/today")` from `next/navigation`):
+
+**`apps/web/app/today/page.tsx`** (Server Component):
+
+Sections in order:
+1. `<ActiveOutbreakBanner>` — fetches the most-severe active outbreak. Severity coloring via `<SeverityPill>`. "Day N" counter, `[Open command center]` link to `/map`.
+2. Four `<StatCard>` components — confirmed / deaths / CFR / health zones affected. Each `value` prop wrapped in `<Figure quoteId={...}>`. Sparkline from last 14 days of `case_counts`.
+3. Daily brief collapsible — Source Serif 4 17/1.55, hand-written for Phase 4 (LLM generation lands in Phase 7). `<AIGeneratedLabel>` marks it as hand-written until then. "Show me the data" toggle flips to raw figures table.
+4. Read-only choropleth stub (see below).
+5. Recent sitreps list — last 5 documents from `public.documents` ordered by `published_at desc`, each row with source name, title, age, link.
+6. All active outbreaks list — sparkline row per outbreak (`<OutbreakRow>`).
+
+Data fetching pattern: single RSC data-fetch function using the cookie-bound server client from `lib/supabase/server.ts`. No client-side fetching on authoritative data.
+
+**Read-only choropleth stub** (the critical Phase 4 addition from design review):
+
+A server-rendered SVG of `case_counts` joined to `geo.admin1` for the active outbreak. Rendered at build-time via RSC using PostGIS `ST_AsSVG` via Supabase RPC. No tile pipeline, no scrubber, no interactive inspector — just "where is this."
+
+```ts
+// apps/web/lib/server/choropleth.ts
+// Pipeline:
+// 1. Fetch admin1 geometries via `SELECT ST_AsSVG(ST_Transform(geom, 4326), 5) as path, code, name FROM geo.admin1 WHERE country_iso3 = $1`
+//    ST_AsSVG returns SVG path data in geographic coordinates (lon/lat).
+// 2. Fetch current case counts: SELECT admin1_code, SUM(value) as total FROM public.case_counts WHERE outbreak_id=$1 AND metric='confirmed' AND superseded_by IS NULL AND status='published' GROUP BY admin1_code
+// 3. Normalize geographic coordinates to SVG viewport: compute bounding box of all admin1 geometries, then apply a linear scale transform (translate + scale) so the paths fit a 640×480 viewBox.
+//    Use a simple Mercator projection: x = (lon - minLon) / (maxLon - minLon) * viewWidth, y = (maxLat - lat) / (maxLat - minLat) * viewHeight
+// 4. Classify case counts into 5 Jenks natural breaks (or quantile if <5 non-null values). Assign ColorBrewer Reds 5-class: ['#fee5d9','#fcae91','#fb6a4a','#de2d26','#a50f15']. Zones with no data: 'none' fill with diagonal hatching pattern.
+// 5. Compose as <svg viewBox="0 0 640 480"> with <defs><pattern> for no-data hatching, one <path> per admin1.
+```
+
+Embedded into:
+- `/today` between the StatCards and the recent sitreps list.
+- The "Geography" tab of `/outbreaks/[...]/` detail page.
+
+Accessibility: the SVG includes `<title>` and `<desc>` elements; admin1 names are `<text>` overlays; `?view=table` query parameter swaps to a tabular view.
+
+### Code — `/outbreaks`
+
+**`apps/web/app/outbreaks/page.tsx`** (Server Component):
+- Filter chips: Pathogen / Region / Status / Sort (shadcn `<Select>` + URL search params for state).
+- List of `<OutbreakRow>` components — each row shows pathogen name, country, confirmed count + sparkline, CFR, day count, severity pill, last update age.
+- Outbreak list fetched server-side; filter state in URL (`?pathogen=filovirus&status=active`).
+- Empty state: "No outbreaks match your filters yet — try widening the time window."
+
+### Code — `/outbreaks/[pathogen]/[country]/[onset]`
+
+URL pattern: `/outbreaks/[pathogen-slug]/[country-iso3]/[onset-yyyymmdd]`  
+Example: `/outbreaks/bundibugyo/cod/2026-04-20`
+
+**`apps/web/app/outbreaks/[pathogen]/[country]/[onset]/page.tsx`** (Server Component):
+
+Sections:
+1. `<OutbreakHeader>` — pathogen name 32 px Heading, country / admin1 in 18 px Copy muted, `<SeverityPill>`, onset date and day count in 13 px Geist Mono.
+2. Tab navigation: **Brief · Epi curve · Geography · Sources · Methods** (tab state in URL `?tab=epi-curve`).
+3. **Brief tab**: LLM-generated brief (hand-written in Phase 4, `<AIGeneratedLabel>`), "Show me the data" toggle to raw figures table.
+4. Four `<StatCard>` components (confirmed / deaths / CFR / health zones affected), each wrapping its value in `<Figure>`.
+5. **Epi curve tab**: `<TimelineMulti>` component (Visx `XYChart`, confirmed + deaths tracks). Zero-baseline. Direct labels not legend. Source line with WHO publication date.
+6. **Geography tab**: server-rendered SVG choropleth stub (same component as `/today`).
+7. **Sources tab**: list of all `documents` that contributed to this outbreak's `case_counts`.
+8. **Methods tab**: links to `/methods` with the relevant sections highlighted.
+
+After mutations: `revalidatePath("/outbreaks")` over `revalidateTag` (per AGENTS.md).
+
+### Code — `/sitreps`
+
+**`apps/web/app/sitreps/page.tsx`** (Server Component):
+- Reverse-chronological feed of `public.documents` joined to `public.sources`.
+- Filter chips: Source / Pathogen / Country / Trust tier.
+- Grouped by publication date ("Today · May 27", "Yesterday · May 26").
+- Each row: time, source pill, title, pathogen (if extracted), link.
+- Infinite scroll via URL-based pagination (`?page=2`), not JS scroll listener.
+
+### Code — `/sources` and `/sources/[slug]`
+
+**`apps/web/app/sources/page.tsx`** (Server Component):
+- Library of all `public.sources` rows.
+- Columns: name, trust tier dot, last fetch age, health indicator (healthy / slow / error).
+- Search by source name (client-side filter using Fuse.js or URL param).
+
+**`apps/web/app/sources/[slug]/page.tsx`** (Server Component):
+- Source detail: parser version (from `sources.metadata`), fetch interval, last fetch timestamp, recent extracted figures, evaluation score, full chain-of-custody for a sampled quote.
+
+### Code — `/about/data-sources`
+
+**`apps/web/app/about/data-sources/page.tsx`** (Server Component, public):
+- Enumerates each source's terms-of-use posture in Source Serif 4 prose:
+  - WHO DON: Creative Commons — free public reuse with attribution.
+  - WHO AFRO: Public distribution; regional restrictions on derivative commercial products.
+  - ECDC CDTR: Free non-commercial reuse with attribution.
+  - ReliefWeb: CC BY — free reuse with attribution.
+  - ACLED: Non-commercial research clause — not for commercial redistribution.
+  - MoH DRC: Public press releases — no explicit license; attributed with source.
+- This page is the Phase 6 entry precondition and must exist before multi-source adapters are added.
+
+### Code — shared components (new in Phase 4)
+
+**`apps/web/components/outbreak/stat-card.tsx`** — full `<StatCard>` (Phase 3 had skeleton; Phase 4 wires real data via props). Value prop is always a `<Figure>`.
+
+**`apps/web/components/outbreak/active-outbreak-banner.tsx`** — PHEIC/alert banner with severity coloring.
+
+**`apps/web/components/outbreak/outbreak-row.tsx`** — list row with sparkline, severity pill, last-update indicator.
+
+**`apps/web/components/outbreak/timeline-multi.tsx`** (Client Component — `'use client'`): Visx `XYChart` with confirmed + deaths tracks. Zero-baseline. `prefers-reduced-motion` respected (static fallback).
+
+---
+
+## Tests
+
+### Vitest
+
+**`apps/web/app/today/__tests__/page.test.tsx`** — renders the Today page with mocked Supabase data, asserts `<Figure>` components are present on stat values, asserts `<SeverityPill>` appears in the banner.
+
+**`apps/web/components/outbreak/__tests__/stat-card.test.tsx`** — renders `<StatCard>` with a `quoteId` prop, asserts the value is wrapped in `<Figure>`.
+
+**`apps/web/app/outbreaks/__tests__/page.test.tsx`** — renders the list with mocked outbreak data, asserts filter chips render, asserts empty state for no matches.
+
+### Playwright
+
+**`apps/web/e2e/today.spec.ts`**:
+```ts
+test("Today page answers 'where and how many' within 10 seconds", async ({ page }) => {
+  const start = Date.now();
+  await page.goto("/today");
+  await expect(page.locator("[data-stat-card='confirmed']")).toBeVisible();
+  await expect(page.locator("[data-choropleth-stub]")).toBeVisible();
+  expect(Date.now() - start).toBeLessThan(10_000);
+});
+
+test("Every StatCard figure has a source quote popover", async ({ page }) => {
+  await page.goto("/today");
+  const figure = page.locator("[data-figure]").first();
+  await figure.hover();
+  await page.waitForTimeout(200);
+  await expect(page.locator("[data-source-quote-card]")).toBeVisible();
+});
+```
+
+**`apps/web/e2e/outbreak-detail.spec.ts`** — navigates to an outbreak detail page, clicks the "Geography" tab, asserts the SVG choropleth renders (`[data-choropleth-stub]`).
+
+---
+
+## Tooling
+
+- `@visx/xychart` and `@visx/brush` — `<TimelineMulti>` component.
+- `fuse.js` — client-side source search (or URL param pattern with server filtering).
+- `revalidatePath` calls after any mutation (no mutations in Phase 4; preparation for Phase 5+).
+
+---
+
+## Verification
+
+```bash
+# 1. Type check
+pnpm --filter apps/web typecheck
+# Expected: zero errors.
+
+# 2. Unit tests
+pnpm --filter apps/web test
+# Expected: all green.
+
+# 3. Dev server — /today cold load
+pnpm dev
+# Open /today in a new incognito window.
+# Stopwatch: page becomes useful (stat cards + choropleth visible) in < 10 s.
+# Hover the "Confirmed" StatCard number.
+# Expected: SourceQuoteCard appears with real WHO DON quote.
+
+# 4. Outbreak detail
+# Navigate to /outbreaks/[pathogen]/[country]/[onset]
+# Expected: Brief tab renders; click "Show me the data" → raw figures table with ⓘ per row.
+# Click "Geography" tab: SVG choropleth renders.
+
+# 5. Sitreps feed
+# Navigate to /sitreps
+# Expected: chronological feed grouped by date; filter chips work.
+
+# 6. Data sources page
+# Navigate to /about/data-sources
+# Expected: all sources listed with terms-of-use posture.
+
+# 7. Accessibility
+pnpm playwright test apps/web/e2e/today.spec.ts
+# Expected: all green.
+npx axe-core apps/web --run accessibility
+# Expected: zero critical violations.
+```
+
+If choropleth SVG is empty: check that `geo.admin1` has geometry data (seed at least one polygon for DRC Ituri Province in `supabase/seed.sql`).  
+If `<TimelineMulti>` throws: Visx requires a client-side rendering context; ensure `'use client'` is present and that the component is wrapped in a Suspense boundary.
+
+---
+
+## Exit gate
+
+An unprimed journalist can answer "where is the outbreak and how many people have it?" in < 10 seconds on a cold load of `/today`; every figure on every page exposes provenance via `<Figure>` (no plain numbers without `source_quote_id`); the `/about/data-sources` page is public and enumerates each source's terms of use.
+
+---
+
+## Research cross-references
+
+- [ui.md §2.0 — /today wireframe](../../research/ui.md#20--today--desktop-1280px)
+- [ui.md §3.0 — /outbreaks list](../../research/ui.md#30-outbreaks--list-view)
+- [ui.md §4.0 — outbreak detail](../../research/ui.md#40-outbreaksebola-bundibugyocod2026-04-20--outbreak-detail)
+- [ui.md §5.0 — /sitreps feed](../../research/ui.md#50-sitreps--chronological-feed)
+- [ui.md §6.0 — /sources library](../../research/ui.md#60-sources--source-library)
+- [ux.md §3 — Information architecture](../../research/ux.md#3-information-architecture)
+- [ux.md §5 — Progressive disclosure](../../research/ux.md#5-progressive-disclosure--novice--expert)
+- [ux.md §15 — Empty & edge states](../../research/ux.md#15-empty--edge-states)
+
+---
+
+## Out of scope
+
+- MapLibre, deck.gl, or the interactive `/map` command center (Phase 5).
+- The TimeScrubber with brush interaction (Phase 5).
+- The full three-pane layout for `/map` (Phase 5).
+- LLM-generated daily brief (Phase 7 — hand-written in Phase 4).
+- Multi-source reconciliation UI (Phase 6 — the `+1 disagreement` pill on StatCard).
+- Internal admin routes `/internal/*` (Phase 8).
