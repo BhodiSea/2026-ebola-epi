@@ -1,5 +1,5 @@
 {
-  "name": "@ituri/shared",
+  "name": "@ituri/ingest",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -13,6 +13,7 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "backfill": "echo 'backfill adapter not yet implemented' && exit 0"
   }
 }

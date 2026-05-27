@@ -1,6 +1,11 @@
 {
   "$schema": "https://turbo.build/schema.json",
+  "globalDependencies": ["tsconfig.base.json", "biome.json", "eslint.config.ts"],
   "tasks": {
+    "dev": {
+      "cache": false,
+      "persistent": true
+    },
     "build": {
       "outputs": [".next/**", "!.next/cache/**", "dist/**"]
     },
@@ -10,8 +15,7 @@
     },
     "lint:eslint": {
       "outputs": [],
-      "cache": true,
-      "dependsOn": ["^build"]
+      "cache": true
     },
     "typecheck": {
       "outputs": [".turbo/tsbuildinfo.json"],
@@ -20,6 +24,10 @@
     },
     "test": {
       "dependsOn": ["^build"]
+    },
+    "e2e": {
+      "cache": false,
+      "dependsOn": ["build"]
     }
   }
 }

@@ -11,4 +11,7 @@ pre-commit:
       stage_fixed: true
     3_typecheck:
       glob: "*.{ts,tsx}"
-      run: pnpm exec tsc --noEmit -p tsconfig.json
+      run: pnpm --filter '@ituri/web' exec tsc --noEmit -p tsconfig.json
+    4_pglast:
+      glob: "supabase/migrations/*.sql"
+      run: pnpm db:lint

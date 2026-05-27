@@ -58,7 +58,13 @@ export default defineConfig(
       parser: tseslint.parser,
       parserOptions: {
         projectService: {
-          allowDefaultProject: ["eslint.config.ts", "knip.config.ts"],
+          allowDefaultProject: [
+            "eslint.config.ts",
+            "knip.config.ts",
+            "vitest.config.ts",
+            "packages/db/drizzle.config.ts",
+            "apps/web/e2e/*.ts",
+          ],
         },
         tsconfigRootDir: import.meta.dirname,
         ecmaFeatures: { jsx: true },
@@ -565,7 +571,7 @@ export default defineConfig(
   // ---- Playwright ----
   {
     name: "ituri/playwright",
-    files: ["tests/e2e/**/*.ts"],
+    files: ["apps/web/e2e/**/*.ts"],
     extends: [playwright.configs["flat/recommended"]],
     rules: {
       "playwright/no-skipped-test": "warn",
@@ -590,6 +596,13 @@ export default defineConfig(
       "no-restricted-imports": "off",
       "max-lines": "off",
     },
+  },
+
+  // ---- proxy.ts: String.raw banned — Next.js extractExportedConstValue cannot evaluate tagged template literals ----
+  {
+    name: "ituri/proxy",
+    files: ["apps/web/proxy.ts"],
+    rules: { "unicorn/prefer-string-raw": "off" },
   },
 
   // ---- Supabase Edge Functions (Deno) ----

@@ -17,6 +17,20 @@ Each entry: **what** is banned, **why** (the failure mode), **instead** (the rig
   - Why: lies to the compiler.
   - Instead: parse via zod, then the type is real.
 
+## Next.js 16 specifics
+
+- **`middleware.ts` with `export function middleware()`**
+  - Why: Next.js 16 renamed this to `proxy.ts` with `export function proxy()`. The old name still works but is deprecated.
+  - Instead: `apps/web/proxy.ts` exporting `proxy` + `config`.
+
+- **`String.raw\`...\`` in `proxy.ts` matcher**
+  - Why: Next.js build uses `extractExportedConstValue` to statically analyze `export const config`. Tagged template literals (`String.raw`) cannot be statically evaluated → `hadUnsupportedValue = true` → build fails with "Invalid segment configuration export detected" and no helpful error message.
+  - Instead: plain string literals with `\\.` for escaped dots: `"/((?!_next/static|.*\\.png$).*)"`.
+
+- **`export const dynamic = 'force-dynamic'` combined with `cacheComponents: true` in next.config.ts**
+  - Why: Turbopack rejects this combination at build time with a hard error.
+  - Instead: if auth-gated routes need dynamic rendering, either use `cookies()` (auto-opts into dynamic) or remove `cacheComponents: true` until Cache Components are actually used.
+
 ## Next.js 15 / React 19
 
 - **`getServerSideProps`, `getStaticProps`, `pages/` Router**
