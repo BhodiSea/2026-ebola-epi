@@ -3,21 +3,24 @@ import type { KnipConfig } from "knip";
 const config: KnipConfig = {
   workspaces: {
     ".": {
-      entry: ["scripts/**/*.ts", "tooling/**/*.ts"],
+      entry: ["types/**/*.d.ts", "vitest.config.ts"],
       ignoreBinaries: ["docker", "supabase"],
     },
     "apps/web": {
       entry: [
         "app/**/{page,layout,error,loading,not-found,route,template,opengraph-image,sitemap,robots,manifest}.{ts,tsx}",
-        "middleware.ts",
+        "proxy.ts",
         "instrumentation.ts",
         "next.config.{ts,mjs}",
+        "vitest.config.ts",
+        "playwright.config.ts",
+        "vercel.ts",
       ],
       project: ["**/*.{ts,tsx}!"],
       next: { entry: ["app/**/*.{ts,tsx}"] },
     },
     "packages/*": {
-      entry: ["src/index.ts"],
+      entry: ["src/index.ts", "drizzle.config.ts"],
       project: ["src/**/*.ts"],
     },
   },
@@ -37,13 +40,13 @@ const config: KnipConfig = {
   },
   vitest: true,
   playwright: {
-    config: ["playwright.config.ts"],
-    entry: ["tests/e2e/**/*.{test,spec}.ts"],
+    config: ["apps/web/playwright.config.ts"],
+    entry: ["apps/web/e2e/**/*.{test,spec}.ts"],
   },
   biome: { config: ["biome.json"] },
   drizzle: {
-    config: ["drizzle.config.ts"],
-    entry: ["packages/db/migrations/*.ts"],
+    config: ["packages/db/drizzle.config.ts"],
+    entry: ["packages/db/src/**/*.ts"],
   },
 };
 

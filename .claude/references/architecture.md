@@ -11,7 +11,7 @@ choice, not just the choice itself.
 | Runtime              | Node 22 LTS, Deno 2 (edge functions)                | Active LTS. Supabase Edge runs Deno 2.                   |
 | Package manager      | pnpm 10                                             | Workspace-native; Vercel + Supabase first-class.         |
 | Monorepo orchestrator| Turborepo 2                                         | Free remote cache on Vercel; ~20-line config.            |
-| Framework            | Next.js 15.5+ App Router                            | RSC default. React Compiler 1.0 via SWC.                 |
+| Framework            | Next.js 16.2.6 App Router                           | `proxy.ts` replaces `middleware.ts`. Turbopack default.  |
 | React                | 19.2                                                | useOptimistic, useActionState production-ready.          |
 | Lint+format          | Biome 2                                             | Type-aware lint without `tsc`. One config.               |
 | React Hooks lint     | `eslint-plugin-react-hooks@latest`                  | Only ESLint plugin retained. Ships React Compiler rules. |
@@ -65,9 +65,10 @@ ituri-sitrep/
 └── docs/adr/                     # MADR 4.0 ADRs
 ```
 
-**Current state:** single Next.js app at the repo root (`app/`, `lib/`,
-`components/`). Migration to this layout is a planned operation; until then,
-treat per-package CLAUDE.md as a future concern.
+**Current state (post Phase 0):** monorepo migration complete. `apps/web/` holds
+all Next.js code (`app/`, `lib/`, `components/`, `proxy.ts`). Stub packages
+`packages/{db,shared,extract,ingest,ui}/` exist with empty `src/index.ts`.
+Phase 1 begins domain code inside these packages.
 
 ## Runtime boundaries
 

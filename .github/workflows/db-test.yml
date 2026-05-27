@@ -1,0 +1,48 @@
+name: DB Test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  db-test:
+    name: DB Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Start Supabase
+        run: supabase start
+
+      - name: Validate SQL migrations (pglast)
+        run: pnpm db:lint
+
+      - name: Run pgTAP tests
+        run: |
+          if [ -d supabase/tests ] && ls supabase/tests/*.sql 2>/dev/null; then
+            pg_prove -h localhost -p 54322 -U postgres -d postgres supabase/tests/*.sql
+          else
+            echo "No pgTAP tests yet — skipping"
+          fi
+
+      - name: Stop Supabase
+        if: always()
+        run: supabase stop

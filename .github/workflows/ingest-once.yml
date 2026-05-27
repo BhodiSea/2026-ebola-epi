@@ -1,0 +1,42 @@
+name: Ingest Once
+
+on:
+  workflow_dispatch:
+    inputs:
+      adapter:
+        description: "Data source adapter to backfill"
+        required: true
+        type: choice
+        options:
+          - who-don
+          - who-afro
+          - ecdc-cdtr
+          - africa-cdc
+          - reliefweb
+          - moh-drc
+
+jobs:
+  ingest:
+    name: Backfill (${{ inputs.adapter }})
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run backfill
+        run: pnpm --filter @ituri/ingest run backfill -- --adapter ${{ inputs.adapter }}
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}

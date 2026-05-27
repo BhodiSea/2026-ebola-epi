@@ -1,0 +1,43 @@
+import type { Metadata } from "next";
+import { Geist } from "next/font/google";
+import { ThemeProvider } from "next-themes";
+
+import { env } from "@/lib/env";
+
+import "./globals.css";
+
+const defaultUrl =
+  env.VERCEL_URL === undefined ? "http://localhost:3000" : `https://${env.VERCEL_URL}`;
+
+export const metadata: Metadata = {
+  metadataBase: new URL(defaultUrl),
+  title: "ituri-sitrep",
+  description: "2026 Ituri Bundibugyo virus outbreak situational awareness",
+};
+
+const geistSans = Geist({
+  variable: "--font-geist-sans",
+  display: "swap",
+  subsets: ["latin"],
+});
+
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  return (
+    <html lang="en" suppressHydrationWarning>
+      <body className={`${geistSans.className} antialiased`}>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          {children}
+        </ThemeProvider>
+      </body>
+    </html>
+  );
+}
