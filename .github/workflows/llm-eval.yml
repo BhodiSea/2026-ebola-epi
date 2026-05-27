@@ -23,11 +23,12 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Check eval config exists
-        run: |
-          test -f evals/promptfoo.config.yaml || (echo "No eval config yet — skipping" && exit 0)
-
       - name: Run LLM evals
-        run: pnpm exec promptfoo eval --config evals/promptfoo.config.yaml
+        run: |
+          if [ ! -f evals/promptfoo.config.yaml ]; then
+            echo "No eval config yet — skipping"
+            exit 0
+          fi
+          pnpm exec promptfoo eval --config evals/promptfoo.config.yaml
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}

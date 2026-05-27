@@ -15,8 +15,7 @@
     },
     "lint:eslint": {
       "outputs": [],
-      "cache": true,
-      "dependsOn": ["^build"]
+      "cache": true
     },
     "typecheck": {
       "outputs": [".turbo/tsbuildinfo.json"],

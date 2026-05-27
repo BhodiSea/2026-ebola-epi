@@ -4,5 +4,5 @@ export const config: VercelConfig = {
   framework: "nextjs",
   buildCommand: "turbo build --filter=@ituri/web",
   installCommand: "pnpm install --frozen-lockfile",
-  outputDirectory: ".next",
+  outputDirectory: "apps/web/.next",
 };
