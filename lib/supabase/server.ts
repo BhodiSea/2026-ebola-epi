@@ -1,34 +1,36 @@
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
+import { createServerClient } from "@supabase/ssr";
+import { cookies } from "next/headers";
+
+import { env } from "@/lib/env";
 
 /**
- * Especially important if using Fluid compute: Don't put this client in a
- * global variable. Always create a new client within each function when using
- * it.
+ * Don't put this client in a global variable (Fluid Compute).
+ * Always create a new client within each function.
  */
 export async function createClient() {
+  const url = env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+  if (url === undefined || key === undefined) {
+    throw new Error("Supabase env vars are not configured");
+  }
+
   const cookieStore = await cookies();
 
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-        setAll(cookiesToSet) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) => {
-              cookieStore.set(name, value, options);
-            });
-          } catch {
-            // The `setAll` method was called from a Server Component.
-            // This can be ignored if you have proxy refreshing
-            // user sessions.
+  return createServerClient(url, key, {
+    cookies: {
+      getAll() {
+        return cookieStore.getAll();
+      },
+      setAll(cookiesToSet) {
+        try {
+          for (const { name, value, options } of cookiesToSet) {
+            cookieStore.set(name, value, options);
           }
-        },
+          // eslint-disable-next-line no-restricted-syntax -- Server Component cookie write is a no-op; proxy.ts handles session refresh
+        } catch {
+          /* intentional: cookie.set() throws in Server Components; the proxy refreshes the session */
+        }
       },
     },
-  );
+  });
 }

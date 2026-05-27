@@ -47,9 +47,9 @@ case "$file_path" in
 
     # Related Vitest tests, only if Vitest is locally installed.
     if [ -x "node_modules/.bin/vitest" ]; then
-      if ! ./node_modules/.bin/vitest --related --run "$file_path" >/dev/null 2>&1; then
-        echo "vitest --related failed for $file_path:" >&2
-        ./node_modules/.bin/vitest --related --run "$file_path" >&2 || true
+      if ! ./node_modules/.bin/vitest related --run "$file_path" >/dev/null 2>&1; then
+        echo "vitest related failed for $file_path:" >&2
+        ./node_modules/.bin/vitest related --run "$file_path" >&2 || true
         exit 2
       fi
     fi

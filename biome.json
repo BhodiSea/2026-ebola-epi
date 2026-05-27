@@ -1,46 +1,195 @@
 {
   "$schema": "https://biomejs.dev/schemas/2.4.15/schema.json",
+  "vcs": {
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true,
+    "defaultBranch": "main"
+  },
   "files": {
     "includes": [
-      "**",
+      "**/*.{ts,tsx,mts,cts,js,mjs,cjs,jsx,json,jsonc,css}",
       "!**/.next",
+      "!**/dist",
+      "!**/.turbo",
       "!**/node_modules",
-      "!**/coverage",
-      "!**/supabase/migrations",
-      "!**/next-env.d.ts"
+      "!**/*.generated.*",
+      "!supabase/functions"
     ]
   },
   "formatter": {
     "enabled": true,
     "indentStyle": "space",
     "indentWidth": 2,
-    "lineWidth": 100
+    "lineWidth": 100,
+    "lineEnding": "lf",
+    "useEditorconfig": false
   },
   "javascript": {
     "formatter": {
-      "quoteStyle": "single",
+      "quoteStyle": "double",
+      "jsxQuoteStyle": "double",
+      "semicolons": "always",
       "trailingCommas": "all",
-      "semicolons": "always"
-    }
+      "arrowParentheses": "always",
+      "bracketSpacing": true,
+      "bracketSameLine": false
+    },
+    "globals": ["React"]
   },
-  "css": {
-    "parser": { "tailwindDirectives": true }
+  "json": { "formatter": { "trailingCommas": "none" } },
+  "css": { "parser": { "tailwindDirectives": true } },
+  "assist": {
+    "enabled": true,
+    "actions": {
+      "source": {
+        "organizeImports": {
+          "level": "on",
+          "options": {
+            "groups": [
+              ":BUN:",
+              ":NODE:",
+              ":PACKAGE_WITH_PROTOCOL:",
+              ":BLANK_LINE:",
+              ":PACKAGE:",
+              ":BLANK_LINE:",
+              { "source": "^@/.+", "type": false },
+              ":BLANK_LINE:",
+              ":PATH:"
+            ]
+          }
+        }
+      }
+    }
   },
   "linter": {
     "enabled": true,
+    "domains": {
+      "react": "recommended",
+      "next": "recommended",
+      "test": "recommended"
+    },
     "rules": {
       "recommended": true,
       "correctness": {
-        "useExhaustiveDependencies": "off",
-        "useHookAtTopLevel": "off"
+        "noUnusedImports": "error",
+        "noUnusedVariables": "error",
+        "noUnusedFunctionParameters": "error",
+        "useExhaustiveDependencies": "error",
+        "useHookAtTopLevel": "error",
+        "noUnusedPrivateClassMembers": "error",
+        "noNodejsModules": "off"
       },
       "suspicious": {
         "noExplicitAny": "error",
-        "noUnknownAtRules": "off"
+        "noConsole": {
+          "level": "error",
+          "options": { "allow": ["warn", "error"] }
+        },
+        "noDebugger": "error",
+        "noDoubleEquals": "error",
+        "noEmptyBlockStatements": "error",
+        "noAssignInExpressions": "error",
+        "noArrayIndexKey": "error",
+        "noConfusingVoidType": "error",
+        "noFocusedTests": "error"
       },
       "style": {
-        "noNonNullAssertion": "warn"
+        "useImportType": {
+          "level": "error",
+          "options": { "style": "separatedType" }
+        },
+        "useExportType": "error",
+        "noNonNullAssertion": "error",
+        "useConst": "error",
+        "useTemplate": "error",
+        "noNegationElse": "error",
+        "useNodejsImportProtocol": "error",
+        "useBlockStatements": "error",
+        "useCollapsedElseIf": "error",
+        "useDefaultSwitchClause": "warn",
+        "useShorthandAssign": "error",
+        "useExplicitLengthCheck": "error",
+        "noDefaultExport": "off",
+        "noParameterAssign": "error",
+        "useNamingConvention": "off",
+        "noProcessEnv": "off"
+      },
+      "complexity": {
+        "noExcessiveCognitiveComplexity": {
+          "level": "error",
+          "options": { "maxAllowedComplexity": 15 }
+        },
+        "noUselessStringConcat": "error",
+        "noUselessUndefinedInitialization": "error",
+        "useSimplifiedLogicExpression": "error",
+        "noForEach": "off"
+      },
+      "performance": {
+        "noBarrelFile": "error",
+        "noReExportAll": "error",
+        "useTopLevelRegex": "error"
+      },
+      "nursery": {
+        "noFloatingPromises": "error",
+        "noMisusedPromises": "error",
+        "useAwaitThenable": "error",
+        "useSortedClasses": {
+          "level": "error",
+          "options": {
+            "attributes": ["className"],
+            "functions": ["clsx", "cva", "cn", "tw"]
+          }
+        }
+      },
+      "security": { "noDangerouslySetInnerHtml": "error" },
+      "a11y": { "recommended": true }
+    }
+  },
+  "overrides": [
+    {
+      "includes": ["**/*.css"],
+      "linter": {
+        "rules": {
+          "suspicious": { "noUnknownAtRules": "off" }
+        }
+      }
+    },
+    {
+      "includes": ["lib/supabase/**/*.ts"],
+      "linter": {
+        "rules": {
+          "style": { "noNonNullAssertion": "off" }
+        }
+      }
+    },
+    {
+      "includes": [
+        "apps/web/app/**/page.tsx",
+        "apps/web/app/**/layout.tsx",
+        "apps/web/app/**/route.ts",
+        "apps/web/middleware.ts",
+        "**/*.config.{ts,js,mjs}"
+      ],
+      "linter": { "rules": { "style": { "noDefaultExport": "off" } } }
+    },
+    {
+      "includes": ["**/*.{test,spec}.{ts,tsx}", "**/tests/**"],
+      "linter": {
+        "rules": {
+          "suspicious": { "noConsole": "off", "noExplicitAny": "off" },
+          "style": { "noNonNullAssertion": "off" }
+        }
+      }
+    },
+    {
+      "includes": ["packages/shared/**", "packages/extract/**"],
+      "linter": {
+        "rules": {
+          "performance": { "noBarrelFile": "error", "noReExportAll": "error" },
+          "style": { "noDefaultExport": "error" }
+        }
       }
     }
-  }
+  ]
 }

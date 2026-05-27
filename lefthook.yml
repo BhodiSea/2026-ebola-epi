@@ -1,0 +1,14 @@
+pre-commit:
+  parallel: false
+  commands:
+    1_biome:
+      glob: "*.{ts,tsx,js,jsx,json,jsonc,css}"
+      run: pnpm exec biome check --write --no-errors-on-unmatched {staged_files}
+      stage_fixed: true
+    2_eslint:
+      glob: "*.{ts,tsx,js,jsx}"
+      run: pnpm exec eslint --fix --no-warn-ignored {staged_files}
+      stage_fixed: true
+    3_typecheck:
+      glob: "*.{ts,tsx}"
+      run: pnpm exec tsc --noEmit -p tsconfig.json
