@@ -40,3 +40,14 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Claude Code local overrides & session state
+CLAUDE.local.md
+.claude/settings.local.json
+.claude/.tdd-state/
+.claude/.cache/
+
+# Python virtualenv (pglast SQL validator)
+.venv/
+__pycache__/
+*.pyc
