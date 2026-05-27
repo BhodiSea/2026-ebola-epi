@@ -1,0 +1,54 @@
+// Type-only smoke tests — no DB connection required.
+import type { DocumentId, ExtractionRunId, SourceQuoteId } from "@ituri/shared";
+import { describe, expectTypeOf, it } from "vitest";
+
+import type { admin1, admin2, caseCounts, documents, sourceQuotes, sources } from "../schema";
+
+describe("schema type inference", () => {
+  it("sourceQuotes id column resolves to SourceQuoteId brand", () => {
+    type Row = typeof sourceQuotes.$inferSelect;
+    expectTypeOf<Row["id"]>().toEqualTypeOf<SourceQuoteId>();
+  });
+
+  it("sourceQuotes documentId resolves to DocumentId brand", () => {
+    type Row = typeof sourceQuotes.$inferSelect;
+    expectTypeOf<Row["documentId"]>().toEqualTypeOf<DocumentId>();
+  });
+
+  it("caseCounts sourceQuoteId resolves to SourceQuoteId brand", () => {
+    type Row = typeof caseCounts.$inferSelect;
+    expectTypeOf<Row["sourceQuoteId"]>().toEqualTypeOf<SourceQuoteId>();
+  });
+
+  it("caseCounts extractionRunId resolves to ExtractionRunId brand", () => {
+    type Row = typeof caseCounts.$inferSelect;
+    expectTypeOf<Row["extractionRunId"]>().toEqualTypeOf<ExtractionRunId>();
+  });
+
+  it("documents.$inferSelect includes fullTextTsv generated column", () => {
+    type Row = typeof documents.$inferSelect;
+    expectTypeOf<Row["fullTextTsv"]>().toExtend<null | string>();
+  });
+
+  it("documents.$inferInsert does not include fullTextTsv (generated column)", () => {
+    type Insert = typeof documents.$inferInsert;
+    expectTypeOf<Insert>().not.toHaveProperty("fullTextTsv");
+  });
+
+  it("sources.$inferSelect has slug and trustScore string fields", () => {
+    type Row = typeof sources.$inferSelect;
+    expectTypeOf<Row["slug"]>().toEqualTypeOf<string>();
+    expectTypeOf<Row["trustScore"]>().toEqualTypeOf<string>();
+  });
+
+  it("admin1.$inferSelect has string code and countryIso3", () => {
+    type Row = typeof admin1.$inferSelect;
+    expectTypeOf<Row["code"]>().toEqualTypeOf<string>();
+    expectTypeOf<Row["countryIso3"]>().toEqualTypeOf<string>();
+  });
+
+  it("admin2.$inferSelect references admin1 via admin1Code string", () => {
+    type Row = typeof admin2.$inferSelect;
+    expectTypeOf<Row["admin1Code"]>().toEqualTypeOf<string>();
+  });
+});

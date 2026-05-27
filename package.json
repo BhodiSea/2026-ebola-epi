@@ -13,7 +13,9 @@
     "test": "turbo test",
     "knip": "knip",
     "db:lint": "find supabase/migrations -name '*.sql' -print0 2>/dev/null | xargs -0 -I{} pglast --parse '{}'",
-    "db:test": "pg_prove -h localhost -p 54322 -U postgres -d postgres supabase/tests/*.sql 2>/dev/null || echo 'No pgTAP tests yet'"
+    "db:validate": "find supabase/migrations -name '*.sql' -print0 2>/dev/null | xargs -0 -I{} pglast --check '{}'",
+    "db:test": "supabase test db",
+    "db:types": "supabase gen types typescript --linked > packages/db/src/types.gen.ts"
   },
   "pnpm": {
     "onlyBuiltDependencies": [

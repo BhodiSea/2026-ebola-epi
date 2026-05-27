@@ -39,3 +39,22 @@ jobs:
 
       - name: Audit
         run: pnpm audit --audit-level=high
+
+  types-drift:
+    name: Supabase types drift
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Check generated types match committed file
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+        run: |
+          supabase link --project-ref "$SUPABASE_PROJECT_REF"
+          supabase gen types typescript --linked > /tmp/types.gen.ts
+          diff /tmp/types.gen.ts packages/db/src/types.gen.ts

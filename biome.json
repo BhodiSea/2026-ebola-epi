@@ -183,7 +183,7 @@
       }
     },
     {
-      "includes": ["packages/shared/**", "packages/extract/**"],
+      "includes": ["packages/shared/src/**", "packages/extract/src/**"],
       "linter": {
         "rules": {
           "performance": { "noBarrelFile": "error", "noReExportAll": "error" },

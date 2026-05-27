@@ -62,6 +62,7 @@ export default defineConfig(
             "eslint.config.ts",
             "knip.config.ts",
             "vitest.config.ts",
+            "packages/*/vitest.config.ts",
             "packages/db/drizzle.config.ts",
             "apps/web/e2e/*.ts",
           ],
@@ -322,7 +323,7 @@ export default defineConfig(
           ],
           patterns: [
             {
-              group: ["**/.."],
+              group: ["../../**", "**/../../**"],
               message: "No parent-relative imports beyond one level — use @/* aliases.",
             },
           ],
@@ -557,6 +558,7 @@ export default defineConfig(
     plugins: { vitest },
     rules: {
       ...vitest.configs.recommended.rules,
+      "vitest/expect-expect": ["error", { assertFunctionNames: ["expect", "expectTypeOf"] }],
       "max-lines-per-function": ["error", { max: 200 }],
       "max-lines": ["error", { max: 600 }],
       "@typescript-eslint/no-non-null-assertion": "off",
@@ -565,6 +567,11 @@ export default defineConfig(
       "no-console": "off",
       "sonarjs/no-duplicate-string": "off",
       "import-x/no-extraneous-dependencies": "off",
+      "functional/no-expression-statements": "off",
+      "functional/no-return-void": "off",
+      "functional/immutable-data": "off",
+      "n/no-extraneous-import": "off",
+      "n/no-missing-import": "off",
     },
   },
 
@@ -590,11 +597,13 @@ export default defineConfig(
     ],
     rules: {
       "import-x/no-default-export": "off",
+      "import-x/no-extraneous-dependencies": "off",
       "@typescript-eslint/no-unsafe-assignment": "off",
       "@typescript-eslint/no-unsafe-call": "off",
       "@typescript-eslint/no-unsafe-member-access": "off",
       "no-restricted-imports": "off",
       "max-lines": "off",
+      "n/no-extraneous-import": "off",
     },
   },
 

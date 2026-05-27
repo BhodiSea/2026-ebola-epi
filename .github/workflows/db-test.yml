@@ -27,6 +27,13 @@ jobs:
         with:
           version: latest
 
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Python deps (pglast)
+        run: pip install -r requirements.txt
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
@@ -37,12 +44,7 @@ jobs:
         run: pnpm db:lint
 
       - name: Run pgTAP tests
-        run: |
-          if [ -d supabase/tests ] && ls supabase/tests/*.sql 2>/dev/null; then
-            pg_prove -h localhost -p 54322 -U postgres -d postgres supabase/tests/*.sql
-          else
-            echo "No pgTAP tests yet — skipping"
-          fi
+        run: supabase test db
 
       - name: Stop Supabase
         if: always()

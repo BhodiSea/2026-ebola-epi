@@ -1,7 +1,14 @@
-import type { Config } from "drizzle-kit";
+import { defineConfig } from "drizzle-kit";
 
-export default {
+const url = process.env.SUPABASE_DB_URL;
+if (url === undefined || url === "") {
+  throw new Error("SUPABASE_DB_URL env var is required for drizzle-kit");
+}
+
+export default defineConfig({
   schema: "./src/schema.ts",
-  out: "../../supabase/migrations",
   dialect: "postgresql",
-} satisfies Config;
+  dbCredentials: { url },
+  extensionsFilters: ["postgis"],
+  schemaFilter: ["public"],
+});
