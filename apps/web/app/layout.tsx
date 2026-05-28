@@ -1,23 +1,15 @@
 import type { Metadata } from "next";
-import dynamic from "next/dynamic";
 import { Geist, Geist_Mono, Source_Serif_4 } from "next/font/google";
 import { headers } from "next/headers";
 import { ThemeProvider } from "next-themes";
 
+import { CommandBarLoader } from "@/components/layout/command-bar-loader";
 import { NavRail } from "@/components/layout/nav-rail";
 import { TopBar } from "@/components/layout/top-bar";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { env } from "@/lib/env";
 
 import "./globals.css";
-
-const CommandBar = dynamic(
-  async () => {
-    const m = await import("@/components/layout/command-bar");
-    return m.CommandBar;
-  },
-  { ssr: false },
-);
 
 const defaultUrl =
   env.VERCEL_URL === undefined ? "http://localhost:3000" : `https://${env.VERCEL_URL}`;
@@ -73,7 +65,7 @@ export default async function RootLayout({
               <NavRail />
               <main className="flex-1 overflow-auto">{children}</main>
             </div>
-            <CommandBar />
+            <CommandBarLoader />
           </TooltipProvider>
         </ThemeProvider>
       </body>
