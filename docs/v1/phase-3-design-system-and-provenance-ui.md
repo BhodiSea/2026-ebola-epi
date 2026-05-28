@@ -297,6 +297,96 @@ Hovering any `<Figure>` on `/methods` opens the `<SourceQuoteCard>` with a real 
 
 ---
 
+## Voice & Microcopy
+
+*Source: [`research/copy.md`](../../research/copy.md) §1–§2, §5.*
+
+### Register
+
+The voice is the **Our World in Data register** — direct, data-forward, limitation-honest — not the WHO institutional register (procedural, cautious) and not journalism (catchy but imprecise). The target reader is a public health trainee, a journalist, or an LSHTM/ECDC analyst wanting a fast read before opening the PDF. They are data-savvy. They do not need simplification. They need speed, clarity, and honest uncertainty.
+
+### The five voice rules
+
+1. **State what you know, then what you don't.** Every figure links to its source sentence; every absence of data names the gap and its likely cause.
+2. **Name the disagreement.** When WHO DON says 347 and AFRO sitrep says 312, present both with timestamps and source links. "The difference reflects reporting lag and differing case inclusion criteria." Never pick a winner silently.
+3. **Front-load the answer.** The datum comes first, always — not the methodology. Methodology is one hover or one click away.
+4. **Active voice, present tense, short sentences.** "This map shows suspected case totals by health zone as of the most recent WHO AFRO sitrep." Not: "The map below has been designed to present an overview of the epidemiological situation as reported in the most recent situation report published by the WHO Regional Office for Africa."
+5. **Never claim authority you don't have.** The site is a lens, not a source. "WHO reports that…" not "The outbreak has…"
+
+### Sentence-level do/don't table
+
+| Bad | Good | Why |
+|-----|------|-----|
+| "Our advanced AI-powered extraction pipeline ensures the highest accuracy." | "Case numbers are extracted from WHO and AFRO sitreps by Claude Sonnet 4.6 using a strict schema. Every figure links to its source sentence. Extraction accuracy is monitored against a hand-verified gold set." | Bad claims authority without evidence. Good describes the mechanism and verification. |
+| "The situation continues to evolve rapidly." | "WHO DON 603 (24 May 2026) reported 14 new suspected cases in Irumu health zone since DON 602 (17 May)." | Bad is a cliché that communicates nothing. Good is a fact with a source and a timeframe. |
+| "Data may be incomplete." | "Numbers from Mambasa and Komanda health zones have not been updated since the AFRO sitrep of 15 May. The gap likely reflects access constraints in those zones rather than an absence of cases." | Bad is a generic disclaimer. Good names the specific gap and offers a plausible explanation. |
+| "Click here to learn more about our methodology." | "Methods: how we extract, verify, and reconcile numbers from multiple sources →" | "Click here" is an SEO anti-pattern and an accessibility failure. |
+
+### Ideological commitments (About / Methods page spine)
+
+1. **Provenance is the product.** "Hover any figure on this page to see the exact sentence from the source document it was extracted from." This is the thesis, not a feature description.
+2. **Numbers lag and disagree — that is normal.** Do not apologise for discrepancies. Explain them. Show all sources.
+3. **This is not an operational tool.** "If you are a field epidemiologist needing an operational tool, use Go.Data, SORMAS, or DHIS2 Tracker." Say this near the top of the About page.
+4. **Open source, open data, upstream citations.** The site amplifies WHO/AFRO/ECDC. It does not ask to be cited; it asks readers to cite WHO/AFRO/ECDC.
+5. **Built by one person, on weekends.** "Built by an MD student at the University of Western Australia as a side project. Evaluated accordingly." Calibrates expectations; paradoxically increases trust.
+
+### Banned words
+
+Never use these in any user-facing string:
+
+- `real-time` — the site updates every few hours. Say "regularly updated" or "updated within hours of source publication."
+- `AI-powered` — describe what the AI does; let the reader judge.
+- `cutting-edge`, `state-of-the-art`, `revolutionary` — destroy credibility in a public health context.
+- `dashboard` — overused; signals shallow. Say "outbreak tracker" or "situational-awareness companion."
+- `we` — solo project; use "I" on About and impersonal constructions elsewhere.
+- `comprehensive` — the site deliberately excludes sources.
+- `accurate` as a standalone claim — always qualify: "extraction accuracy is monitored against a hand-verified gold set of {n} documents."
+- `Powered by Claude` / `Built with AI` as a headline — bury toolchain details in Methods.
+
+### `apps/web/lib/copy.ts` — canonical phrasings module
+
+Create this module to avoid string drift across components:
+
+```ts
+// apps/web/lib/copy.ts
+// server-only — import via "server-only"
+export const LIMITATION_DISCLAIMER =
+  "Numbers from {zone} have not been updated since {date}. The gap likely reflects access constraints rather than an absence of cases.";
+
+export const SOURCE_ATTR_PATTERN =
+  "Source: {authority}, {date}. Click to view evidence.";
+
+export const AI_GENERATED_LABEL =
+  "Summary generated by Claude Sonnet 4.6. Extracted numbers are linked to their source sentences below.";
+
+export const HAND_WRITTEN_LABEL =
+  "Hand-written summary. Extracted numbers link to their source sentences.";
+
+export const NO_OPERATIONAL_USE =
+  "If you are a field epidemiologist needing an operational tool, use Go.Data, SORMAS, or DHIS2 Tracker.";
+
+export const PROVENANCE_HOOK =
+  "Hover any figure on this page to see the exact sentence from the source document it was extracted from.";
+```
+
+Reference these constants from `<Figure>`, `<SourceQuoteCard>`, `<AIGeneratedLabel>`, `<GlossaryTerm>`.
+
+### Updated `/methods` page outline
+
+The Methods page is the most important page for institutional credibility and YMYL E-E-A-T SEO (see Phase 8). It must be 1,500–2,500 words, structured with clear H2 headings. Use the nine-section structure:
+
+1. **What this site does** (2 sentences)
+2. **What this site does not do** (3 sentences — no PHI, no forecasting, not operational, link to Go.Data)
+3. **Data sources** (table: source, format, cadence, licence tier, link — one row per source including all Phase 6 additions)
+4. **Extraction method** (how Claude extracts numbers; the zod schema; the substring verification; the gold-set validation and F1 target)
+5. **Provenance model** (how `source_quote_id` works; what the tooltip shows; what the `/evidence/[id]` permalink shows)
+6. **Limitations** (reporting lag, access constraints, LLM extraction errors, sources deliberately excluded and why — GISAID, HeRAMS, line-list data)
+7. **Author** (name, affiliation University of Western Australia, ORCID, GitHub)
+8. **Citation guidance** ("Cite the original WHO/AFRO/ECDC documents, not this site.")
+9. **Code and licence** (MIT for code, CC-BY 4.0 for derived data, upstream licences respected per the three-tier matrix)
+
+---
+
 ## Out of scope
 
 - `/today`, `/outbreaks`, `/sitreps`, `/sources` routes (Phase 4).

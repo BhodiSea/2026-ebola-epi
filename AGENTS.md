@@ -50,6 +50,20 @@ substitute for the WHO DON or DRC MSP press release.
     No new top-level dependency without an ADR.
 12. **`getServerSideProps`, `getStaticProps`, Pages Router, and
     `@supabase/auth-helpers-nextjs` are forbidden.** App Router + `@supabase/ssr` only.
+13. **Anthropic `cache_control` must specify `ttl` explicitly.** The default
+    changed from 1h to 5m in 2026. The tools + system breakpoint uses
+    `{ type: "ephemeral", ttl: "1h" }`; few-shot examples stay at the 5m
+    default. The longer-TTL block must appear **before** the shorter-TTL
+    block (Bedrock/Anthropic ordering rule). A Vitest assertion must confirm
+    `ttl === "1h"` on the long-lived block in every extraction runner.
+14. **Every `public.sources` row carries a `license_tier`.** Valid values:
+    `open`, `display_only`, `noncommercial_verified`, `excluded`. Researcher-
+    tier CSV export filters on `license_tier = 'open'`. `display_only`
+    sources may render aggregated overlays with attribution but never appear
+    in any export and never feed a derived raster that would be redistributed.
+15. **Outbound politeness goes through Inngest `throttle` with
+    `scope: "account"` keyed per host.** In-process `p-throttle` is
+    forbidden — it does not coordinate across concurrent function instances.
 
 ## Tech stack (target — see `.claude/references/architecture.md` for full table)
 

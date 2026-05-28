@@ -393,6 +393,246 @@ Seven consecutive days of fully autonomous operation with zero non-escalation-cl
 
 ---
 
+## Anthropic cache TTL — explicit `ttl: "1h"`
+
+*Source: [`research/performance.md`](../../research/performance.md) §3.3.*
+
+The Anthropic `cache_control` default changed from 1h to 5 minutes around March 2026 (per documented regression in anthropics/claude-code Issue #46829). **Passing only `{ type: "ephemeral" }` without a `ttl` field now produces a 5-minute cache window on the tools/system prefix**, drastically reducing cache-read ratio.
+
+Update [`packages/extract/src/run.ts`](../../packages/extract/src/run.ts):
+
+```ts
+const response = await anthropic.messages.create({
+  model: MODEL,
+  max_tokens: 2048,
+  system: [
+    { type: "text", text: STATIC_INSTRUCTIONS },
+    {
+      type: "text",
+      text: JSON.stringify(extractionTool.input_schema),
+      cache_control: { type: "ephemeral", ttl: "1h" },  // ← explicit 1h (was missing)
+    },
+  ],
+  messages: [
+    {
+      role: "user",
+      content: [
+        { type: "text", text: FEW_SHOTS, cache_control: { type: "ephemeral" } }, // 5m default (correct)
+        { type: "text", text: documentText },
+      ],
+    },
+  ],
+  // ...
+});
+```
+
+**Ordering rule (Bedrock/Anthropic):** longer-TTL breakpoints must appear before shorter-TTL ones. The 1h tools/system block precedes the 5m few-shots block — the order above is correct.
+
+Add a Vitest assertion to [`packages/extract/src/__tests__/run.test.ts`](../../packages/extract/src/__tests__/run.test.ts) that intercepts the Anthropic SDK call and asserts `ttl === "1h"` is present on the long-lived block.
+
+**Impact**: cached reads do not count toward ITPM rate limits for Claude 4.x models (Anthropic rate-limits docs: "For most Claude models, only uncached input tokens count towards your ITPM rate limits"). A cache-read ratio ≥ 0.60 effectively multiplies throughput 5–10×. The Langfuse dashboard target of ≥ 0.60 is now verified against the correct TTL.
+
+---
+
+## Message Batches API — production back-fill
+
+*Source: [`research/performance.md`](../../research/performance.md) §3.3.*
+
+The Message Batches API provides an unconditional **50% discount on both input and output tokens** and stacks with prompt caching: a cached batch input costs ≈ 5% of base price (0.5 × 0.1 × base). Use it for two workloads:
+
+**1. Nightly evals (already specified above):** `pnpm promptfoo eval --config evals/promptfoo.config.yaml --batch`.
+
+**2. Historical back-fill of archive sitreps:**
+
+Add a `back-fill.ts` Inngest function triggered manually or by `document/backfill.requested` events:
+
+```ts
+// apps/web/inngest/functions/back-fill.ts
+export const backFillExtraction = inngest.createFunction(
+  { id: "back-fill-extraction", retries: 1 },
+  { event: "document/backfill.requested" },
+  async ({ event, step }) => {
+    const { documentIds } = event.data;
+
+    // Build batch requests
+    const requests = documentIds.map((id: string, idx: number) => ({
+      custom_id: `backfill-${id}`,
+      params: {
+        model: MODEL,
+        max_tokens: 2048,
+        system: STATIC_INSTRUCTIONS,
+        messages: [{ role: "user", content: await fetchDocText(id) }],
+        tools: [extractionTool],
+        tool_choice: { type: "tool", name: extractionTool.name },
+      },
+    }));
+
+    const batch = await step.run("create-batch", () =>
+      anthropic.messages.batches.create({ requests })
+    );
+
+    // Poll for completion (Inngest step.sleep respects retries)
+    let batchResult;
+    do {
+      await step.sleep("poll-delay", "5m");
+      batchResult = await step.run("poll-batch", () =>
+        anthropic.messages.batches.retrieve(batch.id)
+      );
+    } while (batchResult.processing_status !== "ended");
+
+    // Process results — copy to permanent table (batch results expire after 29 days)
+    await step.run("persist-results", () => processBatchResults(batchResult));
+  }
+);
+```
+
+Batch results expire after 29 days — persist them to Supabase Storage or a permanent table (`audit.batch_results`) immediately on completion. Do not rely on the Anthropic API as long-term storage.
+
+---
+
+## Kill switch — graceful degradation tiers
+
+*Source: [`research/performance.md`](../../research/performance.md) §3.3.*
+
+Extend the existing kill switch to four degradation tiers rather than a binary on/off:
+
+```ts
+// apps/web/lib/kill-switch.ts (extended)
+export async function getExtractionCapacity(): Promise<"full" | "reduced" | "low_priority_only" | "paused"> {
+  const [enabled, ratioStr] = await Promise.all([
+    get<boolean>("extraction_enabled"),
+    get<string>("extraction_spend_ratio"),  // set by the pg_net trigger
+  ]);
+
+  if (enabled === false) return "paused";
+  const ratio = parseFloat(ratioStr ?? "0");
+  if (ratio >= 0.95) return "low_priority_only";
+  if (ratio >= 0.80) return "reduced";
+  return "full";
+}
+```
+
+Update every Inngest extract step to check capacity:
+
+```ts
+const capacity = await assertExtractionCapacity();
+
+if (capacity === "paused") {
+  await step.sendEvent("extraction.paused", { data: { documentId, reason: "kill_switch" } });
+  return { skipped: true };
+}
+if (capacity === "low_priority_only" && event.data.priority !== "high") {
+  await step.sendEvent("extraction.deferred", { data: { documentId } });
+  return { skipped: true, reason: "low_priority_deferred" };
+}
+if (capacity === "reduced") {
+  // Cap Inngest concurrency for this invocation — runtime concurrency override
+  await inngest.send({ name: "extraction/concurrency.override", data: { limit: 8 } }); // half of 15
+}
+```
+
+**Tiers:**
+- **80% of daily cap** → `reduced`: Inngest concurrency halved (~8 vs 15).
+- **95% of daily cap** → `low_priority_only`: drop re-extracts and back-fills; only new documents from high-trust sources proceed.
+- **100%** → `paused`: Edge Config flag flips; in-flight steps finish; new dispatches paused; UI shows "data ingestion temporarily paused — resets at 00:00 UTC" badge via Edge Config read.
+- **00:00 UTC** → `pg_cron` resets the daily rollup and flips Edge Config `extraction_enabled` back to `true`. The rollup reset is a `pg_cron` job on `audit.anthropic_usage_log`.
+
+**Edge Config propagation caveat**: updates take up to 10 seconds to propagate globally. The kill switch is a circuit breaker, not a budget-precise limiter. Fine-grained per-request budget enforcement is handled by the concurrency and priority controls above.
+
+---
+
+## Layered rate limiting
+
+*Source: [`research/performance.md`](../../research/performance.md) §3.1–§3.2.*
+
+### Inbound L1 — Vercel WAF rate-limit rules
+
+Add to [`apps/web/vercel.ts`](../../apps/web/vercel.ts):
+
+```ts
+import { routes, type VercelConfig } from "@vercel/config/v1";
+
+export const config: VercelConfig = {
+  framework: "nextjs",
+  buildCommand: "cd ../.. && pnpm turbo build --filter=@ituri/web",
+  installCommand: "pnpm install",
+  outputDirectory: ".next",
+  firewall: {
+    rules: [
+      // Tile abuse cap — token bucket (or Fixed Window on non-Enterprise plans)
+      { name: "mvt-tile-abuse",    matches: { path: "/api/mvt/*"  }, rateLimitAction: { limit: 600,  period: 60, action: "deny",      persistent: { duration: 300 } } },
+      // Inngest webhook endpoint
+      { name: "inngest-endpoint",  matches: { path: "/api/inngest" }, rateLimitAction: { limit: 60,   period: 60, action: "challenge"                                } },
+      // Auth brute-force protection
+      { name: "auth-brute-force",  matches: { path: "/auth/*"      }, rateLimitAction: { limit: 10,   period: 60, action: "deny",      persistent: { duration: 900 } } },
+      // Editorial pages
+      { name: "editorial-pages",   matches: { path: "/outbreaks/*" }, rateLimitAction: { limit: 300,  period: 60, action: "deny"                                     } },
+    ],
+  },
+};
+```
+
+Rate-limit counters are **per Vercel region** — set per-region caps knowing that global traffic will be ×N_regions. Tune downward if a tight global budget is required.
+
+### Inbound L2 — `@upstash/ratelimit` in `proxy.ts`
+
+For per-user / per-org keys the WAF cannot express:
+
+```ts
+// apps/web/proxy.ts (extend existing file)
+import { Ratelimit } from "@upstash/ratelimit";
+import { Redis }     from "@upstash/redis";
+
+// Declare outside the handler — reused across warm invocations
+const ratelimit = new Ratelimit({
+  redis:     Redis.fromEnv(),
+  limiter:   Ratelimit.slidingWindow(120, "60 s"),  // general API
+  analytics: true,
+  prefix:    "ituri:rl",
+});
+const tileRatelimit = new Ratelimit({
+  redis:   Redis.fromEnv(),
+  limiter: Ratelimit.tokenBucket(300, "60 s", 20),  // burst-friendly for pan/zoom
+  prefix:  "ituri:rl:mvt",
+});
+
+export async function proxy(request: NextRequest) {
+  const path = request.nextUrl.pathname;
+  const isTile = path.startsWith("/api/mvt/");
+  const limiter = isTile ? tileRatelimit : ratelimit;
+  const id = request.headers.get("x-forwarded-for") ?? "anon";
+  const { success, limit, remaining, reset } = await limiter.limit(id);
+  if (!success) {
+    return new NextResponse("Too Many Requests", {
+      status: 429,
+      headers: {
+        "Retry-After":          String(Math.ceil((reset - Date.now()) / 1000)),
+        "X-RateLimit-Limit":    String(limit),
+        "X-RateLimit-Remaining": String(remaining),
+      },
+    });
+  }
+  return NextResponse.next();
+}
+```
+
+Add `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` to [`apps/web/lib/env.ts`](../../apps/web/lib/env.ts). The Upstash check only runs on CDN cache misses — cached tile hits bypass `proxy.ts` entirely.
+
+**Algorithm choice:** sliding window for general APIs (smooths boundary bursts); token bucket for the MVT route specifically (naturally bursty as a user pans/zooms — token bucket lets a burst of ~20 tiles through in 1s if saved capacity exists).
+
+### Fluid Compute module-level state audit
+
+Before enabling Fluid Compute broadly, sweep `apps/web/**` for module-level mutable state:
+
+```bash
+rg --type ts "^const \w+ = new Map\(\)" apps/web
+rg --type ts "^let \w+:" apps/web/inngest
+```
+
+Any module-level `Map`, `Set`, or `let` that holds per-request state becomes **shared across concurrent requests** under Fluid. Migrate to request-scoped `WeakMap` keyed by the request, or push to Upstash for external shared state. The Supabase client is safe (always request-scoped via `createServerClient`). The `robots-parser` in-memory cache (already present in `who-don.ts`) is safe to share across requests — `robots.txt` is per-host and invariant within a cache window.
+
+---
+
 ## Out of scope
 
 - Multi-tenant agent surfaces or Mastra spine (v2).

@@ -66,6 +66,10 @@ export default defineConfig(
             "packages/db/drizzle.config.ts",
             "apps/web/e2e/*.ts",
           ],
+          // Phase 2 added packages/extract and packages/ingest vitest configs,
+          // pushing the default-project count above the 8-file guard.
+          // eslint-disable-next-line @typescript-eslint/naming-convention
+          maximumDefaultProjectFileMatchCount_THIS_WILL_SLOW_DOWN_LINTING: 16,
         },
         tsconfigRootDir: import.meta.dirname,
         ecmaFeatures: { jsx: true },
@@ -598,6 +602,8 @@ export default defineConfig(
     rules: {
       "import-x/no-default-export": "off",
       "import-x/no-extraneous-dependencies": "off",
+      "import-x/no-named-as-default": "off",
+      "import-x/no-named-as-default-member": "off",
       "@typescript-eslint/no-unsafe-assignment": "off",
       "@typescript-eslint/no-unsafe-call": "off",
       "@typescript-eslint/no-unsafe-member-access": "off",

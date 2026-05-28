@@ -133,6 +133,26 @@ export const extractionRuns = auditSchema.table("extraction_runs", {
   createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
 });
 
+export const auditLlmTraces = auditSchema.table("llm_traces", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  extractionRunId: uuid("extraction_run_id").references(() => extractionRuns.id),
+  traceId: text("trace_id").notNull(),
+  spanId: text("span_id").notNull(),
+  parentSpanId: text("parent_span_id"),
+  name: text("name").notNull(),
+  agentName: text("agent_name"),
+  modelId: text("model_id"),
+  promptVersionHash: text("prompt_version_hash"),
+  cacheReadInputTokens: integer("cache_read_input_tokens"),
+  cacheCreationInputTokens: integer("cache_creation_input_tokens"),
+  inputTokens: integer("input_tokens"),
+  outputTokens: integer("output_tokens"),
+  durationMs: integer("duration_ms"),
+  startedAt: timestamp("started_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
+  endedAt: timestamp("ended_at", { withTimezone: true, mode: "date" }),
+  attributes: jsonb("attributes").notNull().default(sql`'{}'::jsonb`),
+});
+
 export const agentActions = auditSchema.table("agent_actions", {
   id: bigserial("id", { mode: "number" }).primaryKey(),
   agent: text("agent").notNull(),

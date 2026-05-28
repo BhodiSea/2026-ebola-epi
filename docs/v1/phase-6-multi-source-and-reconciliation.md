@@ -274,7 +274,7 @@ To demonstrate the exit gate:
 ## Tooling
 
 - `unpdf` — WASM PDF parser fallback for AFRO scanned bulletins (already added in Phase 2; no new install needed). `unpdf` wraps Mozilla's PDF.js for Node.js/Edge environments. Do NOT use `pdf-oxide` — that is a Rust library with no published npm package.
-- `p-throttle` — rate limiting at 2 req/s per source.
+- **Inngest `throttle`** — outbound rate limiting per host via `throttle: { limit, period, key: hostKey, scope: "account" }`. This is the **only** acceptable cross-instance rate-limiter. In-process `p-throttle` is forbidden (AGENTS.md hard rule 15) because it does not coordinate across concurrent Inngest worker instances.
 - `robots-parser` — honor `robots.txt` at the adapter fetch boundary.
 - Playwright on Trigger.dev v4 task — for Africa CDC if Chromium-required PDFs are encountered. Set up Trigger.dev account and task skeleton but do not activate until the source actually requires Chromium.
 - Twilio SDK — SMS escalation for `emergency` anomaly class.
@@ -335,6 +335,232 @@ A synthetic disagreement between WHO (value=142) and ECDC (value=108) for the sa
 - [backend.md §4 — Ingestion plumbing](../../research/backend.md#4-ingestion-plumbing)
 - [backend.md §9 — Security, abuse protection, compliance](../../research/backend.md#9-security-abuse-protection-and-compliance)
 - [ux.md §5 — Progressive disclosure (disagreement)](../../research/ux.md#5-progressive-disclosure--novice--expert)
+
+---
+
+## Expanded source roster
+
+*Source: [`research/data.md`](../../research/data.md) §1, §6.*
+
+Expand beyond the eight Phase 6 v0 sources to the full priority-ordered list below. Wire in this order (highest leverage first):
+
+### Priority 1 — HDX HAPI (keyless)
+
+One adapter unlocks five data layers. Requires only an app identifier string — no account or API key.
+
+```ts
+// packages/ingest/src/sources/hdx-hapi.ts
+// Base URL: https://hapi.humdata.org/api/v1/
+// Datasets: food-security (IPC), risk (INFORM), funding (OCHA FTS), population (baseline),
+//           refugees (UNHCR) — all P-coded to OCHA COD boundaries.
+```
+
+- **IPC food security** (public domain) — acute food insecurity phases by admin1/2. Correlates with care-seeking delay and population movement.
+- **INFORM Risk Index** (CC-BY) — multi-hazard vulnerability composite at admin level.
+- **OCHA FTS funding flows** (CC-BY) — proxy for response scale-up.
+- **UNHCR refugee/returnee figures** — cleanest via HAPI vs scraping UNHCR directly.
+
+License tier: `open`.
+
+### Priority 2 — IOM DTM v3.0 (display-only)
+
+```ts
+// packages/ingest/src/sources/iom-dtm.ts
+// API: https://dtm.iom.int/api/v3/
+// Returns: admin-2 IDP figures with displacement drivers, origins, sex.
+// All boundaries P-coded from OCHA COD database (August 2025 release).
+```
+
+**License: non-commercial, NO derivative works, NO redistribution, attribution IOM/DTM required.** Store `license_tier = 'display_only'`. Show aggregated overlays with attribution only. Never include in CSV export or derived rasters.
+
+### Priority 3 — UCDP Candidate Events (CC-BY, monthly)
+
+```ts
+// packages/ingest/src/sources/ucdp-candidate.ts
+// API: https://ucdpapi.pcr.uu.se/api/candidategedevents/26.0.4 (monthly update ~1 month lag)
+// Covers: fatal organized violence (armed conflict, one-sided violence, non-state).
+// Note: ACLED stays as the display-only high-resolution overlay; UCDP is the
+// redistributable conflict baseline for the researcher-tier CSV export.
+```
+
+License tier: `open` (CC-BY 4.0 with citation).
+
+### Priority 4 — GRID3 DRC (CC-BY)
+
+```ts
+// packages/ingest/src/sources/grid3-drc.ts
+// Settlement extents + health-zone polygons; refines geo.admin2 geometry with higher precision.
+// Source: https://grid3.org/countries/democratic-republic-of-the-congo
+```
+
+License tier: `open`.
+
+### Priority 5 — HOT OSM healthsites.io (ODbL)
+
+```ts
+// packages/ingest/src/sources/hot-osm-healthsites.ts
+// API: https://healthsites.io/api/v2/facilities/
+// Facility points: hospitals, health centres, ETUs, vaccination sites.
+// ODbL share-alike: derivatives must remain ODbL.
+```
+
+License tier: `open` (with ODbL share-alike note in attribution). Required for the travel-time-to-ETU derived layer in Phase 9.
+
+### Priority 6 — WorldPop 100m + age/sex structure (CC-BY)
+
+- Replace the existing 1km WorldPop seed with the 100m constrained mosaic.
+- Add age/sex structure (`ages_m_0_4`, `ages_f_0_4`, etc.) — CFR and care demand are age-structured.
+- Ingest as a raster reference (store URL in `internal.derived_layers`; do not bulk-import pixel values into Postgres).
+
+License tier: `open`.
+
+### Priority 7 — GHSL + Meta HRSL (CC-BY)
+
+- **GHSL** (Global Human Settlement Layer, Copernicus, open): built-up area, settlement classification.
+- **Meta High-Resolution Settlement Layer** (CC-BY on HDX): ~30m population where WorldPop is coarse.
+- Ingest as offline raster references; serve via precomputed COG tiles (Phase 9 pipeline).
+
+License tier: `open`.
+
+### Priority 8 — Genomic feeds
+
+- **NCBI Virus / GenBank** — openly deposited BDBV sequences not under GISAID.
+- **Pathoplexus** — Restricted-Use embargo respected; display-only until embargo lifted.
+- **Nextstrain** — read-only JSON tree.
+- **Virological.org** — link + own summary (ISID-style posting; check per-post rights).
+
+License tiers: `open` (NCBI), `display_only` (Pathoplexus RU), `open` (Nextstrain), verify per post (Virological).
+
+### Priority 9 — Event-based surveillance feeds
+
+- **ProMED-mail** — link + headline + own summary only. ISID holds copyright on post text; never republish full text.
+- **HealthMap** — public alerts usable.
+- **EC MediSys (JRC)** — open RSS.
+- **Africa CDC Event-Based Surveillance** — already in scope.
+
+License tier: `display_only` for ProMED post text; `open` for aggregated alert metadata.
+
+---
+
+## License tier schema migration
+
+*Source: [`research/data.md`](../../research/data.md) §5.*
+
+Add a migration `<timestamp>_license_tier.sql`:
+
+```sql
+begin;
+
+-- Three-tier licensing matrix (data.md §5)
+-- open:                  CC-BY, CC0, public domain, ODbL — display, derive, export (with attribution)
+-- display_only:          ACLED, IOM DTM, Pathoplexus RU, ProMED text — overlay only, NO export, NO derivatives
+-- noncommercial_verified: GEE (build-time pipeline only), Google 3D (optional toggle, separately licensed)
+-- excluded:              GISAID, HeRAMS, any line-list/PHI
+
+ALTER TABLE public.sources
+  ADD COLUMN IF NOT EXISTS license_tier text NOT NULL DEFAULT 'open'
+    CHECK (license_tier IN ('open', 'display_only', 'noncommercial_verified', 'excluded')),
+  ADD COLUMN IF NOT EXISTS license_url text,
+  ADD COLUMN IF NOT EXISTS attribution_required boolean NOT NULL DEFAULT true;
+
+-- Documents inherit license from sources at ingest time; also store ETag/Last-Modified for conditional GET.
+ALTER TABLE public.documents
+  ADD COLUMN IF NOT EXISTS license text,
+  ADD COLUMN IF NOT EXISTS etag text,
+  ADD COLUMN IF NOT EXISTS last_modified timestamptz,
+  ADD COLUMN IF NOT EXISTS http_status integer;
+
+-- Update existing sources with correct tiers:
+UPDATE public.sources SET license_tier = 'open',         license_url = 'https://creativecommons.org/licenses/by/4.0/' WHERE slug = 'who-don';
+UPDATE public.sources SET license_tier = 'open',         license_url = 'https://creativecommons.org/licenses/by/4.0/' WHERE slug = 'who-afro';
+UPDATE public.sources SET license_tier = 'open',         license_url = 'https://creativecommons.org/licenses/by/4.0/' WHERE slug = 'ecdc-cdtr';
+UPDATE public.sources SET license_tier = 'open',         license_url = 'https://creativecommons.org/licenses/by/4.0/' WHERE slug = 'reliefweb';
+UPDATE public.sources SET license_tier = 'display_only', license_url = 'https://acleddata.com/terms-and-conditions-of-use/' WHERE slug = 'acled';
+-- moh-drc, africa-cdc, uganda-moh: public press releases, no explicit licence — treat as open for display; confirm before CSV export.
+
+commit;
+```
+
+**Researcher-tier CSV export rule**: filters `WHERE license_tier = 'open'`. The `display_only` sources render as aggregated overlays with attribution in the UI but never appear in any CSV export and never feed derived rasters that would be redistributed.
+
+---
+
+## Sources adapter registry
+
+*Source: [`research/performance.md`](../../research/performance.md) §3.2.*
+
+Replace the ad-hoc barrel pattern in [`packages/ingest/src/index.ts`](../../packages/ingest/src/index.ts) with a typed registry:
+
+```ts
+// packages/ingest/src/registry.ts
+import type { Adapter } from "./adapter";
+import { whoDONAdapter }       from "./sources/who-don";
+import { whoAFROAdapter }      from "./sources/who-afro";
+import { hdxHAPIAdapter }      from "./sources/hdx-hapi";
+import { iomDTMAdapter }       from "./sources/iom-dtm";
+import { ucdpCandidateAdapter } from "./sources/ucdp-candidate";
+import { acledAdapter }        from "./sources/acled";
+// ... additional adapters
+
+export const ADAPTER_REGISTRY: Record<string, Adapter & { throttleKey: string }> = {
+  "who-don":       { ...whoDONAdapter,        throttleKey: "who.int"            },
+  "who-afro":      { ...whoAFROAdapter,       throttleKey: "who.int"            },
+  "hdx-hapi":      { ...hdxHAPIAdapter,       throttleKey: "hapi.humdata.org"   },
+  "iom-dtm":       { ...iomDTMAdapter,        throttleKey: "dtm.iom.int"        },
+  "ucdp-candidate": { ...ucdpCandidateAdapter, throttleKey: "ucdpapi.pcr.uu.se" },
+  "acled":         { ...acledAdapter,         throttleKey: "api.acleddata.com"  },
+  // ...
+};
+```
+
+Each Inngest function keyed to a source uses:
+
+```ts
+inngest.createFunction(
+  {
+    id: `ingest-${slug}`,
+    throttle: { limit: 2, period: "1s", key: `"${adapter.throttleKey}"`, scope: "account" },
+    // scope: "account" enforces the limit across ALL concurrent worker instances globally.
+  },
+  { cron: adapter.pollInterval },
+  async ({ event, step }) => { /* ... */ }
+);
+```
+
+### Conditional GET — ETag/Last-Modified
+
+Pass `If-None-Match` and `If-Modified-Since` headers on every poll using the values stored in `documents.etag` / `documents.last_modified`. A `304 Not Modified` response short-circuits the extract path — zero LLM tokens consumed, zero `case_counts` writes.
+
+```ts
+const headers: Record<string, string> = {
+  "User-Agent": `ituri-sitrep/1.0 (+https://ituri-sitrep.org/about/bot)`,
+};
+if (lastDoc?.etag)         headers["If-None-Match"]    = lastDoc.etag;
+if (lastDoc?.lastModified) headers["If-Modified-Since"] = lastDoc.lastModified.toUTCString();
+
+const res = await fetch(url, { headers });
+if (res.status === 304) return { skipped: true, reason: "304 Not Modified" };
+
+// On success, persist ETag/Last-Modified for the next conditional GET:
+await db.update(documents).set({
+  etag:         res.headers.get("ETag")           ?? null,
+  lastModified: res.headers.get("Last-Modified") ? new Date(res.headers.get("Last-Modified")!) : null,
+  httpStatus:   res.status,
+});
+```
+
+### RetryAfterError on upstream 429
+
+```ts
+import { RetryAfterError } from "inngest";
+
+if (res.status === 429) {
+  const retryAfter = parseInt(res.headers.get("Retry-After") ?? "60", 10);
+  throw new RetryAfterError("Upstream rate limit", retryAfter * 1000);
+}
+```
+
+Inngest will reschedule the step respecting the throttle, instead of burning retries immediately.
 
 ---
 

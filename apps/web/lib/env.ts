@@ -6,6 +6,10 @@ export const env = createEnv({
     VERCEL_URL: z.string().optional(),
     VERCEL_ENV: z.string().optional(),
     VERCEL_PROJECT_PRODUCTION_URL: z.string().optional(),
+    ANTHROPIC_API_KEY: z.string().min(1),
+    INNGEST_EVENT_KEY: z.string().min(1),
+    INNGEST_SIGNING_KEY: z.string().min(1),
+    DATABASE_URL: z.url(),
   },
   client: {
     NEXT_PUBLIC_SUPABASE_URL: z.url().optional(),
@@ -17,6 +21,10 @@ export const env = createEnv({
     VERCEL_URL: process.env.VERCEL_URL,
     VERCEL_ENV: process.env.VERCEL_ENV,
     VERCEL_PROJECT_PRODUCTION_URL: process.env.VERCEL_PROJECT_PRODUCTION_URL,
+    ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
+    INNGEST_EVENT_KEY: process.env.INNGEST_EVENT_KEY,
+    INNGEST_SIGNING_KEY: process.env.INNGEST_SIGNING_KEY,
+    DATABASE_URL: process.env.DATABASE_URL,
   },
   emptyStringAsUndefined: true,
 });

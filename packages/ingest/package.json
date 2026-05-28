@@ -13,7 +13,19 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
+    "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "backfill": "echo 'backfill adapter not yet implemented' && exit 0"
+  },
+  "dependencies": {
+    "@mozilla/readability": "^0.5.0",
+    "jsdom": "^25.0.1",
+    "robots-parser": "^3.0.1",
+    "rss-parser": "^3.13.0"
+  },
+  "devDependencies": {
+    "@types/jsdom": "^21.1.7",
+    "@types/node": "^20",
+    "vitest": "^3.2.4"
   }
 }

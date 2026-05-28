@@ -3,6 +3,7 @@ export {
   admin1,
   admin2,
   agentActions,
+  auditLlmTraces,
   caseCounts,
   documents,
   extractionRuns,

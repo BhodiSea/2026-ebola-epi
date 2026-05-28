@@ -342,6 +342,193 @@ The three-pane `/map` is live with a real outbreak choropleth, the `<TimeScrubbe
 
 ---
 
+## PostGIS performance
+
+*Source: [`research/performance.md`](../../research/performance.md) §2.1.*
+
+### `geom_3857` generated stored column
+
+Add to the geo migration (or as a standalone migration `<timestamp>_geo_geom_3857.sql`):
+
+```sql
+begin;
+-- Eliminates per-tile ST_Transform — the single biggest PostGIS tile-pipeline win.
+ALTER TABLE geo.admin1
+  ADD COLUMN geom_3857 geometry(MultiPolygon, 3857)
+    GENERATED ALWAYS AS (ST_Transform(geom, 3857)) STORED;
+CREATE INDEX geo_admin1_geom_3857_gix ON geo.admin1 USING GIST (geom_3857);
+
+ALTER TABLE geo.admin2
+  ADD COLUMN geom_3857 geometry(MultiPolygon, 3857)
+    GENERATED ALWAYS AS (ST_Transform(geom, 3857)) STORED;
+CREATE INDEX geo_admin2_geom_3857_gix ON geo.admin2 USING GIST (geom_3857);
+commit;
+```
+
+### `internal.mvt` — correct filter + column discipline
+
+Update the existing MVT function (delivered above) to use the pre-transformed geometry and the `margin` argument:
+
+```sql
+-- Replace the zone subquery with:
+SELECT ST_AsMVTGeom(
+         zg.geom_3857,                                    -- pre-transformed; no ST_Transform per tile
+         ST_TileEnvelope(z, x, y),
+         extent => 4096, buffer => 64
+       ) AS geom,
+       zg.code, zg.name                                  -- ONLY the columns the client renders
+FROM geo.zone_geom_z6 zg                                 -- uses the pre-simplified matview
+WHERE zg.geom_3857 && ST_TileEnvelope(z, x, y, margin => 64.0/4096)
+  -- margin arg (PostGIS 3.1+) expands the envelope by the clip-buffer ratio so the GIST
+  -- operator catches features that bleed into the buffer zone.
+```
+
+For point layers (case centroids), lower buffer to 16:
+
+```sql
+ST_AsMVTGeom(ST_Centroid(a.geom_3857), ST_TileEnvelope(z, x, y), extent => 4096, buffer => 16)
+```
+
+**Never `SELECT *` into `ST_AsMVT`.** Only select the four-or-five columns the client actually renders — selecting unused columns was the documented cause of Carto OOM kills and 50–100× oversized tiles (PostGIS 3.1 performance regression, Raúl Marín writeup). Verify tile size < 500 KB at all zoom levels in use.
+
+### Materialized view refresh — CONCURRENTLY via pg_cron
+
+```sql
+-- Required: unique index for CONCURRENTLY
+CREATE UNIQUE INDEX IF NOT EXISTS geo_zone_geom_z6_pk  ON geo.zone_geom_z6  (admin1_id);
+CREATE UNIQUE INDEX IF NOT EXISTS geo_zone_geom_z10_pk ON geo.zone_geom_z10 (admin1_id);
+
+-- pg_cron daily refresh (avoids ACCESS EXCLUSIVE lock on tile-serving workloads)
+SELECT cron.schedule(
+  'refresh_zone_geom_z6',
+  '0 3 * * *',
+  $$REFRESH MATERIALIZED VIEW CONCURRENTLY geo.zone_geom_z6;$$
+);
+SELECT cron.schedule(
+  'refresh_zone_geom_z10',
+  '0 3 * * *',
+  $$REFRESH MATERIALIZED VIEW CONCURRENTLY geo.zone_geom_z10;$$
+);
+```
+
+Without `CONCURRENTLY`, `REFRESH` takes an `ACCESS EXCLUSIVE` lock and tile requests hang. `CONCURRENTLY` requires a unique index (added above).
+
+### Parallelism check
+
+After loading real geometry, run:
+
+```sql
+SET max_parallel_workers_per_gather = 4;
+EXPLAIN (ANALYZE, BUFFERS, VERBOSE)
+  SELECT internal.mvt(10, 525, 510, NULL);
+```
+
+Confirm `Workers Planned: N > 0`. `ST_AsMVT` is `PARALLEL SAFE` since PostGIS 3.0 and was made 30–40% faster in 3.1. If parallelism is not firing, add `SET parallel_setup_cost = 0` in the session or raise function cost hints.
+
+### ST_Subdivide for large polygons
+
+For any polygon with > 2,000 vertices (large country admin0 or lake borders), pre-subdivide into a derived table:
+
+```sql
+CREATE MATERIALIZED VIEW geo.admin1_subdivided AS
+  SELECT ST_Subdivide(geom_3857, 256) AS geom, code, name
+  FROM geo.admin1
+  WHERE ST_NPoints(geom_3857) > 2000;
+CREATE INDEX ON geo.admin1_subdivided USING GIST (geom);
+```
+
+This improves both GIST selectivity (smaller bounding boxes) and per-tile clipping speed.
+
+---
+
+## 3D terrain — recommendation
+
+*Source: [`research/data.md`](../../research/data.md) §3.*
+
+**Recommendation: Copernicus GLO-30 DEM + Sentinel-2 drape inside the existing deck.gl/MapLibre stack.** Do not use Google Photorealistic 3D Tiles as the base map.
+
+**Why not Google Photorealistic 3D Tiles:**
+- Photogrammetry coverage is metro-only. Mongbwalu, Fataki, Logo, and most Ituri health zones have no photorealistic mesh. Bunia is doubtful.
+- Paid, commercially licensed (Google Maps Platform billing account required). Per-session pricing model, mandatory on-screen attribution, no caching.
+- Clashes with the project's open/CC-BY licensing posture.
+
+**Implementation — stay in MapLibre + deck.gl (lowest friction):**
+
+```ts
+// In MapPane, add terrain source pointing to Terrarium PNG tiles (Copernicus GLO-30-backed,
+// MIT-packaged, attribution injected automatically, keyless):
+map.addSource("terrain-rgb", {
+  type: "raster-dem",
+  tiles: ["https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png"],
+  encoding: "terrarium",
+  maxzoom: 14,
+  attribution: "© Copernicus DEM (ESA/Airbus/DLR open licence)"
+});
+map.setTerrain({ source: "terrain-rgb", exaggeration: 1.5 });
+```
+
+Drape the existing Carto basemap + your health-zone choropleth over the terrain — MapLibre handles z-fighting automatically when `raster-dem` is the terrain source.
+
+For deck.gl overlays on terrain, use `TerrainExtension` with `operation: "terrain+draw"`:
+
+```ts
+import { TerrainExtension } from "@deck.gl/extensions";
+
+new GeoJsonLayer({
+  data: healthZoneGeoJSON,
+  getFillColor: d => choroplethColor(d.properties.caseCount),
+  extensions: [new TerrainExtension()],
+  operation: "terrain+draw",
+});
+```
+
+Reserve the map container height in the skeleton component to avoid CLS.
+
+**Sentinel-2 cloud-free composite drape:**
+Use a recent cloud-free Sentinel-2 mosaic (available via Copernicus Data Space Ecosystem as WMTS, or via MapLibre's raster source). Add as a toggleable imagery layer — the user can switch between Carto Positron (default) and Sentinel-2 aerial for context.
+
+**City-specific Google Photorealistic 3D Tiles** (Bunia, Goma, Kampala only) — deferred to v2. If added, it must be a clearly-labelled, off-by-default city toggle via deck.gl `Tile3DLayer` with full commercial-licence disclosure.
+
+**Cesium globe view** — deferred to v2.
+
+---
+
+## MVT route hardening
+
+*Source: [`research/performance.md`](../../research/performance.md) §1.4, §1.5.*
+
+### Versioned route segment
+
+Rename the route to `/api/mvt/[v]/[z]/[x]/[y]` so a `geo` migration can truthfully bust the CDN cache without invalidating all tiles:
+
+```
+apps/web/app/api/mvt/[v]/[z]/[x]/[y]/route.ts
+```
+
+The `v` segment is a short string bumped in code when `geo.admin1`/`geo.admin2` geometry changes (e.g., `zones_v1` → `zones_v2`). With `immutable` in the cache header, tiles are served from CDN indefinitely until the version segment changes. Document the bump procedure alongside the geo seed migration.
+
+The existing cache header stays unchanged:
+```
+Cache-Control: public, max-age=86400, s-maxage=604800, immutable
+```
+
+### Runtime
+
+Keep `runtime = "nodejs"`. Reasons:
+- `postgres.js` uses TCP, not available on the Edge runtime.
+- Fluid Compute handles concurrency on warm Node.js instances — dozens of concurrent tile RPCs per instance with negligible per-request overhead.
+- The 4.5 MB Edge response limit is irrelevant for tiles (< 500 KB target).
+
+### Vercel function region — ops checklist
+
+Add this to the Phase 0 ops checklist and repeat here: **the Vercel function region must be co-located with the Supabase Postgres region.** A single Postgres round-trip from `iad1` to `eu-west-1` adds ~80–100 ms; multiple round-trips per tile request makes the map feel broken. Verify by checking the Supabase project URL (`aws-0-eu-central-1.pooler.supabase.com` → `fra1`; `aws-0-us-east-1.pooler.supabase.com` → `iad1`) and matching in Vercel → Project Settings → Functions → Function Region. This is the single largest latency lever for the map.
+
+### Fluid Compute module-level state audit
+
+Fluid Compute shares an instance across concurrent requests. Before enabling, grep `apps/web/**` for `const [a-z]+ = new Map()` at module scope and migrate any per-request memoization to request-scoped `WeakMap` keyed by the request object, or push to Upstash. The Supabase client is safe (request-scoped via `createServerClient`).
+
+---
+
 ## Out of scope
 
 - Multi-source adapters beyond WHO DON (Phase 6).
