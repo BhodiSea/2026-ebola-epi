@@ -9,7 +9,7 @@ export const env = createEnv({
     ANTHROPIC_API_KEY: z.string().min(1),
     INNGEST_EVENT_KEY: z.string().min(1),
     INNGEST_SIGNING_KEY: z.string().min(1),
-    DATABASE_URL: z.url(),
+    POSTGRES_URL_NON_POOLING: z.url(),
   },
   client: {
     NEXT_PUBLIC_SUPABASE_URL: z.url().optional(),
@@ -24,7 +24,7 @@ export const env = createEnv({
     ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
     INNGEST_EVENT_KEY: process.env.INNGEST_EVENT_KEY,
     INNGEST_SIGNING_KEY: process.env.INNGEST_SIGNING_KEY,
-    DATABASE_URL: process.env.DATABASE_URL,
+    POSTGRES_URL_NON_POOLING: process.env.POSTGRES_URL_NON_POOLING,
   },
   emptyStringAsUndefined: true,
 });

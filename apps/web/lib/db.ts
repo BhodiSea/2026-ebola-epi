@@ -4,7 +4,7 @@ import postgres from "postgres";
 
 import { env } from "@/lib/env";
 
-const client = postgres(env.DATABASE_URL, { max: 1 });
+const client = postgres(env.POSTGRES_URL_NON_POOLING, { max: 1 });
 export const db = drizzle(client);
 
 // Use this type for functions that accept either db or a transaction object
