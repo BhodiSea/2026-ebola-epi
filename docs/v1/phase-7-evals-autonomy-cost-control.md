@@ -22,23 +22,14 @@ Hand-curate a ~50-example gold set, wire Promptfoo + Anthropic Message Batches A
 
 ### Schema / migrations
 
-**`supabase/migrations/<timestamp>_anthropic_usage_log.sql`** — the usage log that powers the kill switch:
+**`audit.anthropic_usage_log`** — the table was scaffolded in Phase 2.5. Phase 7 adds only the kill-switch trigger on top of the existing table. The migration file in Phase 7 is:
+
+**`supabase/migrations/<timestamp>_anthropic_usage_log_kill_switch_trigger.sql`** — adds the trigger to the Phase 2.5-scaffolded table:
 
 ```sql
 begin;
-create table if not exists audit.anthropic_usage_log (
-  id uuid primary key default gen_random_uuid(),
-  agent_name text not null,
-  model_id text not null,
-  cache_read_input_tokens integer not null default 0,
-  cache_creation_input_tokens integer not null default 0,
-  input_tokens integer not null default 0,
-  output_tokens integer not null default 0,
-  cost_usd numeric(10,6),
-  logged_at timestamptz not null default now()
-);
--- append-only
-revoke update, delete on audit.anthropic_usage_log from authenticated, anon;
+-- Table already exists from Phase 2.5 scaffold migration.
+-- This migration adds only the kill-switch trigger.
 
 -- Kill switch trigger: sums today's spend after each insert
 create or replace function audit.tg_check_daily_spend()
@@ -214,7 +205,7 @@ Docker Compose stack per Langfuse v3 docs: Postgres + ClickHouse ≥ 24.3 + Redi
 
 The compose file is committed with `${LANGFUSE_SECRET_KEY}` and other secrets as placeholder variables. The actual values go in `infra/.env.langfuse` (add to `.gitignore`). Do NOT use `env_file` pointing to a committed file with real secrets. Run with: `docker compose --env-file infra/.env.langfuse -f infra/docker-compose.langfuse.yml up -d`.
 
-**OTel exporter retargeting**: in `apps/web/instrumentation.ts`, add the Langfuse OTel exporter alongside Sentry. The `audit.llm_traces` Postgres table is kept as the auditable source of truth (append-only, immutable); Langfuse is the query/visualization layer. Both receive the same spans:
+**OTel exporter retargeting**: `apps/web/instrumentation.ts` was scaffolded in Phase 2 with a noop propagator. Phase 7 replaces the noop with real providers. Sentry was stood up in Phase 0; this Phase wires the Langfuse OTel exporter. The `audit.llm_traces` Postgres table is kept as the auditable source of truth (append-only, immutable); Langfuse is the query/visualization layer. Both receive the same spans:
 
 ```ts
 import { LangfuseExporter } from "langfuse-vercel";
@@ -230,7 +221,7 @@ Sentry.init({
 });
 ```
 
-**Daily Langfuse dashboard**: configure a Langfuse dashboard (via API or UI) that plots `cache_read_input_tokens / (cache_read + cache_creation + input)` per model per day. Alert when this ratio drops below 0.60 for any model.
+**Daily Langfuse dashboard**: configure a Langfuse dashboard (via API or UI) that plots `cache_read_input_tokens / (cache_read + cache_creation + input)` per model per day. Alert when this ratio drops below 0.60 for any model. The `cache_control: { type: "ephemeral", ttl: "1h" }` on the tools+system block was set in Phase 2; the Vitest assertion in `packages/extract/src/__tests__/run.test.ts` already locks it in. If the cache-read ratio is low, verify the TTL assertion is passing in CI before investigating elsewhere.
 
 ### Code — cost kill switch
 
@@ -401,47 +392,6 @@ Seven consecutive days of fully autonomous operation with zero non-escalation-cl
 - [agent-automation.md §17 — Evals & quality gates](../../research/agent-automation.md#17-evals--quality-gates-in-cicd)
 - [backend.md §8 — Observability infrastructure](../../research/backend.md#8-observability-infrastructure)
 - [backend.md §10 — Testing infrastructure](../../research/backend.md#10-testing-infrastructure)
-
----
-
-## Anthropic cache TTL — explicit `ttl: "1h"`
-
-*Source: [`research/performance.md`](../../research/performance.md) §3.3.*
-
-The Anthropic `cache_control` default changed from 1h to 5 minutes around March 2026 (per documented regression in anthropics/claude-code Issue #46829). **Passing only `{ type: "ephemeral" }` without a `ttl` field now produces a 5-minute cache window on the tools/system prefix**, drastically reducing cache-read ratio.
-
-Update [`packages/extract/src/run.ts`](../../packages/extract/src/run.ts):
-
-```ts
-const response = await anthropic.messages.create({
-  model: MODEL,
-  max_tokens: 2048,
-  system: [
-    { type: "text", text: STATIC_INSTRUCTIONS },
-    {
-      type: "text",
-      text: JSON.stringify(extractionTool.input_schema),
-      cache_control: { type: "ephemeral", ttl: "1h" },  // ← explicit 1h (was missing)
-    },
-  ],
-  messages: [
-    {
-      role: "user",
-      content: [
-        { type: "text", text: FEW_SHOTS, cache_control: { type: "ephemeral" } }, // 5m default (correct)
-        { type: "text", text: documentText },
-      ],
-    },
-  ],
-  // ...
-});
-```
-
-**Ordering rule (Bedrock/Anthropic):** longer-TTL breakpoints must appear before shorter-TTL ones. The 1h tools/system block precedes the 5m few-shots block — the order above is correct.
-
-Add a Vitest assertion to [`packages/extract/src/__tests__/run.test.ts`](../../packages/extract/src/__tests__/run.test.ts) that intercepts the Anthropic SDK call and asserts `ttl === "1h"` is present on the long-lived block.
-
-**Impact**: cached reads do not count toward ITPM rate limits for Claude 4.x models (Anthropic rate-limits docs: "For most Claude models, only uncached input tokens count towards your ITPM rate limits"). A cache-read ratio ≥ 0.60 effectively multiplies throughput 5–10×. The Langfuse dashboard target of ≥ 0.60 is now verified against the correct TTL.
 
 ---
 

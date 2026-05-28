@@ -130,9 +130,21 @@ Example call: extract_case_counts({ extractions: [
 ]})`;
 ```
 
-Cache breakpoint placement (per AGENTS.md and research/agent-automation.md §7):
-- `cache_control: { type: "ephemeral" }` on the **last tool definition** (caches tools + system, 1h TTL).
-- `cache_control: { type: "ephemeral" }` on the few-shots message block (5m TTL).
+Cache breakpoint placement (per AGENTS.md hard rule 13 and research/agent-automation.md §7):
+- `cache_control: { type: "ephemeral", ttl: "1h" }` on the **last tool definition** (caches tools + system). The `ttl` field is mandatory — the default changed from 1h to 5m in 2026; omitting it silently produces a 5-minute cache window on the long-lived block.
+- `cache_control: { type: "ephemeral" }` on the few-shots message block (5m default TTL is correct for few-shots).
+
+Ordering rule (Bedrock/Anthropic): the longer-TTL `1h` block must appear **before** the shorter-TTL `5m` block. Tools + system precede few-shots — the order above is correct.
+
+Add a Vitest assertion to `packages/extract/src/__tests__/run.test.ts` that intercepts the Anthropic SDK call and asserts `ttl === "1h"` is present on the long-lived block:
+
+```ts
+test("tools cache_control has ttl: '1h'", () => {
+  // Inspect the params passed to anthropic.messages.create
+  const tool = capturedParams.tools[0];
+  expect(tool.cache_control).toEqual({ type: "ephemeral", ttl: "1h" });
+});
+```
 
 **`packages/extract/src/verify.ts`** — deterministic substring check (defense in depth alongside the DB trigger):
 
@@ -183,11 +195,11 @@ export async function runExtraction(client: Anthropic, documentText: string) {
   const response = await client.messages.create({
     model: "claude-sonnet-4-6",
     max_tokens: 4096,
-    tools: [{ ...extractionTool, cache_control: { type: "ephemeral" } }],
+    tools: [{ ...extractionTool, cache_control: { type: "ephemeral", ttl: "1h" } }],
     system: STATIC_INSTRUCTIONS,
     messages: [
       { role: "user", content: [
-        { type: "text", text: FEW_SHOTS, cache_control: { type: "ephemeral" } },
+        { type: "text", text: FEW_SHOTS, cache_control: { type: "ephemeral" } }, // 5m default
         { type: "text", text: `<document trust="untrusted">\n${documentText}\n</document>` },
       ]},
     ],
@@ -273,7 +285,11 @@ import { createHash } from "node:crypto";
 
 export const ingestWHODON = inngest.createFunction(
   { id: "ingest-who-don", retries: 4,
-    concurrency: { limit: 2 } },
+    concurrency: { limit: 2 },
+    // Outbound politeness: 2 requests/s to who.int, coordinated across all instances.
+    // scope: "account" is required — in-process p-throttle is forbidden (AGENTS.md rule 15).
+    throttle: { limit: 2, period: "1s", key: "event.data.host", scope: "account" },
+  },
   // Note: do NOT use key: "event.data.source_slug" for cron-triggered functions —
   // cron events carry no data payload, so the key evaluates to undefined.
   { cron: "*/30 * * * *" },
@@ -281,25 +297,75 @@ export const ingestWHODON = inngest.createFunction(
     const items = await step.run("poll-rss", () => pollWHODON());
     for (const item of items) {
       const stepId = createHash("sha256").update(item.url).digest("hex").slice(0, 16);
+      // Use step.ai.wrap for LLM calls — the canonical Inngest primitive.
+      // Do NOT wrap Anthropic calls inside step.run. step.ai.wrap provides
+      // built-in observability and retry semantics for model calls.
+      // Footgun: bind the Anthropic client before passing it:
+      //   const boundCreate = anthropic.messages.create.bind(anthropic);
+      //   await step.ai.wrap("extract", boundCreate, params);
+      // Without .bind(), `this` is lost and the SDK throws a TypeError.
       await step.run(`process-${stepId}`, async () => {
         const { fullText, sha256, title } = await fetchAndParseDocument(item.url);
         // 1. Dedupe by sha256: if a documents row with this sha256 already exists, skip fetch
         // 2. Store html in Supabase Storage; insert public.documents row (sha256 unique index prevents duplicates)
         // 3. Idempotency check: if extraction_runs already has a row for (document_id, prompt_version_hash), skip extraction
-        // 4. Run extraction (runExtraction)
+        // 4. Run extraction via step.ai.wrap (not step.run wrapping the Anthropic call)
         // 5. Verify all substrings in code (verifySubstring) — throw on first failure
         // 6. Write case_counts + source_quotes + extraction_runs in one transaction
         //    — if tx fails, the unique index on extraction_runs prevents re-extraction on retry
-        // 7. Write OTel span to audit.llm_traces
+        // 7. Insert row to audit.anthropic_usage_log
+        // 8. Write OTel span to audit.llm_traces
       });
     }
   },
 );
 ```
 
+### `apps/web/instrumentation.ts` skeleton
+
+Ship a noop OTel propagator in Phase 2 to unblock trace context propagation across Inngest steps. Sentry, Axiom, and Langfuse providers wire in Phase 7; this skeleton ensures the `opentelemetry-api` is initialized before any Phase 2 code runs:
+
+```ts
+// apps/web/instrumentation.ts
+export async function register() {
+  if (process.env.NEXT_RUNTIME === "nodejs") {
+    const { NodeSDK } = await import("@opentelemetry/sdk-node");
+    const { NoopSpanExporter } = await import("@opentelemetry/sdk-trace-base");
+    const sdk = new NodeSDK({ traceExporter: new NoopSpanExporter() });
+    sdk.start();
+  }
+}
+```
+
+Replace the `NoopSpanExporter` with real exporters in Phase 7.
+
+### `audit.anthropic_usage_log` table scaffold (Phase 2.5)
+
+**`supabase/migrations/<timestamp>_anthropic_usage_log_scaffold.sql`** — scaffold the usage log table in Phase 2. The kill-switch trigger on this table ships in Phase 7; Phase 2 only needs the table and the insert path:
+
+```sql
+begin;
+create table if not exists audit.anthropic_usage_log (
+  id uuid primary key default gen_random_uuid(),
+  agent_name text not null,
+  model_id text not null,
+  cache_read_input_tokens integer not null default 0,
+  cache_creation_input_tokens integer not null default 0,
+  input_tokens integer not null default 0,
+  output_tokens integer not null default 0,
+  cost_usd numeric(10,6),
+  logged_at timestamptz not null default now()
+);
+-- append-only
+revoke update, delete on audit.anthropic_usage_log from authenticated, anon;
+commit;
+```
+
+After each `runExtraction` call, insert a row. The kill-switch trigger (`tg_check_daily_spend`) is added in Phase 7 on top of this same table.
+
 ### `audit.llm_traces` OTel export
 
-After each `runExtraction` call, write to `audit.llm_traces`:
+After each `runExtraction` call, write to `audit.llm_traces` and to `audit.anthropic_usage_log`:
 
 ```ts
 await db.insert(auditLlmTraces).values({
@@ -314,6 +380,17 @@ await db.insert(auditLlmTraces).values({
   cacheCreationInputTokens: usage.cache_creation_input_tokens ?? 0,
   inputTokens: usage.input_tokens,
   outputTokens: usage.output_tokens,
+});
+
+// Also insert to audit.anthropic_usage_log (scaffolded in Phase 2; kill-switch trigger added in Phase 7)
+await db.insert(auditAnthropicUsageLog).values({
+  agentName: "extract",
+  modelId: "claude-sonnet-4-6",
+  cacheReadInputTokens: usage.cache_read_input_tokens ?? 0,
+  cacheCreationInputTokens: usage.cache_creation_input_tokens ?? 0,
+  inputTokens: usage.input_tokens,
+  outputTokens: usage.output_tokens,
+  // cost_usd: computed from token counts × per-token price; fill when pricing is known
 });
 ```
 

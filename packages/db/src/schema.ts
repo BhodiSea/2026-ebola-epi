@@ -171,6 +171,18 @@ export const agentActions = auditSchema.table("agent_actions", {
   ts: timestamp("ts", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
 });
 
+export const anthropicUsageLog = auditSchema.table("anthropic_usage_log", {
+  id: bigserial("id", { mode: "number" }).primaryKey(),
+  extractionRunId: uuid("extraction_run_id").references(() => extractionRuns.id),
+  modelId: text("model_id").notNull(),
+  inputTokens: integer("input_tokens").notNull().default(0),
+  outputTokens: integer("output_tokens").notNull().default(0),
+  cacheReadInputTokens: integer("cache_read_input_tokens").notNull().default(0),
+  cacheCreationInputTokens: integer("cache_creation_input_tokens").notNull().default(0),
+  costUsd: numeric("cost_usd", { precision: 10, scale: 4 }),
+  ts: timestamp("ts", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
+});
+
 // ─── public.case_counts ───────────────────────────────────────────────────────
 // Declared after audit.extraction_runs to satisfy the forward reference.
 
@@ -181,7 +193,7 @@ export const caseCounts = pgTable("case_counts", {
     .$type<OutbreakId>()
     .references(() => outbreaks.id),
   asOf: date("as_of", { mode: "date" }).notNull(),
-  admin1Code: text("admin1_code").references(() => admin1.code),
+  admin2Code: text("admin2_code").references(() => admin2.code),
   metric: text("metric").notNull(),
   value: integer("value").notNull(),
   sourceQuoteId: uuid("source_quote_id")

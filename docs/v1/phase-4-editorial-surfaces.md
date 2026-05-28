@@ -10,7 +10,7 @@ Build the five public editorial routes (`/today`, `/outbreaks`, `/outbreaks/[pat
 
 - Phase 3 exit gate met: `<Figure>`, `<SourceQuoteCard>`, and `<SourceQuoteDrawer>` all work end-to-end on `/methods`.
 - At least one `outbreaks` row and several `case_counts` rows (with non-null `source_quote_id`) exist in the database from Phase 2 extraction.
-- `geo.admin1` table exists (schema created in Phase 1), even if geometry data is sparse or from seed.
+- `geo.admin2` table exists (schema created in Phase 1), even if geometry data is sparse or from seed. `case_counts` references `geo.admin2(code)` — DRC health zones are admin2.
 - The Phase 3 global chrome (TopBar, NavRail, CommandBar) is in place.
 
 ---
@@ -40,9 +40,9 @@ A server-rendered SVG of `case_counts` joined to `geo.admin1` for the active out
 ```ts
 // apps/web/lib/server/choropleth.ts
 // Pipeline:
-// 1. Fetch admin1 geometries via `SELECT ST_AsSVG(ST_Transform(geom, 4326), 5) as path, code, name FROM geo.admin1 WHERE country_iso3 = $1`
+// 1. Fetch admin2 geometries via `SELECT ST_AsSVG(ST_Transform(geom, 4326), 5) as path, code, name FROM geo.admin2 WHERE admin1_code IN (SELECT code FROM geo.admin1 WHERE country_iso3 = $1)`
 //    ST_AsSVG returns SVG path data in geographic coordinates (lon/lat).
-// 2. Fetch current case counts: SELECT admin1_code, SUM(value) as total FROM public.case_counts WHERE outbreak_id=$1 AND metric='confirmed' AND superseded_by IS NULL AND status='published' GROUP BY admin1_code
+// 2. Fetch current case counts: SELECT admin2_code, SUM(value) as total FROM public.case_counts WHERE outbreak_id=$1 AND metric='confirmed' AND superseded_by IS NULL AND status='published' GROUP BY admin2_code
 // 3. Normalize geographic coordinates to SVG viewport: compute bounding box of all admin1 geometries, then apply a linear scale transform (translate + scale) so the paths fit a 640×480 viewBox.
 //    Use a simple Mercator projection: x = (lon - minLon) / (maxLon - minLon) * viewWidth, y = (maxLat - lat) / (maxLat - minLat) * viewHeight
 // 4. Classify case counts into 5 Jenks natural breaks (or quantile if <5 non-null values). Assign ColorBrewer Reds 5-class: ['#fee5d9','#fcae91','#fb6a4a','#de2d26','#a50f15']. Zones with no data: 'none' fill with diagonal hatching pattern.
@@ -206,7 +206,9 @@ npx axe-core apps/web --run accessibility
 # Expected: zero critical violations.
 ```
 
-If choropleth SVG is empty: check that `geo.admin1` has geometry data (seed at least one polygon for DRC Ituri Province in `supabase/seed.sql`).  
+If choropleth SVG is empty: check that `geo.admin2` has geometry data (seed at least one health-zone polygon for DRC Ituri Province in `supabase/seed.sql`).
+
+**License invariant:** all figures rendered on public routes derive from `sources` rows with `license_tier IN ('open', 'display_only')`. The researcher-tier CSV export (Phase 6+) filters `WHERE license_tier = 'open'`. Phase 4 routes do not export data, but the `license_tier` column is already present (Phase 1 migration) and must be populated on every `sources` row before ingestion.  
 If `<TimelineMulti>` throws: Visx requires a client-side rendering context; ensure `'use client'` is present and that the component is wrapped in a Suspense boundary.
 
 ---

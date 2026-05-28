@@ -23,33 +23,18 @@ export interface ExtractionUsage {
   output_tokens: number;
 }
 
-export async function runExtraction(
-  client: Anthropic,
+/**
+ * Build the JSON-serialisable params passed to anthropic.messages.create.
+ * Exported so the Inngest function can pass these directly to step.ai.wrap,
+ * keeping input visible and editable in the Inngest dev-server UI.
+ */
+export function buildExtractionParams(
   documentText: string,
-): Promise<ExtractionResult> {
-  const response = await client.messages.create(buildAnthropicMessages(documentText));
-  const toolUse = response.content.find((b) => b.type === "tool_use");
-  if (toolUse?.type !== "tool_use") {
-    throw new Error("no tool_use block in response");
-  }
-  const { extractions } = ExtractionBatchSchema.parse(toolUse.input);
-  const failingRow = extractions.find((row) => !verifySubstring(documentText, row.source_quote));
-  if (failingRow !== undefined) {
-    throw new Error(`substring_verify_fail: char_start=${failingRow.source_quote.char_start}`);
-  }
-  return {
-    rows: extractions,
-    promptVersionHash: computePromptVersionHash(),
-    toolSchemaHash: computeToolSchemaHash(),
-    usage: response.usage,
-  };
-}
-
-function buildAnthropicMessages(documentText: string): Anthropic.MessageCreateParamsNonStreaming {
+): Anthropic.MessageCreateParamsNonStreaming {
   return {
     model: MODEL,
     max_tokens: 4096,
-    // cache_control on the last tool caches tools + system (1h TTL)
+    // cache_control on the last tool caches tools + system (1h TTL, before the 5m few-shots block)
     tools: [
       {
         name: extractionTool.name,
@@ -64,12 +49,53 @@ function buildAnthropicMessages(documentText: string): Anthropic.MessageCreatePa
       {
         role: "user",
         content: [
-          // cache_control on few-shots block (5m TTL)
+          // cache_control on few-shots block (5m TTL, default)
           { type: "text", text: FEW_SHOTS, cache_control: { type: "ephemeral" } },
           { type: "text", text: `<document trust="untrusted">\n${documentText}\n</document>` },
         ],
       },
     ],
     tool_choice: { type: "tool", name: "extract_case_counts" },
+  };
+}
+
+/**
+ * Parse and verify a raw Anthropic response.
+ * Separated from the HTTP call so it can run outside step.ai.wrap, keeping
+ * the LLM trace span clean (only the network call is inside the span).
+ */
+export function parseExtractionResponse(
+  response: Pick<Anthropic.Message, "content" | "usage">,
+  documentText: string,
+): Omit<ExtractionResult, "promptVersionHash"> {
+  const toolUse = response.content.find((b) => b.type === "tool_use");
+  if (toolUse?.type !== "tool_use") {
+    throw new Error("no tool_use block in response");
+  }
+  const { extractions } = ExtractionBatchSchema.parse(toolUse.input);
+  const failingRow = extractions.find((row) => !verifySubstring(documentText, row.source_quote));
+  if (failingRow !== undefined) {
+    throw new Error(`substring_verify_fail: char_start=${failingRow.source_quote.char_start}`);
+  }
+  return {
+    rows: extractions,
+    toolSchemaHash: computeToolSchemaHash(),
+    usage: response.usage,
+  };
+}
+
+/**
+ * Convenience wrapper used by unit tests and by callers that do not need
+ * step.ai.wrap (e.g. one-off CLI scripts). Inngest functions should call
+ * buildExtractionParams + step.ai.wrap + parseExtractionResponse instead.
+ */
+export async function runExtraction(
+  client: Anthropic,
+  documentText: string,
+): Promise<ExtractionResult> {
+  const response = await client.messages.create(buildExtractionParams(documentText));
+  return {
+    promptVersionHash: computePromptVersionHash(),
+    ...parseExtractionResponse(response, documentText),
   };
 }

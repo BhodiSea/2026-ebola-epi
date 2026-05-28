@@ -9,8 +9,8 @@ Build the PostGIS MVT tile pipeline (`internal.mvt` SECURITY DEFINER function + 
 ## Entry preconditions
 
 - Phase 4 exit gate met: `/today` + all editorial surfaces live; journalist test passes in < 10 s.
-- `geo.admin1` and `geo.admin2` tables exist (Phase 1 schema); the materialized views `geo.zone_geom_z6` and `geo.zone_geom_z10` exist (Phase 1).
-- `geo.admin1`/`geo.admin2` geometry data loaded for the active outbreak region (see Deliverables → seed migration below).
+- `geo.admin1` and `geo.admin2` tables exist (Phase 1 schema); the materialized views `geo.zone_geom_z6` and `geo.zone_geom_z10` exist (Phase 1) — built from `geo.admin2` to match `case_counts.admin2_code` granularity.
+- `geo.admin2` geometry data loaded for the active outbreak region (see Deliverables → seed migration below).
 - Supabase Branching wired (Phase 0); the project has a production branch to run the backup/restore drill against.
 
 ---
@@ -57,7 +57,7 @@ begin
              cc.outbreak_id, cc.metric, cc.value, cc.as_of,
              cc.source_quote_id
       from public.case_counts cc
-      join geo.admin1 a on a.code = cc.admin1_code
+      join geo.admin2 a on a.code = cc.admin2_code
       where cc.superseded_by is null
         and (p_outbreak is null or cc.outbreak_id = p_outbreak)
         and a.geom && st_transform((select g from bounds), 4326)
@@ -91,11 +91,11 @@ refresh materialized view geo.zone_geom_z6;
 refresh materialized view geo.zone_geom_z10;
 ```
 
-**Important**: `geo.zone_geom_z6` and `geo.zone_geom_z10` (created in Phase 1) are built from `geo.admin1`, not `geo.admin2`. This is required because `case_counts.admin1_code` references `geo.admin1`. The choropleth join in the MVT function:
+**Important**: `geo.zone_geom_z6` and `geo.zone_geom_z10` (created in Phase 1) are built from `geo.admin2`. This is required because `case_counts.admin2_code` references `geo.admin2`. DRC health zones (zones de santé) are admin2 granularity — the choropleth join in the MVT function:
 ```sql
-join geo.admin1 a on a.code = cc.admin1_code
+join geo.admin2 a on a.code = cc.admin2_code
 ```
-must use the same granularity as the zones layer. If you need admin2-level display polygons for other purposes, create separate materialized views `geo.admin2_z8` and `geo.admin2_z12` — do not mix them with the choropleth zones.
+must use the same granularity as the zones layer. `geo.admin1` (province-level) is used for administrative context borders only and is not joined to `case_counts`.
 
 ### Code — MVT Route Handler
 
@@ -161,7 +161,7 @@ import { GeoJsonLayer, ScatterplotLayer } from "@deck.gl/layers";
 
 - Base style: Carto Positron (light) / Carto Dark Matter (dark). Switched by `data-theme` attribute.
 - Vector tile source pointing to `/api/mvt/{z}/{x}/{y}?outbreak_id={id}`.
-- Admin1 choropleth in ColorBrewer Reds 5-class sequential.
+- Admin2 choropleth in ColorBrewer Reds 5-class sequential (health-zone granularity).
 - deck.gl `MapboxOverlay` in `interleaved: true` so overlays respect map-label z-order.
 - "No data" zones: hatched diagonal SVG pattern fill (not gray).
 - `?view=table` URL parameter swaps the MapPane for the tabular view (required, not optional).
@@ -364,7 +364,7 @@ ALTER TABLE geo.admin2
 CREATE INDEX geo_admin2_geom_3857_gix ON geo.admin2 USING GIST (geom_3857);
 
 -- IMPORTANT: geo.zone_geom_z6 and geo.zone_geom_z10 are materialized views built
--- from geo.admin1. The `geom_3857` column is NOT automatically projected into them —
+-- from geo.admin2. The `geom_3857` column is NOT automatically projected into them —
 -- the matview definition must explicitly SELECT it. Update the matview definition
 -- (or drop and recreate) to include:
 --   ST_Transform(geom, 3857) AS geom_3857

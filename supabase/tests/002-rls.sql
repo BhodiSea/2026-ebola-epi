@@ -1,5 +1,5 @@
 begin;
-select plan(8);
+select plan(14);
 
 -- Every public table has RLS enabled
 select is(
@@ -43,6 +43,49 @@ select is(
   (select relrowsecurity from pg_class where oid = 'audit.agent_actions'::regclass),
   true,
   'audit.agent_actions has RLS enabled'
+);
+
+select is(
+  (select relrowsecurity from pg_class where oid = 'audit.anthropic_usage_log'::regclass),
+  true,
+  'audit.anthropic_usage_log has RLS enabled'
+);
+
+-- Each public table must have exactly 2 SELECT policies (one per role)
+-- to satisfy AGENTS.md rule 5: separate per-(action, role).
+select is(
+  (select count(*)::int from pg_policies
+   where schemaname = 'public' and tablename = 'sources' and cmd = 'SELECT'),
+  2,
+  'public.sources has 2 SELECT policies (anon + authenticated)'
+);
+
+select is(
+  (select count(*)::int from pg_policies
+   where schemaname = 'public' and tablename = 'documents' and cmd = 'SELECT'),
+  2,
+  'public.documents has 2 SELECT policies (anon + authenticated)'
+);
+
+select is(
+  (select count(*)::int from pg_policies
+   where schemaname = 'public' and tablename = 'source_quotes' and cmd = 'SELECT'),
+  2,
+  'public.source_quotes has 2 SELECT policies (anon + authenticated)'
+);
+
+select is(
+  (select count(*)::int from pg_policies
+   where schemaname = 'public' and tablename = 'outbreaks' and cmd = 'SELECT'),
+  2,
+  'public.outbreaks has 2 SELECT policies (anon + authenticated)'
+);
+
+select is(
+  (select count(*)::int from pg_policies
+   where schemaname = 'public' and tablename = 'case_counts' and cmd = 'SELECT'),
+  2,
+  'public.case_counts has 2 SELECT policies (anon + authenticated)'
 );
 
 -- anon role cannot insert into case_counts (no INSERT policy exists)

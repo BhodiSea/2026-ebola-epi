@@ -49,7 +49,7 @@ P8                                     ████     Mobile + internal + a11y
 | Phase | Title | Primary research source(s) | Exit gate (condensed) | Week budget | Depends on |
 |---|---|---|---|---|---|
 | 0 | Monorepo + CI/CD | [architecture.md](../../.claude/references/architecture.md) | No-op PR passes 6 workflows + deploys preview + creates Supabase branch | 1 | — |
-| 1 | Schema + provenance | [backend.md §1, §5](../../research/backend.md) | pgTAP green; types.gen.ts diff empty; substring-verify rejects bad insert | 1 | P0 |
+| 1 | Schema + provenance | [backend.md §1, §5](../../research/backend.md) | pgTAP green; types.gen.ts diff empty; substring-verify rejects bad insert; `license_tier` column present on `public.sources` | 1 | P0 |
 | 2 | Orchestration + extract | [agent-automation.md §1–§7](../../research/agent-automation.md), [backend.md §4](../../research/backend.md) | One WHO DON doc round-trips fetch→extract→store→verify; extraction_runs row non-null hashes | 1.5 | P1 |
 | 3 | Design system + provenance UI | [ux.md §2–§6, §9–§10](../../research/ux.md), [ui.md §3](../../research/ui.md) | Hover any `<Figure>` on `/methods` → SourceQuoteCard; click → SourceQuoteDrawer at 60 fps | 1 | P2 |
 | 4 | Editorial surfaces + map stub | [ui.md §2–§5](../../research/ui.md), [ux.md §3](../../research/ux.md) | Unprimed journalist answers "where and how many?" in < 10 s on cold `/today` load | 1.5 | P3 |
@@ -73,6 +73,13 @@ P8                                     ████     Mobile + internal + a11y
 | [ADR-0007](../adr/0007-pnpm-monorepo-staging.md) | pnpm monorepo | P0 |
 | [ADR-0008](../adr/0008-env-validation-t3-env.md) | @t3-oss/env-nextjs | P0, P2 |
 | ADR-0009 *(to be authored in P0)* | EpiNow2/Modal deferred to v2 | P0 |
+
+---
+
+## Notes on implementation choices
+
+- **Anthropic SDK used directly** (not AI SDK Gateway) to preserve `cache_control` semantics. The AI SDK Gateway strips `cache_control` blocks, breaking prompt-cache TTL control.
+- **Inngest `throttle` with `scope: "account"`** — Pro plan required by Phase 6 when concurrent function instances exceed Hobby limits. The `throttle` primitive coordinates across all instances server-side; in-process `p-throttle` is forbidden (AGENTS.md rule 15). Concurrency cap on the Pro plan is per function, not per execution count.
 
 ---
 

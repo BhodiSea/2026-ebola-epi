@@ -2,7 +2,15 @@
 import type { DocumentId, ExtractionRunId, SourceQuoteId } from "@ituri/shared";
 import { describe, expectTypeOf, it } from "vitest";
 
-import type { admin1, admin2, caseCounts, documents, sourceQuotes, sources } from "../schema";
+import type {
+  admin1,
+  admin2,
+  anthropicUsageLog,
+  caseCounts,
+  documents,
+  sourceQuotes,
+  sources,
+} from "../schema";
 
 describe("schema type inference", () => {
   it("sourceQuotes id column resolves to SourceQuoteId brand", () => {
@@ -62,5 +70,19 @@ describe("schema type inference", () => {
   it("admin2.$inferSelect references admin1 via admin1Code string", () => {
     type Row = typeof admin2.$inferSelect;
     expectTypeOf<Row["admin1Code"]>().toEqualTypeOf<string>();
+  });
+
+  it("caseCounts.$inferSelect has admin2Code (not admin1Code)", () => {
+    type Row = typeof caseCounts.$inferSelect;
+    expectTypeOf<Row["admin2Code"]>().toEqualTypeOf<null | string>();
+    expectTypeOf<"admin1Code" extends keyof Row ? true : false>().toEqualTypeOf<false>();
+  });
+
+  it("anthropicUsageLog.$inferSelect has inputTokens and outputTokens as number", () => {
+    type Row = typeof anthropicUsageLog.$inferSelect;
+    expectTypeOf<Row["inputTokens"]>().toEqualTypeOf<number>();
+    expectTypeOf<Row["outputTokens"]>().toEqualTypeOf<number>();
+    expectTypeOf<Row["extractionRunId"]>().toEqualTypeOf<null | string>();
+    expectTypeOf<Row["costUsd"]>().toEqualTypeOf<null | string>();
   });
 });

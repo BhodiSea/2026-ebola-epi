@@ -132,7 +132,9 @@ Combine via a pre-fitted model (weights from the Plowright et al. / Pigott et al
 
 #### 2. Care-access-deficit surface
 
-**Inputs:** WorldPop 100m constrained mosaic + age/sex structure. HOT OSM healthsites (operational ETU points — updated whenever an ETU opens or is reported closed in a WHO sitrep). Malaria Atlas Project friction surface (Weiss et al. 2020, CC-BY 4.0).
+**ADR note:** WorldPop is stored as a COG URL reference in `internal.derived_layers` rather than imported pixel-by-pixel via `raster2pgsql`. Loading 100m constrained mosaic values at DRC scale into Postgres produces a table too large to query at tile-serving speeds. The Modal pipeline consumes the COG at build time and writes only aggregated admin-zone statistics. See [ADR-0010](../adr/0010-worldpop-raster-as-cog-reference.md).
+
+**Inputs:** WorldPop 100m constrained mosaic + age/sex structure (COG reference in `internal.derived_layers`). HOT OSM healthsites (operational ETU points — updated whenever an ETU opens or is reported closed in a WHO sitrep). Malaria Atlas Project friction surface (Weiss et al. 2020, CC-BY 4.0).
 
 **Method:** Least-cost-path from each 100m population cell to the nearest operational ETU. Use `GOSTNetsRaster` or the `malariaAtlas` Python package for the least-cost-path computation on the MAP friction surface. Compute:
 - Travel time in minutes to nearest operational ETU, 100m resolution.

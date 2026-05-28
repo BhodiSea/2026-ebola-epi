@@ -42,7 +42,7 @@ commit;
 | `documents` | public | `sha256 bytea unique`, `full_text_tsv tsvector GENERATED ALWAYS AS (to_tsvector('simple', full_text)) STORED` — `'simple'` config (no stemming) required because the corpus includes French-language MoH DRC and WHO AFRO documents; `'english'` stemmer would corrupt non-English text |
 | `source_quotes` | public | `char_end > char_start`, `tg_verify_quote_substring` trigger |
 | `outbreaks` | public | `(pathogen_icd11, country_iso3, onset_date)` unique |
-| `case_counts` | public | `source_quote_id uuid NOT NULL`, `admin1_code text REFERENCES geo.admin1(code)`, `as_of date NOT NULL`, `superseded_by` self-FK, `status text NOT NULL DEFAULT 'pending_review' CHECK (status IN ('pending_review', 'published'))` — Phase 7 autonomy flip changes default to `'published'` for non-escalation rows |
+| `case_counts` | public | `source_quote_id uuid NOT NULL`, `admin2_code text REFERENCES geo.admin2(code)`, `as_of date NOT NULL`, `superseded_by` self-FK, `status text NOT NULL DEFAULT 'pending_review' CHECK (status IN ('pending_review', 'published'))` — Phase 7 autonomy flip changes default to `'published'` for non-escalation rows. DRC health zones (zones de santé) are admin2 granularity; `admin1_code` is not used on `case_counts`. |
 | `extraction_runs` | audit | `prompt_version_hash text NOT NULL`, `tool_schema_hash text NOT NULL`, full token breakdown |
 | `agent_actions` | audit | append-only (UPDATE/DELETE revoked) |
 
@@ -95,14 +95,21 @@ Indexes to create (beyond primary keys):
 ```sql
 alter table public.case_counts enable row level security;
 
-create policy "case_counts_anon_select" on public.case_counts
-  for select to anon, authenticated
+-- Four separate policies — never FOR ALL (AGENTS.md rule 5)
+create policy "case_counts_select_anon" on public.case_counts
+  for select to anon
+  using (superseded_by is null and status = 'published');
+
+create policy "case_counts_select_authenticated" on public.case_counts
+  for select to authenticated
   using (superseded_by is null and status = 'published');
 
 -- No INSERT/UPDATE/DELETE policy for anon/authenticated
 -- Service role bypasses RLS for Inngest jobs
 -- Future: researcher tier via auth.jwt() -> app_metadata -> tier
 ```
+
+Apply the same four-policy split to every `public` schema table. Each table gets separate `*_select_anon` and `*_select_authenticated` policies rather than a combined `for select to anon, authenticated`.
 
 **`supabase/migrations/<timestamp>_geo_schema.sql`** — geo schema tables for admin boundaries:
 
@@ -124,18 +131,30 @@ create table geo.admin2 (
 create index admin2_gix on geo.admin2 using gist (geom);
 ```
 
+DRC health zones (zones de santé) are admin2 granularity. `case_counts.admin2_code` references `geo.admin2(code)`. `geo.admin1` holds province-level boundaries used for tile simplification only.
+
 Materialized views for tile serving (Phase 5 will use these):
 ```sql
--- Zone choropleth views use admin1 — must match case_counts.admin1_code FK granularity
+-- Zone choropleth views built from geo.admin2 — must match case_counts.admin2_code FK granularity
 create materialized view geo.zone_geom_z6 as
-  select code, name, st_simplifypreservetopology(geom, 0.05) as geom from geo.admin1;
+  select code, name, st_simplifypreservetopology(geom, 0.05) as geom from geo.admin2;
 create materialized view geo.zone_geom_z10 as
-  select code, name, st_simplifypreservetopology(geom, 0.005) as geom from geo.admin1;
+  select code, name, st_simplifypreservetopology(geom, 0.005) as geom from geo.admin2;
 create index zone_geom_z6_gix  on geo.zone_geom_z6  using gist (geom);
 create index zone_geom_z10_gix on geo.zone_geom_z10 using gist (geom);
--- For admin2-level detail if needed later:
--- create materialized view geo.admin2_geom_z10 as
---   select code, name, st_simplifypreservetopology(geom, 0.005) as geom from geo.admin2;
+```
+
+**`supabase/migrations/20260528200000_add_license_tier.sql`** — `license_tier` column on `public.sources` (ships in Phase 1; required before multi-source adapters are added in Phase 6):
+
+```sql
+begin;
+alter table public.sources
+  add column if not exists license_tier text not null default 'open'
+    check (license_tier in ('open', 'display_only', 'noncommercial_verified', 'excluded'));
+-- Researcher-tier CSV export filters WHERE license_tier = 'open'.
+-- 'display_only' sources render aggregated overlays with attribution only;
+-- they never appear in any export and never feed a derived raster for redistribution.
+commit;
 ```
 
 **`supabase/seed.sql`** — seed one fixture source for tests:
@@ -171,7 +190,9 @@ export const sourceQuotes = pgTable("source_quotes", {
 // ... (full schema mirrors every table)
 ```
 
-`drizzle.config.ts` at `packages/db/` points to `SUPABASE_DB_URL` (session mode port 5432 for migrations) via `@t3-oss/env-nextjs`.
+`drizzle.config.ts` at `packages/db/` points to `SUPABASE_DB_URL` via `@t3-oss/env-nextjs`. Connection mode rules:
+- **Session mode (port 5432):** migrations and schema introspection only. Required for `CREATE INDEX CONCURRENTLY`, advisory locks, and any DDL that cannot run in a transaction.
+- **Transaction mode via Supavisor (port 6543) with `prepare: false`:** Server Actions and Inngest jobs. Supavisor does not support prepared statements in transaction mode; always pass `prepare: false` to the Postgres client.
 
 **`packages/db/src/types.gen.ts`** — generated via `supabase gen types typescript --linked`. Committed. CI fails if the diff between generated and committed is non-empty.
 
@@ -297,7 +318,7 @@ If types diff is non-empty: run `supabase gen types typescript --linked > packag
 ## Out of scope
 
 - Inngest, Anthropic SDK, or any extraction code (Phase 2).
-- `geo.admin1` / `geo.admin2` data loading — tables are created but geometry data loads via `supabase/seed.sql` in Phase 5 when the tile pipeline needs it.
+- `geo.admin1` / `geo.admin2` geometry data loading — tables are created but geometry data loads via `supabase/seed.sql` in Phase 5 when the tile pipeline needs it.
 - `audit.llm_traces` table for OTel spans (Phase 2).
 - `sources.extraction_paused` column used by kill switch (Phase 6 adds it via a separate migration; Phase 1 just has the base `sources` table).
 - The MVT functions `internal.mvt` and `public.mvt` (Phase 5).

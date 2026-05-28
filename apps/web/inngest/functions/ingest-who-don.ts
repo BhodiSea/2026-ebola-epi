@@ -4,7 +4,9 @@ import { createHash } from "node:crypto";
 import Anthropic from "@anthropic-ai/sdk";
 import {
   admin1,
+  admin2,
   agentActions,
+  anthropicUsageLog,
   auditLlmTraces,
   caseCounts,
   documents,
@@ -14,13 +16,19 @@ import {
   sources,
 } from "@ituri/db";
 import type { ExtractionRow, ExtractionUsage } from "@ituri/extract";
-import { computePromptVersionHash, MODEL, runExtraction } from "@ituri/extract";
+import {
+  buildExtractionParams,
+  computePromptVersionHash,
+  MODEL,
+  parseExtractionResponse,
+} from "@ituri/extract";
 import type { WhodonItem } from "@ituri/ingest";
 import { fetchAndParseDocument, pollWHODON } from "@ituri/ingest";
 import { ExtractionRunId } from "@ituri/shared";
 import { and, asc, eq, sql } from "drizzle-orm";
 
 import { inngest } from "../client";
+import { WHO_DON_FN_CONFIG } from "./who-don-config";
 import type { Tx } from "@/lib/db";
 import { db } from "@/lib/db";
 import { env } from "@/lib/env";
@@ -35,8 +43,19 @@ interface DocumentParams {
   readonly url: string;
 }
 
+// ─── types ────────────────────────────────────────────────────────────────────
+
+/** Return type of fetchDocument — must be JSON-serialisable (step.run memoises via JSON). */
+interface FetchedDocument {
+  readonly documentId: string;
+  readonly fullText: string;
+  readonly inputDocSha256Hex: string;
+  readonly publishedAtIso: string;
+  readonly pvHash: string;
+}
+
 interface RowMid {
-  admin1Code: null | string;
+  admin2Code: null | string;
   outbreakId: string;
   row: ExtractionRow;
   sqId: string;
@@ -54,26 +73,62 @@ interface TxParams {
   readonly usage: ExtractionUsage;
 }
 
+// Typed wrapper so step.ai.wrap infers Promise<Anthropic.Message> (not APIPromise).
+async function createMessage(
+  params: Anthropic.MessageCreateParamsNonStreaming,
+): Promise<Anthropic.Message> {
+  return anthropic.messages.create(params);
+}
+
+// ─── database helpers ─────────────────────────────────────────────────────────
+
+/**
+ * Fetch + hash + idempotency check.
+ * Returns null when the (document, promptVersionHash) pair was already extracted.
+ * Returns JSON-serialisable metadata when extraction is needed.
+ */
+async function fetchDocument(item: WhodonItem, sourceId: string): Promise<FetchedDocument | null> {
+  const { sha256, fullText } = await fetchAndParseDocument(item.url);
+  const documentId = await upsertDocument({
+    fullText,
+    publishedAt: new Date(item.publishedAt),
+    sha256,
+    sourceId,
+    url: item.url,
+  });
+  const pvHash = computePromptVersionHash();
+  const inputDocSha256Hex = createHash("sha256").update(fullText).digest("hex");
+  const alreadyRows: { id: string }[] = await db
+    .select({ id: extractionRuns.id })
+    .from(extractionRuns)
+    .where(
+      and(eq(extractionRuns.documentId, documentId), eq(extractionRuns.promptVersionHash, pvHash)),
+    )
+    .limit(1);
+  if (alreadyRows[0]) {
+    return null;
+  }
+  return { documentId, fullText, inputDocSha256Hex, publishedAtIso: item.publishedAt, pvHash };
+}
+
 async function insertExtractionInTransaction(tx: Tx, params: TxParams): Promise<void> {
-  // Phase 1: resolve outbreaks + admin1, insert source_quotes.
-  // case_counts cannot be inserted until extraction_runs exists (non-deferrable FK), so we collect
-  // intermediate results here and defer the case_counts inserts to phase 3.
   const intermediates: RowMid[] = [];
   const sqIds: string[] = [];
 
   for (const row of params.rows) {
     // eslint-disable-next-line no-await-in-loop
     const outbreakId = await upsertOutbreak(tx, row, params.publishedAt);
-    let admin1Code: null | string = null;
+    let admin2Code: null | string = null;
     if (row.admin1_name !== undefined) {
+      // admin1_name from extraction schema is the health-zone / zone-de-santé name
       // eslint-disable-next-line no-await-in-loop
-      admin1Code = await resolveAdmin1Code(tx, row.country_iso3, row.admin1_name);
-      if (admin1Code === null) {
+      admin2Code = await resolveAdmin2Code(tx, row.country_iso3, row.admin1_name);
+      if (admin2Code === null) {
         // eslint-disable-next-line no-await-in-loop
         await tx.insert(agentActions).values({
           agent: "ingest-who-don",
-          action: "admin1_unmatched",
-          payload: { admin1Name: row.admin1_name, countryIso3: row.country_iso3 },
+          action: "admin2_unmatched",
+          payload: { adminName: row.admin1_name, countryIso3: row.country_iso3 },
         });
       }
     }
@@ -92,10 +147,9 @@ async function insertExtractionInTransaction(tx: Tx, params: TxParams): Promise<
       throw new Error("source_quote insert returned no row");
     }
     sqIds.push(sq.id);
-    intermediates.push({ outbreakId, sqId: sq.id, admin1Code, row });
+    intermediates.push({ outbreakId, sqId: sq.id, admin2Code, row });
   }
 
-  // Phase 2: extraction_runs must be inserted before case_counts (non-deferrable FK).
   await tx.insert(extractionRuns).values({
     id: params.extractionRunId,
     documentId: params.documentId,
@@ -112,13 +166,12 @@ async function insertExtractionInTransaction(tx: Tx, params: TxParams): Promise<
     sourceQuoteIds: sqIds,
   });
 
-  // Phase 3: case_counts — extraction_run_id FK now resolves.
-  for (const { outbreakId, sqId, admin1Code, row } of intermediates) {
+  for (const { outbreakId, sqId, admin2Code, row } of intermediates) {
     // eslint-disable-next-line no-await-in-loop
     await tx.insert(caseCounts).values({
       outbreakId,
       asOf: new Date(row.as_of),
-      admin1Code,
+      admin2Code,
       metric: row.metric,
       value: row.value,
       sourceQuoteId: sqId,
@@ -129,45 +182,31 @@ async function insertExtractionInTransaction(tx: Tx, params: TxParams): Promise<
   }
 }
 
-async function processDocument(item: WhodonItem, sourceId: string): Promise<void> {
-  const { sha256, fullText } = await fetchAndParseDocument(item.url);
-  const documentId = await upsertDocument({
-    fullText,
-    publishedAt: new Date(item.publishedAt),
-    sha256,
-    sourceId,
-    url: item.url,
-  });
-  const pvHash = computePromptVersionHash();
-  const inputDocSha256 = createHash("sha256").update(fullText).digest();
-  const alreadyRows: { id: string }[] = await db
-    .select({ id: extractionRuns.id })
-    .from(extractionRuns)
-    .where(
-      and(eq(extractionRuns.documentId, documentId), eq(extractionRuns.promptVersionHash, pvHash)),
-    )
-    .limit(1);
-  if (alreadyRows[0]) {
-    return;
-  }
-  const extractionStartedAt = Date.now();
-  const { rows, toolSchemaHash, usage } = await runExtraction(anthropic, fullText);
-  const extractionDurationMs = Date.now() - extractionStartedAt;
+/**
+ * Parse, verify, and persist an extraction result.
+ * rawMsg comes from step.ai.wrap and is JSON-deserialised; Buffer fields are
+ * reconstructed from hex before the DB insert.
+ */
+async function persistExtraction(
+  doc: FetchedDocument,
+  rawMsg: Pick<Anthropic.Message, "content" | "usage">,
+): Promise<void> {
+  const { rows, toolSchemaHash, usage } = parseExtractionResponse(rawMsg, doc.fullText);
   const extractionRunId = ExtractionRunId.parse(crypto.randomUUID());
-  const publishedAt = new Date(item.publishedAt);
   await db.transaction(async (tx) => {
     await insertExtractionInTransaction(tx, {
-      documentId,
+      documentId: doc.documentId,
       extractionRunId,
-      inputDocSha256,
+      inputDocSha256: Buffer.from(doc.inputDocSha256Hex, "hex"),
       modelId: MODEL,
-      publishedAt,
-      pvHash,
+      publishedAt: new Date(doc.publishedAtIso),
+      pvHash: doc.pvHash,
       rows,
       toolSchemaHash,
       usage,
     });
   });
+  // durationMs: null — the LLM call happened inside step.ai.wrap; Inngest tracks its duration.
   await db.insert(auditLlmTraces).values({
     extractionRunId,
     traceId: crypto.randomUUID(),
@@ -175,25 +214,35 @@ async function processDocument(item: WhodonItem, sourceId: string): Promise<void
     name: "extraction",
     agentName: "extract",
     modelId: MODEL,
-    promptVersionHash: pvHash,
+    promptVersionHash: doc.pvHash,
     cacheReadInputTokens: usage.cache_read_input_tokens ?? 0,
     cacheCreationInputTokens: usage.cache_creation_input_tokens ?? 0,
     inputTokens: usage.input_tokens,
     outputTokens: usage.output_tokens,
-    durationMs: extractionDurationMs,
+    durationMs: null,
+  });
+  // Cost kill-switch source (backend.md §467): Phase 7 adds pg_net trigger.
+  await db.insert(anthropicUsageLog).values({
+    extractionRunId,
+    modelId: MODEL,
+    inputTokens: usage.input_tokens,
+    outputTokens: usage.output_tokens,
+    cacheReadInputTokens: usage.cache_read_input_tokens ?? 0,
+    cacheCreationInputTokens: usage.cache_creation_input_tokens ?? 0,
   });
 }
 
-async function resolveAdmin1Code(
+async function resolveAdmin2Code(
   tx: Tx,
   countryIso3: string,
   name: string,
 ): Promise<null | string> {
   const rows: { code: string }[] = await tx
-    .select({ code: admin1.code })
-    .from(admin1)
+    .select({ code: admin2.code })
+    .from(admin2)
+    .innerJoin(admin1, eq(admin2.admin1Code, admin1.code))
     .where(
-      and(eq(admin1.countryIso3, countryIso3), eq(sql`lower(${admin1.name})`, name.toLowerCase())),
+      and(eq(admin1.countryIso3, countryIso3), eq(sql`lower(${admin2.name})`, name.toLowerCase())),
     )
     .limit(1);
   return rows[0]?.code ?? null;
@@ -211,6 +260,8 @@ async function resolveSourceId(): Promise<string> {
   }
   return row.id;
 }
+
+// ─── step helpers ─────────────────────────────────────────────────────────────
 
 async function upsertDocument(params: DocumentParams): Promise<string> {
   const dupeRows: { id: string }[] = await db
@@ -247,8 +298,6 @@ async function upsertDocument(params: DocumentParams): Promise<string> {
 }
 
 async function upsertOutbreak(tx: Tx, row: ExtractionRow, onsetDate: Date): Promise<string> {
-  // Look up any existing outbreak for this pathogen-country pair first.
-  // Without this, each article on a different date creates a separate outbreak row.
   const byPair = and(
     eq(outbreaks.pathogenIcd11, row.pathogen_icd11),
     eq(outbreaks.countryIso3, row.country_iso3),
@@ -273,7 +322,6 @@ async function upsertOutbreak(tx: Tx, row: ExtractionRow, onsetDate: Date): Prom
   if (insRows[0]) {
     return insRows[0].id;
   }
-  // Race condition: another process inserted between our select and insert.
   const fallbackRows: { id: string; onsetDate: Date }[] = await tx
     .select({ id: outbreaks.id, onsetDate: outbreaks.onsetDate })
     .from(outbreaks)
@@ -290,16 +338,36 @@ async function upsertOutbreak(tx: Tx, row: ExtractionRow, onsetDate: Date): Prom
   return found.id;
 }
 
+// ─── Inngest function ─────────────────────────────────────────────────────────
+
 export const ingestWHODON = inngest.createFunction(
-  { id: "ingest-who-don", retries: 4, concurrency: { limit: 1 } },
+  WHO_DON_FN_CONFIG,
   { cron: "*/30 * * * *" },
   async ({ step }) => {
     const items = await step.run("poll-rss", async () => pollWHODON());
     const sourceId = await step.run("resolve-source-id", async () => resolveSourceId());
+
     for (const item of items) {
       const stepId = createHash("sha256").update(item.url).digest("hex").slice(0, 16);
+
       // eslint-disable-next-line no-await-in-loop
-      await step.run(`process-${stepId}`, async () => processDocument(item, sourceId));
+      const doc = await step.run(`fetch-${stepId}`, async () => fetchDocument(item, sourceId));
+      if (!doc) {
+        continue;
+      }
+
+      // LLM call via step.ai.wrap: input is tracked + editable in Inngest UI,
+      // OTel trace ID propagates to Langfuse spans (Phase 7).
+      // eslint-disable-next-line no-await-in-loop
+      const rawMsg = await step.ai.wrap(
+        `extract-${stepId}`,
+        createMessage,
+        buildExtractionParams(doc.fullText),
+      );
+
+      // Parse, verify substring, persist — outside the LLM trace span.
+      // eslint-disable-next-line no-await-in-loop
+      await step.run(`persist-${stepId}`, async () => persistExtraction(doc, rawMsg));
     }
   },
 );

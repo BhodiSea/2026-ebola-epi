@@ -36,6 +36,8 @@ public/       →  apps/web/public/
 
 Root files that stay at root: `pnpm-workspace.yaml`, `turbo.json`, `biome.json`, `eslint.config.ts`, `lefthook.yml`, `knip.config.ts`, `tsconfig.base.json`, `.github/`, `supabase/`.
 
+**`supabase/config.toml` scaffolding requirement:** set `[api] schemas = ["public"]`. Remove `graphql_public` from the schemas list — it is not used and widens the attack surface. This is a Phase 0 hardening step that must be done before the first Supabase branch is created.
+
 Update `pnpm-workspace.yaml` to include `apps/*` and `packages/*`.
 
 Update `turbo.json` pipeline to reference `apps/web` build/lint/test tasks.
@@ -125,7 +127,7 @@ steps:
 
 ### Vercel configuration
 
-- Add `apps/web/vercel.ts` (the modern Vercel project config format, via `@vercel/config`) specifying build command and any rewrite/header rules.
+- Add `apps/web/vercel.ts` (the modern Vercel project config format, via `@vercel/config`) specifying build command, rewrite/header rules, and a **CSP nonce header**. Generate a per-request nonce in `proxy.ts` using `crypto.randomUUID()`, set it in `x-nonce` response header, and reference it in the `Content-Security-Policy` header. Phase 3 components consume this nonce for inline scripts (theme pre-hydration). Plain string literals must be used in the `proxy.ts` matcher — never `String.raw` tagged template literals (see anti-patterns.md).
 - In Vercel project settings: set **Root Directory** to `.` (repo root — Turbo must run from the root where `turbo.json` lives), **Build Command** to `turbo build --filter=apps/web`, **Install Command** to `pnpm install --frozen-lockfile`, **Output Directory** to `apps/web/.next`.
 - Add `@vercel/config` to `apps/web/package.json` devDependencies.
 - Enable **Deployment Protection** on Production only. Previews are public so Supabase branch QA links work.
@@ -208,6 +210,15 @@ supabase db reset
 If `pnpm biome check` fails: run `pnpm biome check --write` to auto-fix, inspect any remaining errors.  
 If `pnpm typecheck` fails: check that all `tsconfig.json` `paths` aliases resolve to the new `apps/web/` locations.  
 If Supabase branch check stays "pending": confirm the Supabase GitHub app has `Checks: write` permission on the repo.
+
+Add a types-drift CI gate to `ci.yml`:
+```yaml
+- name: Assert types in sync
+  run: |
+    supabase gen types typescript --linked > /tmp/types.gen.ts
+    diff /tmp/types.gen.ts packages/db/src/types.gen.ts
+```
+Fails if a schema change was not followed by a committed type regeneration.
 
 ---
 

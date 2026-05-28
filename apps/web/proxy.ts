@@ -1,9 +1,11 @@
 import type { NextRequest } from "next/server";
 
+import { buildNonce } from "@/lib/nonce";
 import { updateSession } from "@/lib/supabase/proxy";
 
 export async function proxy(request: NextRequest) {
-  return await updateSession(request);
+  const nonce = buildNonce();
+  return await updateSession(request, nonce);
 }
 
 export const config = {

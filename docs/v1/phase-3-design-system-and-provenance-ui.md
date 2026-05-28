@@ -90,7 +90,7 @@ Stand up the "Calm Command Center" design system — Tailwind v4 OKLCH tokens, G
 /* Pre-hydration theme script prevents flash */
 ```
 
-**Theme pre-hydration script** (inline in `apps/web/app/layout.tsx` `<head>`): reads `localStorage.theme` or `prefers-color-scheme`, sets `data-theme` on `<html>` before React hydrates.
+**Theme pre-hydration script** (inline in `apps/web/app/layout.tsx` `<head>`): reads `localStorage.theme` or `prefers-color-scheme`, sets `data-theme` on `<html>` before React hydrates. Attach the CSP nonce from Phase 0's `proxy.ts` `x-nonce` header to this inline script tag so the CSP `script-src` directive allows it.
 
 **`apps/web/tailwind.config.ts`** — extend with ColorBrewer Reds 5-class and Okabe-Ito categorical palette as named utilities.
 
@@ -193,6 +193,12 @@ Visual: 1 px dotted underline at 60% opacity `--color-accent` on the number itse
 
 **`apps/web/app/evidence/[quote-id]/page.tsx`** (Server Component):
 - Permalink page for a `source_quotes` row.
+- Add Arcjet `shield + detectBot` protection on this route. Evidence permalinks are indexed by search engines; bot mitigation prevents scraping and abuse:
+
+```ts
+import arcjet, { shield, detectBot } from "@arcjet/next";
+const aj = arcjet({ key: process.env.ARCJET_KEY!, rules: [shield({ mode: "LIVE" }), detectBot({ mode: "LIVE", allow: ["CATEGORY:SEARCH_ENGINE"] })] });
+```
 - Fetches the row + parent `documents` row + `extraction_runs` rows that reference it.
 - Renders: source header, verbatim quote (Source Serif 4 italic 16/1.6), "Used in N figures" list, chain of custody, citation copier.
 - OG metadata: `title: "Evidence: {quoteId} — ituri-sitrep"`.

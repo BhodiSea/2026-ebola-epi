@@ -4,10 +4,23 @@ import { NextResponse } from "next/server";
 
 import { env, hasEnvVars } from "@/lib/env";
 
-export async function updateSession(request: NextRequest) {
-  let supabaseResponse = NextResponse.next({ request });
+export async function updateSession(request: NextRequest, nonce: string) {
+  // CSP value stored up-front so every return path stamps the same header.
+  // Applied to the response just before returning — NOT at construction time —
+  // because the Supabase SSR setAll callback overwrites supabaseResponse with a
+  // new NextResponse when auth cookies are refreshed, which would silently lose
+  // a header set at construction time.
+  const csp = `default-src 'self'; script-src 'self' 'nonce-${nonce}' 'strict-dynamic'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co;`;
+
+  // Forward the nonce so RSC can read it via `await headers()`.
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-nonce", nonce);
+  const forwardedRequest = new Request(request, { headers: requestHeaders });
+
+  let supabaseResponse = NextResponse.next({ request: forwardedRequest });
 
   if (!hasEnvVars) {
+    supabaseResponse.headers.set("Content-Security-Policy", csp);
     return supabaseResponse;
   }
 
@@ -25,7 +38,8 @@ export async function updateSession(request: NextRequest) {
         for (const { name, value } of cookiesToSet) {
           request.cookies.set(name, value);
         }
-        supabaseResponse = NextResponse.next({ request });
+        // Must use forwardedRequest (not request) so RSCs still see x-nonce.
+        supabaseResponse = NextResponse.next({ request: forwardedRequest });
         for (const { name, value, options } of cookiesToSet) {
           supabaseResponse.cookies.set(name, value, options);
         }
@@ -49,5 +63,6 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(redirectUrl);
   }
 
+  supabaseResponse.headers.set("Content-Security-Policy", csp);
   return supabaseResponse;
 }

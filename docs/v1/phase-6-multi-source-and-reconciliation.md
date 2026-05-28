@@ -58,9 +58,10 @@ create table if not exists public.incidents (
   created_at timestamptz not null default now()
 );
 -- RLS: anon cannot read incidents; authenticated can read; service role manages
+-- Use (select auth.uid()) to run auth check as InitPlan once per statement (AGENTS.md rule 5)
 alter table public.incidents enable row level security;
-create policy "incidents_auth_select" on public.incidents
-  for select to authenticated using (true);
+create policy "incidents_select_authenticated" on public.incidents
+  for select to authenticated using ((select auth.uid()) is not null);
 commit;
 ```
 
@@ -274,7 +275,7 @@ To demonstrate the exit gate:
 ## Tooling
 
 - `unpdf` — WASM PDF parser fallback for AFRO scanned bulletins (already added in Phase 2; no new install needed). `unpdf` wraps Mozilla's PDF.js for Node.js/Edge environments. Do NOT use `pdf-oxide` — that is a Rust library with no published npm package.
-- **Inngest `throttle`** — outbound rate limiting per host via `throttle: { limit, period, key: hostKey, scope: "account" }`. This is the **only** acceptable cross-instance rate-limiter. In-process `p-throttle` is forbidden (AGENTS.md hard rule 15) because it does not coordinate across concurrent Inngest worker instances.
+- **Inngest `throttle`** — the `throttle: { limit: 2, period: "1s", key: "event.data.host", scope: "account" }` pattern is established in Phase 2 on the WHO DON function. Phase 6 extends it to all new adapters via the registry pattern. In-process `p-throttle` is forbidden (AGENTS.md hard rule 15) because it does not coordinate across concurrent Inngest worker instances.
 - `robots-parser` — honor `robots.txt` at the adapter fetch boundary.
 - Playwright on Trigger.dev v4 task — for Africa CDC if Chromium-required PDFs are encountered. Set up Trigger.dev account and task skeleton but do not activate until the source actually requires Chromium.
 - Twilio SDK — SMS escalation for `emergency` anomaly class.
@@ -410,7 +411,7 @@ License tier: `open` (with ODbL share-alike note in attribution). Required for t
 
 - Replace the existing 1km WorldPop seed with the 100m constrained mosaic.
 - Add age/sex structure (`ages_m_0_4`, `ages_f_0_4`, etc.) — CFR and care demand are age-structured.
-- Ingest as a raster reference (store URL in `internal.derived_layers`; do not bulk-import pixel values into Postgres).
+- Ingest as a raster reference: store the COG URL in `internal.derived_layers.storage_url`. Do not use `raster2pgsql` to bulk-import pixel values into Postgres — loading 100m pixel values at DRC scale produces a table too large to query at tile-serving speeds. The Phase 9 `care-access-deficit` pipeline consumes WorldPop at build time via Modal and writes only aggregated admin-zone statistics to Postgres. See ADR-0010 for the full decision.
 
 License tier: `open`.
 
@@ -442,26 +443,14 @@ License tier: `display_only` for ProMED post text; `open` for aggregated alert m
 
 ---
 
-## License tier schema migration
+## License tier — Phase 1 schema, Phase 6 population
 
-*Source: [`research/data.md`](../../research/data.md) §5.*
+The `license_tier` column (`CHECK (license_tier IN ('open', 'display_only', 'noncommercial_verified', 'excluded'))`) shipped in Phase 1 migration `20260528200000_add_license_tier.sql`. Phase 6 populates it for the new source rows added in this phase.
 
-Add a migration `<timestamp>_license_tier.sql`:
+Add a migration `<timestamp>_license_tier_phase6_sources.sql` to set tiers on Phase 6 sources:
 
 ```sql
 begin;
-
--- Three-tier licensing matrix (data.md §5)
--- open:                  CC-BY, CC0, public domain, ODbL — display, derive, export (with attribution)
--- display_only:          ACLED, IOM DTM, Pathoplexus RU, ProMED text — overlay only, NO export, NO derivatives
--- noncommercial_verified: GEE (build-time pipeline only), Google 3D (optional toggle, separately licensed)
--- excluded:              GISAID, HeRAMS, any line-list/PHI
-
-ALTER TABLE public.sources
-  ADD COLUMN IF NOT EXISTS license_tier text NOT NULL DEFAULT 'open'
-    CHECK (license_tier IN ('open', 'display_only', 'noncommercial_verified', 'excluded')),
-  ADD COLUMN IF NOT EXISTS license_url text,
-  ADD COLUMN IF NOT EXISTS attribution_required boolean NOT NULL DEFAULT true;
 
 -- Documents inherit license from sources at ingest time; also store ETag/Last-Modified for conditional GET.
 ALTER TABLE public.documents
@@ -470,7 +459,7 @@ ALTER TABLE public.documents
   ADD COLUMN IF NOT EXISTS last_modified timestamptz,
   ADD COLUMN IF NOT EXISTS http_status integer;
 
--- Update existing sources with correct tiers:
+-- Populate license_tier + license_url on all sources (who-don already seeded in Phase 1)
 UPDATE public.sources SET license_tier = 'open',         license_url = 'https://creativecommons.org/licenses/by/4.0/' WHERE slug = 'who-don';
 UPDATE public.sources SET license_tier = 'open',         license_url = 'https://creativecommons.org/licenses/by/4.0/' WHERE slug = 'who-afro';
 UPDATE public.sources SET license_tier = 'open',         license_url = 'https://creativecommons.org/licenses/by/4.0/' WHERE slug = 'ecdc-cdtr';

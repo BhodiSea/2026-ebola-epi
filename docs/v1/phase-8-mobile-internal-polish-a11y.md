@@ -67,6 +67,31 @@ import { Drawer } from "vaul";
 
 All routes under `apps/web/app/internal/` are auth-gated via middleware. Visual identity: one step darker surface, no accent on chrome, higher information density. Linear Settings aesthetic.
 
+Add Arcjet `shield + detectBot + tokenBucket` on `/internal/*` Server Actions:
+
+```ts
+import arcjet, { shield, detectBot, tokenBucket } from "@arcjet/next";
+const aj = arcjet({
+  key: process.env.ARCJET_KEY!,
+  rules: [
+    shield({ mode: "LIVE" }),
+    detectBot({ mode: "LIVE", allow: [] }), // block all bots on internal routes
+    tokenBucket({ mode: "LIVE", refillRate: 10, interval: 60, capacity: 30 }), // 30 req/min burst
+  ],
+});
+```
+
+Apply to all Server Actions under `internal/` that mutate state (escalation ack, source pause toggle, extraction retry). Read-only Server Components on internal routes use `shield + detectBot` only.
+
+**No-PHI CI gate**: the `no-phi.sh` hook ships in Phase 2 as a PreToolUse hook on Write/Edit. Phase 8 lifts the identifier-pattern regex (`\bDOB\b`, `\bMRN\b`, `\bSSN\b`, `\bPatient [A-Z]\b`) into a CI workflow step so it runs on every PR diff, not just on file writes during a Claude Code session:
+
+```yaml
+# .github/workflows/ci.yml (add to existing steps)
+- name: No-PHI scan
+  run: |
+    git diff origin/main...HEAD -- '*.ts' '*.tsx' '*.sql' | grep -iE '\b(DOB|MRN|SSN|Patient [A-Z])\b' && exit 1 || exit 0
+```
+
 **`apps/web/app/internal/layout.tsx`** — checks auth via `supabase.auth.getUser()` (never `getSession()`); redirects to `/auth/login` on unauthenticated.
 
 **`apps/web/app/internal/cost/page.tsx`** (Server Component):
