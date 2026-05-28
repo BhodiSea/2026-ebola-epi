@@ -52,16 +52,17 @@ export async function updateSession(request: NextRequest, nonce: string) {
   const { data } = await supabase.auth.getClaims();
   const user = data?.claims;
 
-  if (
-    request.nextUrl.pathname !== "/" &&
-    !user &&
-    !request.nextUrl.pathname.startsWith("/login") &&
-    !request.nextUrl.pathname.startsWith("/auth") &&
-    !request.nextUrl.pathname.startsWith("/api/inngest")
-  ) {
-    const redirectUrl = request.nextUrl.clone();
-    redirectUrl.pathname = "/auth/login";
-    return NextResponse.redirect(redirectUrl);
+  const { pathname } = request.nextUrl;
+  const isPublic =
+    pathname === "/" ||
+    pathname.startsWith("/methods") ||
+    pathname.startsWith("/evidence") ||
+    pathname.startsWith("/login") ||
+    pathname.startsWith("/auth") ||
+    pathname.startsWith("/api/inngest");
+
+  if (!(user || isPublic)) {
+    return NextResponse.redirect(new URL("/auth/login", request.url));
   }
 
   supabaseResponse.headers.set("Content-Security-Policy", csp);

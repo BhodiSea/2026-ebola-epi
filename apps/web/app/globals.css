@@ -1,68 +1,134 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+@import "tw-animate-css";
 
-@layer base {
+/* Wire Tailwind v4's dark: variant to next-themes' data-theme attribute */
+@variant dark (&:where([data-theme="dark"] *), &:is([data-theme="dark"]));
+
+/* ── Static design tokens ── */
+@theme {
+  /* Surfaces */
+  --color-bg: oklch(99% 0.003 247);
+  --color-surface-1: oklch(98% 0.005 247);
+  --color-surface-2: oklch(96% 0.006 247);
+  --color-surface-3: oklch(93% 0.008 247);
+  --color-border: oklch(89% 0.01 247);
+  --color-border-strong: oklch(80% 0.012 247);
+
+  /* Text */
+  --color-fg: oklch(18% 0.02 260);
+  --color-fg-muted: oklch(45% 0.015 260);
+  --color-fg-subtle: oklch(60% 0.012 260);
+
+  /* Accent — provenance blue */
+  --color-accent: oklch(48% 0.18 240);
+  --color-accent-fg: oklch(99% 0.003 247);
+
+  /* Severity — Sentry-derived */
+  --color-emergency: oklch(50% 0.22 25);
+  --color-alert: oklch(64% 0.2 25);
+  --color-warn: oklch(83% 0.16 92);
+  --color-info: oklch(45% 0.015 260);
+
+  /* Provenance quote highlight */
+  --color-quote-bg: oklch(96% 0.06 95);
+  --color-quote-fg: oklch(28% 0.05 95);
+
+  /* Radius */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
+  --radius-pill: 9999px;
+
+  /* Shadows */
+  --shadow-1: 0 1px 2px oklch(0% 0 0 / 6%), 0 1px 3px oklch(0% 0 0 / 10%);
+  --shadow-2: 0 4px 6px oklch(0% 0 0 / 10%), 0 2px 4px oklch(0% 0 0 / 8%);
+
+  /* ColorBrewer Reds 5-class */
+  --color-red-1: oklch(96% 0.02 25);
+  --color-red-2: oklch(83% 0.07 25);
+  --color-red-3: oklch(66% 0.15 25);
+  --color-red-4: oklch(57% 0.2 25);
+  --color-red-5: oklch(42% 0.22 25);
+
+  /* Okabe-Ito 8-color categorical palette */
+  --color-okabe-orange: oklch(73% 0.17 57);
+  --color-okabe-sky: oklch(76% 0.1 222);
+  --color-okabe-bluish-green: oklch(71% 0.12 171);
+  --color-okabe-yellow: oklch(91% 0.16 95);
+  --color-okabe-blue: oklch(46% 0.15 255);
+  --color-okabe-vermilion: oklch(62% 0.2 33);
+  --color-okabe-reddish-purple: oklch(48% 0.15 325);
+  --color-okabe-black: oklch(20% 0 0);
+}
+
+/* ── Dynamic tokens (var() references for next/font + shadcn aliases) ── */
+@theme inline {
+  /* Font stacks — wired to next/font CSS vars at runtime */
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, "Courier New", monospace;
+  --font-serif: var(--font-source-serif-4), ui-serif, Georgia, "Times New Roman", serif;
+
+  /* shadcn compatibility — these resolve via var() at runtime so dark mode
+     overrides on Phase 3 canonical tokens propagate automatically */
+  --color-background: var(--color-bg);
+  --color-foreground: var(--color-fg);
+  --color-card: var(--color-surface-1);
+  --color-card-foreground: var(--color-fg);
+  --color-popover: var(--color-surface-1);
+  --color-popover-foreground: var(--color-fg);
+  --color-primary: var(--color-accent);
+  --color-primary-foreground: var(--color-accent-fg);
+  --color-secondary: var(--color-surface-2);
+  --color-secondary-foreground: var(--color-fg);
+  --color-muted: var(--color-surface-2);
+  --color-muted-foreground: var(--color-fg-muted);
+  /* shadcn accent = provenance blue (interactive hover); fg = white */
+  --color-accent-foreground: var(--color-accent-fg);
+  --color-destructive: var(--color-emergency);
+  --color-destructive-foreground: var(--color-accent-fg);
+  --color-input: var(--color-border);
+  --color-ring: var(--color-accent);
+  --radius: var(--radius-md);
+}
+
+/* ── Dark mode — system preference ── */
+@media (prefers-color-scheme: dark) {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 0 0% 3.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 0 0% 3.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 3.9%;
-    --primary: 0 0% 9%;
-    --primary-foreground: 0 0% 98%;
-    --secondary: 0 0% 96.1%;
-    --secondary-foreground: 0 0% 9%;
-    --muted: 0 0% 96.1%;
-    --muted-foreground: 0 0% 45.1%;
-    --accent: 0 0% 96.1%;
-    --accent-foreground: 0 0% 9%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 89.8%;
-    --input: 0 0% 89.8%;
-    --ring: 0 0% 3.9%;
-    --chart-1: 12 76% 61%;
-    --chart-2: 173 58% 39%;
-    --chart-3: 197 37% 24%;
-    --chart-4: 43 74% 66%;
-    --chart-5: 27 87% 67%;
-    --radius: 0.5rem;
-  }
-  .dark {
-    --background: 0 0% 3.9%;
-    --foreground: 0 0% 98%;
-    --card: 0 0% 3.9%;
-    --card-foreground: 0 0% 98%;
-    --popover: 0 0% 3.9%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 0 0% 98%;
-    --primary-foreground: 0 0% 9%;
-    --secondary: 0 0% 14.9%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 0 0% 14.9%;
-    --muted-foreground: 0 0% 63.9%;
-    --accent: 0 0% 14.9%;
-    --accent-foreground: 0 0% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 14.9%;
-    --input: 0 0% 14.9%;
-    --ring: 0 0% 83.1%;
-    --chart-1: 220 70% 50%;
-    --chart-2: 160 60% 45%;
-    --chart-3: 30 80% 55%;
-    --chart-4: 280 65% 60%;
-    --chart-5: 340 75% 55%;
+    --color-bg: oklch(14% 0.010 260);
+    --color-surface-1: oklch(18% 0.010 260);
+    --color-surface-2: oklch(22% 0.010 260);
+    --color-surface-3: oklch(26% 0.012 260);
+    --color-border: oklch(32% 0.015 260);
+    --color-border-strong: oklch(40% 0.015 260);
+    --color-fg: oklch(95% 0.005 247);
+    --color-fg-muted: oklch(65% 0.010 260);
+    --color-fg-subtle: oklch(50% 0.010 260);
   }
 }
 
+/* ── Dark mode — JS-controlled toggle via next-themes attribute="data-theme" ── */
+[data-theme="dark"] {
+  --color-bg: oklch(14% 0.010 260);
+  --color-surface-1: oklch(18% 0.010 260);
+  --color-surface-2: oklch(22% 0.010 260);
+  --color-surface-3: oklch(26% 0.012 260);
+  --color-border: oklch(32% 0.015 260);
+  --color-border-strong: oklch(40% 0.015 260);
+  --color-fg: oklch(95% 0.005 247);
+  --color-fg-muted: oklch(65% 0.010 260);
+  --color-fg-subtle: oklch(50% 0.010 260);
+}
+
+/* ── Base layer ── */
 @layer base {
   * {
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-bg text-fg font-sans;
+    font-feature-settings: "ss01", "cv11";
+  }
+  [data-numeric] {
+    font-variant-numeric: tabular-nums slashed-zero;
   }
 }

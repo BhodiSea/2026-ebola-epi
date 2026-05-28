@@ -14,7 +14,8 @@
       "!**/.turbo",
       "!**/node_modules",
       "!**/*.generated.*",
-      "!supabase/functions"
+      "!supabase/functions",
+      "!apps/web/app/globals.css"
     ]
   },
   "formatter": {
