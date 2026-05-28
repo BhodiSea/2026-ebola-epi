@@ -6,7 +6,7 @@ import { extractionTool } from "./tools.js";
 // eslint-disable-next-line functional/functional-parameters
 export function computePromptVersionHash(): string {
   return createHash("sha256")
-    .update(STATIC_INSTRUCTIONS + FEW_SHOTS)
+    .update(STATIC_INSTRUCTIONS + FEW_SHOTS + JSON.stringify(extractionTool.input_schema))
     .digest("hex")
     .slice(0, 16);
 }

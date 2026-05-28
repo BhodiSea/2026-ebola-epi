@@ -1,8 +1,11 @@
+import { createHash } from "node:crypto";
+
 import { describe, expect, it } from "vitest";
 
 import { computePromptVersionHash, computeToolSchemaHash } from "../hash.js";
-import { STATIC_INSTRUCTIONS } from "../prompt.js";
+import { FEW_SHOTS, STATIC_INSTRUCTIONS } from "../prompt.js";
 import { MODEL } from "../run.js";
+import { extractionTool } from "../tools.js";
 
 const CLAUDE_MODEL_RE = /^claude-/;
 
@@ -50,5 +53,15 @@ describe("hash independence", () => {
 describe("STATIC_INSTRUCTIONS content (H3)", () => {
   it("clarifies that char offsets are relative to the plain document text, not wrapper tags", () => {
     expect(STATIC_INSTRUCTIONS).toContain("document text");
+  });
+});
+
+describe("computePromptVersionHash — tool schema included (AGENTS.md Rule 7)", () => {
+  it("matches sha256(instructions + few_shots + tool_schema)[:16]", () => {
+    const expected = createHash("sha256")
+      .update(STATIC_INSTRUCTIONS + FEW_SHOTS + JSON.stringify(extractionTool.input_schema))
+      .digest("hex")
+      .slice(0, 16);
+    expect(computePromptVersionHash()).toBe(expected);
   });
 });

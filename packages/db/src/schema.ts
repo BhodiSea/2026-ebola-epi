@@ -3,6 +3,7 @@ import { sql } from "drizzle-orm";
 import type { AnyPgColumn } from "drizzle-orm/pg-core";
 import {
   bigserial,
+  boolean,
   char,
   customType,
   date,
@@ -62,6 +63,12 @@ export const sources = pgTable("sources", {
   name: text("name").notNull(),
   url: text("url").notNull(),
   trustScore: numeric("trust_score", { precision: 3, scale: 2 }).notNull().default("1.00"),
+  licenseTier: text("license_tier")
+    .$type<"display_only" | "excluded" | "noncommercial_verified" | "open">()
+    .notNull()
+    .default("open"),
+  licenseUrl: text("license_url"),
+  attributionRequired: boolean("attribution_required").notNull().default(false),
   metadata: jsonb("metadata").notNull().default(sql`'{}'::jsonb`),
   createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
 });

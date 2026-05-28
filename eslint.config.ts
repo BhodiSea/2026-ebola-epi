@@ -568,6 +568,8 @@ export default defineConfig(
       "@typescript-eslint/no-non-null-assertion": "off",
       "@typescript-eslint/no-unsafe-assignment": "off",
       "@typescript-eslint/no-unsafe-member-access": "off",
+      "@typescript-eslint/no-unsafe-type-assertion": "off",
+      "functional/functional-parameters": "off",
       "no-console": "off",
       "sonarjs/no-duplicate-string": "off",
       "import-x/no-extraneous-dependencies": "off",

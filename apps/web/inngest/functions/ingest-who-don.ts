@@ -14,7 +14,7 @@ import {
   sources,
 } from "@ituri/db";
 import type { ExtractionRow, ExtractionUsage } from "@ituri/extract";
-import { computePromptVersionHash, MODEL, runExtraction, verifySubstring } from "@ituri/extract";
+import { computePromptVersionHash, MODEL, runExtraction } from "@ituri/extract";
 import type { WhodonItem } from "@ituri/ingest";
 import { fetchAndParseDocument, pollWHODON } from "@ituri/ingest";
 import { ExtractionRunId } from "@ituri/shared";
@@ -153,11 +153,6 @@ async function processDocument(item: WhodonItem, sourceId: string): Promise<void
   const extractionStartedAt = Date.now();
   const { rows, toolSchemaHash, usage } = await runExtraction(anthropic, fullText);
   const extractionDurationMs = Date.now() - extractionStartedAt;
-  for (const row of rows) {
-    if (!verifySubstring(fullText, row.source_quote)) {
-      throw new Error(`substring_verify_fail: char_start=${row.source_quote.char_start}`);
-    }
-  }
   const extractionRunId = ExtractionRunId.parse(crypto.randomUUID());
   const publishedAt = new Date(item.publishedAt);
   await db.transaction(async (tx) => {

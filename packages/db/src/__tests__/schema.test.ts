@@ -41,6 +41,18 @@ describe("schema type inference", () => {
     expectTypeOf<Row["trustScore"]>().toEqualTypeOf<string>();
   });
 
+  it("sources.$inferSelect licenseTier is narrowed to the four valid tiers", () => {
+    type Row = typeof sources.$inferSelect;
+    expectTypeOf<Row["licenseTier"]>().toEqualTypeOf<
+      "display_only" | "excluded" | "noncommercial_verified" | "open"
+    >();
+  });
+
+  it("sources.$inferSelect attributionRequired is boolean", () => {
+    type Row = typeof sources.$inferSelect;
+    expectTypeOf<Row["attributionRequired"]>().toEqualTypeOf<boolean>();
+  });
+
   it("admin1.$inferSelect has string code and countryIso3", () => {
     type Row = typeof admin1.$inferSelect;
     expectTypeOf<Row["code"]>().toEqualTypeOf<string>();

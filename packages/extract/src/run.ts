@@ -55,7 +55,8 @@ function buildAnthropicMessages(documentText: string): Anthropic.MessageCreatePa
         name: extractionTool.name,
         description: extractionTool.description,
         input_schema: extractionTool.input_schema,
-        cache_control: { type: "ephemeral" },
+        // @ts-expect-error: SDK 0.52 types CacheControlEphemeral without ttl; AGENTS.md Rule 13 requires explicit 1h
+        cache_control: { type: "ephemeral", ttl: "1h" },
       },
     ],
     system: STATIC_INSTRUCTIONS,
