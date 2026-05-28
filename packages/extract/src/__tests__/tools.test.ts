@@ -38,7 +38,7 @@ describe("ExtractionBatchSchema", () => {
     const input = {
       extractions: [
         {
-          pathogen_icd11: "1D24.0",
+          pathogen_icd11: "1D60.00",
           country_iso3: "COD",
           metric: "confirmed",
           value: 42,
@@ -55,7 +55,7 @@ describe("ExtractionBatchSchema", () => {
 
   it("rejects invalid metric", () => {
     const result = ExtractionRowSchema.safeParse({
-      pathogen_icd11: "1D24.0",
+      pathogen_icd11: "1D60.00",
       country_iso3: "COD",
       metric: "hospitalised", // not in enum
       value: 5,
@@ -67,7 +67,7 @@ describe("ExtractionBatchSchema", () => {
 
   it("rejects negative value", () => {
     const result = ExtractionRowSchema.safeParse({
-      pathogen_icd11: "1D24.0",
+      pathogen_icd11: "1D60.00",
       country_iso3: "COD",
       metric: "cases",
       value: -1,
@@ -79,7 +79,7 @@ describe("ExtractionBatchSchema", () => {
 
   it("rejects empty string admin1_name (H4)", () => {
     const result = ExtractionRowSchema.safeParse({
-      pathogen_icd11: "1D24.0",
+      pathogen_icd11: "1D60.00",
       country_iso3: "COD",
       admin1_name: "",
       metric: "cases",
@@ -92,7 +92,7 @@ describe("ExtractionBatchSchema", () => {
 
   it("accepts undefined admin1_name (H4)", () => {
     const result = ExtractionRowSchema.safeParse({
-      pathogen_icd11: "1D24.0",
+      pathogen_icd11: "1D60.00",
       country_iso3: "COD",
       metric: "cases",
       value: 5,
@@ -128,7 +128,7 @@ describe("ExtractionBatchSchema", () => {
 
   it("accepts a valid pathogen_icd11 (M4)", () => {
     const result = ExtractionRowSchema.safeParse({
-      pathogen_icd11: "1D24.0",
+      pathogen_icd11: "1D60.00",
       country_iso3: "COD",
       metric: "cases",
       value: 5,

@@ -519,8 +519,11 @@ Each Inngest function keyed to a source uses:
 inngest.createFunction(
   {
     id: `ingest-${slug}`,
-    throttle: { limit: 2, period: "1s", key: `"${adapter.throttleKey}"`, scope: "account" },
+    // `key` is a CEL expression; string literals must be quoted within the expression.
+    // `"${adapter.throttleKey}"` evaluates to e.g. `"who.int"` (with the quotes),
+    // which is a valid CEL string constant — this is intentional and correct.
     // scope: "account" enforces the limit across ALL concurrent worker instances globally.
+    throttle: { limit: 2, period: "1s", key: `"${adapter.throttleKey}"`, scope: "account" },
   },
   { cron: adapter.pollInterval },
   async ({ event, step }) => { /* ... */ }

@@ -243,7 +243,7 @@ pip install -r requirements.txt
 pglast --version            # >= 6.0
 ```
 
-`npm run db:lint` runs the validator over every migration. The
+`pnpm db:lint` runs the validator over every migration. The
 `biome-check.sh` hook also calls `pglast` on every `.sql` write.
 
 ### Environment variables
@@ -272,15 +272,19 @@ MAPLIBRE_STYLE_URL=                   # any vector style; default is in-repo
 
 ### One-shot ingest (for testing)
 
+Trigger via the Inngest dev server rather than a CLI script:
+
 ```bash
-pnpm tsx scripts/ingest-once.ts --source=who-don --since=2026-05-15
-pnpm tsx scripts/extract-document.ts --id=<document_id>
+pnpm --filter=@ituri/web dev        # Next.js on :3000
+pnpm --filter=@ituri/web inngest:dev # Inngest dev server on :8288
 ```
+
+Then open http://localhost:8288, select the `ingest/who-don.scheduled` function, and invoke it. Extraction triggers automatically on the resulting `document/created` event.
 
 ### Running the gold-set check
 
 ```bash
-pnpm test:gold
+pnpm test:gold   # available from Phase 7 onward — not yet wired
 ```
 
 ---

@@ -348,7 +348,7 @@ The three-pane `/map` is live with a real outbreak choropleth, the `<TimeScrubbe
 
 ### `geom_3857` generated stored column
 
-Add to the geo migration (or as a standalone migration `<timestamp>_geo_geom_3857.sql`):
+Add to the geo migration (or as a standalone migration `<timestamp>_geo_geom_3857.sql`). **Run this migration BEFORE seeding Ituri geometry** to avoid an `ACCESS EXCLUSIVE` table rewrite on a non-empty table.
 
 ```sql
 begin;
@@ -362,6 +362,16 @@ ALTER TABLE geo.admin2
   ADD COLUMN geom_3857 geometry(MultiPolygon, 3857)
     GENERATED ALWAYS AS (ST_Transform(geom, 3857)) STORED;
 CREATE INDEX geo_admin2_geom_3857_gix ON geo.admin2 USING GIST (geom_3857);
+
+-- IMPORTANT: geo.zone_geom_z6 and geo.zone_geom_z10 are materialized views built
+-- from geo.admin1. The `geom_3857` column is NOT automatically projected into them —
+-- the matview definition must explicitly SELECT it. Update the matview definition
+-- (or drop and recreate) to include:
+--   ST_Transform(geom, 3857) AS geom_3857
+-- Then do a full (non-CONCURRENT) REFRESH once after this migration:
+--   REFRESH MATERIALIZED VIEW geo.zone_geom_z6;
+--   REFRESH MATERIALIZED VIEW geo.zone_geom_z10;
+-- Subsequent refreshes can use CONCURRENTLY once the unique index is in place.
 commit;
 ```
 

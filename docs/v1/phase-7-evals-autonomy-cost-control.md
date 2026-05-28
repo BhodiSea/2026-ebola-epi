@@ -60,9 +60,20 @@ begin
   into cap;
 
   if today_spend > cap then
+    -- Target is the Vercel Edge Config REST API, NOT a self-hosted Next.js route.
+    -- Set: ALTER DATABASE postgres SET app.vercel_edge_config_update_url =
+    --   'https://api.vercel.com/v1/edge-config/<edge-config-id>/items';
+    -- Set: ALTER DATABASE postgres SET app.vercel_edge_config_token = '<vercel-api-token>';
+    -- Never point this at /api/kill-switch on the web app — that would require
+    -- waking a function instance while the function pool is under extraction load.
+    --
+    -- pg_net.http_post is fire-and-forget. Check net._http_response for failures:
+    --   SELECT * FROM net._http_response ORDER BY created DESC LIMIT 20;
     perform net.http_post(
       url := current_setting('app.vercel_edge_config_update_url'),
-      body := '{"extraction_enabled": false}'::jsonb,
+      body := jsonb_build_object('items', jsonb_build_array(
+        jsonb_build_object('operation', 'upsert', 'key', 'extraction_enabled', 'value', false)
+      )),
       headers := jsonb_build_object(
         'Authorization', 'Bearer ' || current_setting('app.vercel_edge_config_token'),
         'Content-Type', 'application/json'
@@ -123,7 +134,7 @@ evals/gold-set/
 Each `ground-truth.json` entry:
 ```json
 {
-  "pathogen_icd11": "1D24.0",
+  "pathogen_icd11": "1D60.00",
   "country_iso3": "COD",
   "metric": "confirmed",
   "value": 142,

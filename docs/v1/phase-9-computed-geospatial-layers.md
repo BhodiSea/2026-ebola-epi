@@ -11,7 +11,7 @@ Build an offline compute pipeline that produces six derived geospatial products 
 - Phase 8 exit gate met: Lighthouse ≥ 95, WCAG 2.2 AA, external screen-reader pass.
 - Phase 6 source adapters live: HDX HAPI, IOM DTM, UCDP Candidate, GRID3, HOT OSM healthsites, WorldPop.
 - Phase 5 map command center live: LayerRail accepts new layer registrations; `/api/mvt/[v]/[z]/[x]/[y]` versioned route in place.
-- Google Earth Engine noncommercial access confirmed (April 2026+ Community Tier quota — select a quota tier at console.earthengine.google.com before running the pipeline).
+- Google Earth Engine noncommercial access approved **or** a Microsoft Planetary Computer (MPC) token obtained — see §"GEE vs MPC split" below. GEE noncommercial is no longer self-serve: apply at earthengine.google.com/noncommercial. Until approved, all six derived products can be computed solely via MPC + CDSE; only the Malaria Atlas friction surface uniquely benefits from GEE (and can fall back to a local raster from the `malariaAtlas` Python package).
 - Modal account configured; `infra/modal/` directory committed with stub tasks.
 - Supabase Storage bucket `derived-layers` created with public read access.
 
@@ -43,8 +43,9 @@ GitHub Actions: bump [v] version segment in source code on successful update
 ```
 
 **GEE vs MPC split (pragmatic):**
-- **GEE for**: Malaria Atlas friction surface (`malariaAtlas` Python package), Hansen Global Forest Change, Dynamic World (near-real-time land cover), least-cost-path computation, CHIRPS and MODIS product composites.
-- **MPC/CDSE for**: raw Sentinel-2 COG/Zarr (reproducible, no quota risk), ERA5 reanalysis, pystac-client workflows, COG tile generation.
+- **GEE for** (if approved): Malaria Atlas friction surface (`malariaAtlas` Python package), Hansen Global Forest Change, Dynamic World ("near-real-time" land cover — this is the product's official name), least-cost-path computation, CHIRPS and MODIS product composites.
+- **MPC/CDSE for** (primary path, no application required): raw Sentinel-2 COG/Zarr, ERA5 reanalysis, pystac-client workflows, COG tile generation. Hansen GFC and CHIRPS are also available on MPC, so the pipeline is fully functional without GEE.
+- **Fallback**: If GEE approval is pending, replace the Malaria Atlas friction surface with the downloadable COG from the Malaria Atlas Project website (`malariaatlas.org/data-downloads`). The six derived products do not hard-require GEE.
 
 ---
 
@@ -81,10 +82,22 @@ create table if not exists internal.derived_layers (
   created_at    timestamptz not null default now()
 );
 
--- RLS: anon can read; only service role can insert/update.
+-- RLS on the internal table (service role writes only).
+-- Do NOT grant USAGE on schema internal to anon/authenticated — init_schemas.sql
+-- revokes it broadly.  Instead expose via a public SECURITY INVOKER view below.
 alter table internal.derived_layers enable row level security;
-create policy "derived_layers_anon_select" on internal.derived_layers
-  for select to anon, authenticated using (true);
+create policy "derived_layers_service_only_insert"
+  on internal.derived_layers for insert to service_role with check (true);
+
+-- Public read shim — consistent with the public.mvt → internal.mvt pattern in Phase 5.
+create or replace view public.derived_layers
+  with (security_invoker = true)
+as
+  select id, slug, name, description, inputs, produced_at, valid_until,
+         storage_url, tile_url, format, version, label, created_at
+  from internal.derived_layers;
+
+grant select on public.derived_layers to anon, authenticated;
 
 commit;
 ```
