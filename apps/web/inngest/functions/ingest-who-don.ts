@@ -28,7 +28,7 @@ import { ExtractionRunId } from "@ituri/shared";
 import { and, asc, eq, sql } from "drizzle-orm";
 
 import { inngest } from "../client";
-import { WHO_DON_FN_CONFIG } from "./who-don-config";
+import { WHO_DON_FN_CONFIG, WHO_DON_POLL_EVENT } from "./who-don-config";
 import type { Tx } from "@/lib/db";
 import { db } from "@/lib/db";
 import { env } from "@/lib/env";
@@ -342,7 +342,7 @@ async function upsertOutbreak(tx: Tx, row: ExtractionRow, onsetDate: Date): Prom
 
 export const ingestWHODON = inngest.createFunction(
   WHO_DON_FN_CONFIG,
-  { cron: "*/30 * * * *" },
+  [{ cron: "*/30 * * * *" }, { event: WHO_DON_POLL_EVENT }],
   async ({ step }) => {
     const items = await step.run("poll-rss", async () => pollWHODON());
     const sourceId = await step.run("resolve-source-id", async () => resolveSourceId());

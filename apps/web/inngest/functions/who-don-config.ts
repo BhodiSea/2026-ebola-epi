@@ -3,6 +3,10 @@
  * on throttle/concurrency settings without importing the server-only Inngest
  * handler (which pulls in Drizzle, Anthropic, and `server-only` guards).
  */
+
+/** Manual-trigger event name — used in tests and in the Inngest dev dashboard. */
+export const WHO_DON_POLL_EVENT = "ingest/who-don.poll" as const;
+
 export const WHO_DON_FN_CONFIG = {
   id: "ingest-who-don",
   retries: 4,

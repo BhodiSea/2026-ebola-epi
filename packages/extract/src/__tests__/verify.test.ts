@@ -1,7 +1,41 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import { describe, expect, it } from "vitest";
 
-import { verifySubstring } from "../verify.js";
+import { resolveSubstring, verifySubstring } from "../verify.js";
+
+describe("resolveSubstring", () => {
+  it("returns exact offsets when LLM offsets are correct", () => {
+    const result = resolveSubstring("hello world test", {
+      char_start: 6,
+      char_end: 11,
+      quote_text: "world",
+    });
+    expect(result).toStrictEqual({ char_start: 6, char_end: 11 });
+  });
+
+  it("corrects wrong offsets when quote_text is found verbatim in document", () => {
+    const result = resolveSubstring("hello world test", {
+      char_start: 0,
+      char_end: 5,
+      quote_text: "world",
+    });
+    expect(result).toStrictEqual({ char_start: 6, char_end: 11 });
+  });
+
+  it("returns null when quote_text is not in document at all", () => {
+    const result = resolveSubstring("hello world test", {
+      char_start: 0,
+      char_end: 5,
+      quote_text: "MISSING",
+    });
+    expect(result).toBeNull();
+  });
+
+  it("returns null when char_end would exceed document length and quote_text absent", () => {
+    const result = resolveSubstring("hi", { char_start: 0, char_end: 10, quote_text: "NOPE" });
+    expect(result).toBeNull();
+  });
+});
 
 // Red-team guard: Fix 1 — extractionRuns inserted before caseCounts (non-deferrable FK)
 // Red-team guard: Fix 2 — concurrency reduced to 1 to prevent upsertOutbreak race

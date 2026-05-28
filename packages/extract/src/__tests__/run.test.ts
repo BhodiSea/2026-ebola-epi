@@ -108,6 +108,63 @@ describe("parseExtractionResponse", () => {
     };
     expect(() => parseExtractionResponse(bad, VALID_DOC)).toThrow("no tool_use block");
   });
+
+  it("corrects wrong LLM offsets when quote_text is verbatim in document", () => {
+    const quote = "42 confirmed cases of Bundibugyo";
+    const correctStart = VALID_DOC.indexOf(quote);
+    const response: Pick<Anthropic.Message, "content" | "usage"> = {
+      content: [
+        {
+          type: "tool_use" as const,
+          id: "toolu_02",
+          name: "extract_case_counts",
+          input: {
+            extractions: [
+              {
+                pathogen_icd11: "1EB20",
+                country_iso3: "COD",
+                metric: "confirmed",
+                value: 42,
+                as_of: "2026-05-01",
+                // wrong offsets — LLM hallucinated 0..5 instead of the real position
+                source_quote: { char_start: 0, char_end: 5, quote_text: quote },
+              },
+            ],
+          },
+        },
+      ],
+      usage: MOCK_RESPONSE.usage,
+    };
+    const result = parseExtractionResponse(response, VALID_DOC);
+    expect(result.rows[0]?.source_quote.char_start).toBe(correctStart);
+    expect(result.rows[0]?.source_quote.char_end).toBe(correctStart + quote.length);
+  });
+
+  it("throws substring_verify_fail when quote_text is not verbatim in document", () => {
+    const response: Pick<Anthropic.Message, "content" | "usage"> = {
+      content: [
+        {
+          type: "tool_use" as const,
+          id: "toolu_03",
+          name: "extract_case_counts",
+          input: {
+            extractions: [
+              {
+                pathogen_icd11: "1EB20",
+                country_iso3: "COD",
+                metric: "confirmed",
+                value: 42,
+                as_of: "2026-05-01",
+                source_quote: { char_start: 0, char_end: 5, quote_text: "NOT IN DOC AT ALL" },
+              },
+            ],
+          },
+        },
+      ],
+      usage: MOCK_RESPONSE.usage,
+    };
+    expect(() => parseExtractionResponse(response, VALID_DOC)).toThrow("substring_verify_fail");
+  });
 });
 
 // ─── runExtraction (legacy wrapper) ──────────────────────────────────────────

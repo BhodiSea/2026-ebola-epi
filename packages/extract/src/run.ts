@@ -5,7 +5,7 @@ import { computePromptVersionHash, computeToolSchemaHash } from "./hash.js";
 import { FEW_SHOTS, STATIC_INSTRUCTIONS } from "./prompt.js";
 import type { ExtractionRow } from "./tools.js";
 import { ExtractionBatchSchema, extractionTool } from "./tools.js";
-import { verifySubstring } from "./verify.js";
+import { resolveSubstring } from "./verify.js";
 
 export const MODEL = "claude-sonnet-4-6" as const;
 
@@ -73,12 +73,15 @@ export function parseExtractionResponse(
     throw new Error("no tool_use block in response");
   }
   const { extractions } = ExtractionBatchSchema.parse(toolUse.input);
-  const failingRow = extractions.find((row) => !verifySubstring(documentText, row.source_quote));
-  if (failingRow !== undefined) {
-    throw new Error(`substring_verify_fail: char_start=${failingRow.source_quote.char_start}`);
-  }
+  const resolvedRows = extractions.map((row) => {
+    const resolved = resolveSubstring(documentText, row.source_quote);
+    if (resolved === null) {
+      throw new Error(`substring_verify_fail: char_start=${row.source_quote.char_start}`);
+    }
+    return { ...row, source_quote: { ...row.source_quote, ...resolved } };
+  });
   return {
-    rows: extractions,
+    rows: resolvedRows,
     toolSchemaHash: computeToolSchemaHash(),
     usage: response.usage,
   };

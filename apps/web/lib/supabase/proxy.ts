@@ -56,7 +56,8 @@ export async function updateSession(request: NextRequest, nonce: string) {
     request.nextUrl.pathname !== "/" &&
     !user &&
     !request.nextUrl.pathname.startsWith("/login") &&
-    !request.nextUrl.pathname.startsWith("/auth")
+    !request.nextUrl.pathname.startsWith("/auth") &&
+    !request.nextUrl.pathname.startsWith("/api/inngest")
   ) {
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = "/auth/login";

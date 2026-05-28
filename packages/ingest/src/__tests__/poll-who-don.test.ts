@@ -8,18 +8,24 @@ vi.mock("rss-parser", () => ({
       return {
         items: [
           {
-            link: "https://example.com/don-001",
-            title: "DON 001",
+            link: "https://www.who.int/news/item/17-05-2026-epidemic-of-ebola-bundibugyo-virus",
+            title: "Ebola epidemic in DRC",
             pubDate: "Mon, 01 Jan 2026 00:00:00 +0000",
           },
           {
+            // WHA daily update — no outbreak keywords — must be filtered out
+            link: "https://www.who.int/news/item/23-05-2026-seventy-ninth-world-health-assembly-daily-update",
+            title: "Seventy-ninth World Health Assembly – Daily update",
+            pubDate: "Fri, 23 May 2026 00:00:00 +0000",
+          },
+          {
             // no pubDate — must be filtered out
-            link: "https://example.com/don-002",
-            title: "DON 002 — no date",
+            link: "https://www.who.int/news/item/don-no-date",
+            title: "DON no date",
           },
           {
             // no link — must be filtered out
-            title: "DON 003 — no link",
+            title: "DON no link",
             pubDate: "Tue, 02 Jan 2026 00:00:00 +0000",
           },
         ],
@@ -27,6 +33,13 @@ vi.mock("rss-parser", () => ({
     }
   },
 }));
+
+describe("WHO_DON_FEED_URL", () => {
+  it("points to the WHO news RSS feed (DON-specific feed was deprecated in 2026)", async () => {
+    const { WHO_DON_FEED_URL } = await import("../sources/who-don.js");
+    expect(WHO_DON_FEED_URL).toBe("https://www.who.int/rss-feeds/news-english.xml");
+  });
+});
 
 describe("pollWHODON", () => {
   afterEach(() => {
@@ -36,7 +49,7 @@ describe("pollWHODON", () => {
   it("drops items with no pubDate", async () => {
     const { pollWHODON } = await import("../sources/who-don.js");
     const result = await pollWHODON();
-    // Only the first item qualifies; items without pubDate or link are filtered.
+    // Only the Ebola item qualifies: WHA item filtered by keyword, others by missing pubDate/link.
     expect(result).toHaveLength(1);
   });
 
