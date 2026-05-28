@@ -80,6 +80,7 @@ export const documents = pgTable("documents", {
     .references(() => sources.id),
   sha256: bytea("sha256").unique().notNull(),
   url: text("url").notNull(),
+  title: text("title"),
   fullText: text("full_text").notNull(),
   // Generated column — 'simple' config required for FR/EN mixed corpus (MoH DRC, WHO AFRO).
   // Queries must use plainto_tsquery('simple', ...) not the default 'english' parser.
@@ -104,10 +105,12 @@ export const sourceQuotes = pgTable("source_quotes", {
 export const outbreaks = pgTable("outbreaks", {
   id: uuid("id").primaryKey().defaultRandom().$type<OutbreakId>(),
   pathogenIcd11: text("pathogen_icd11").notNull(),
+  pathogenSlug: text("pathogen_slug"),
   countryIso3: char("country_iso3", { length: 3 }).notNull(),
   onsetDate: date("onset_date", { mode: "date" }).notNull(),
   name: text("name"),
   status: text("status").notNull().default("active"),
+  severityLevel: text("severity_level").$type<"alert" | "emergency" | "info" | "warn">(),
   createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
 });
 

@@ -8,6 +8,7 @@ import type {
   anthropicUsageLog,
   caseCounts,
   documents,
+  outbreaks,
   sourceQuotes,
   sources,
 } from "../schema";
@@ -76,6 +77,14 @@ describe("schema type inference", () => {
     type Row = typeof caseCounts.$inferSelect;
     expectTypeOf<Row["admin2Code"]>().toEqualTypeOf<null | string>();
     expectTypeOf<"admin1Code" extends keyof Row ? true : false>().toEqualTypeOf<false>();
+  });
+
+  it("outbreaks.$inferSelect has pathogenSlug and severityLevel added in phase4 migration", () => {
+    type Row = typeof outbreaks.$inferSelect;
+    expectTypeOf<Row["pathogenSlug"]>().toEqualTypeOf<null | string>();
+    expectTypeOf<Row["severityLevel"]>().toEqualTypeOf<
+      "alert" | "emergency" | "info" | "warn" | null
+    >();
   });
 
   it("anthropicUsageLog.$inferSelect has inputTokens and outputTokens as number", () => {

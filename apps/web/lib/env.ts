@@ -7,7 +7,7 @@ export const env = createEnv({
     VERCEL_ENV: z.string().optional(),
     VERCEL_PROJECT_PRODUCTION_URL: z.string().optional(),
     ANTHROPIC_API_KEY: z.string().min(1),
-    ARCJET_KEY: z.string().min(1),
+    ARCJET_KEY: z.string().min(1).optional(),
     INNGEST_EVENT_KEY: z.string().min(1),
     INNGEST_SIGNING_KEY: z.string().min(1),
     POSTGRES_URL_NON_POOLING: z.url(),

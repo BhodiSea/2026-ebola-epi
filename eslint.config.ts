@@ -511,9 +511,18 @@ export default defineConfig(
   },
 
   // ---- Client Component boundary: ban server-only imports ----
+  // Next.js App Router route files are always Server Components — exclude them.
   {
     name: "ituri/client-component-boundary",
     files: ["apps/web/**/*.tsx"],
+    ignores: [
+      "apps/web/app/**/page.tsx",
+      "apps/web/app/**/layout.tsx",
+      "apps/web/app/**/template.tsx",
+      "apps/web/app/**/loading.tsx",
+      "apps/web/app/**/not-found.tsx",
+      "apps/web/app/**/error.tsx",
+    ],
     rules: {
       "no-restricted-imports": [
         "error",
@@ -569,6 +578,12 @@ export default defineConfig(
       "@typescript-eslint/no-unsafe-assignment": "off",
       "@typescript-eslint/no-unsafe-member-access": "off",
       "@typescript-eslint/no-unsafe-type-assertion": "off",
+      // Vitest mock factories use PascalCase component names as object keys and
+      // async mock helpers without explicit awaits — relax naming + async rules.
+      "@typescript-eslint/naming-convention": "off",
+      "@typescript-eslint/require-await": "off",
+      "@typescript-eslint/promise-function-async": "off",
+      "@typescript-eslint/no-unsafe-return": "off",
       "functional/functional-parameters": "off",
       "no-console": "off",
       "sonarjs/no-duplicate-string": "off",
