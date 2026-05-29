@@ -5,7 +5,7 @@ import {
   DOCUMENT_EXTRACTION_REQUESTED,
   DOCUMENT_TRIAGE_REQUESTED,
   RECONCILE_REQUESTED,
-} from "./pipeline-events-config.js";
+} from "./pipeline-events-config";
 
 export const TRIAGE_DOCUMENT_FN_CONFIG = {
   id: "triage-document",

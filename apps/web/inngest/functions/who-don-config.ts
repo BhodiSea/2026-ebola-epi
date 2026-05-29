@@ -1,4 +1,4 @@
-import { buildIngestConfig, pollEventName } from "./ingest-source-config.js";
+import { buildIngestConfig, pollEventName } from "./ingest-source-config";
 
 /** Manual-trigger event name — used in tests and in the Inngest dev dashboard. */
 export const WHO_DON_POLL_EVENT = pollEventName("who-don");
