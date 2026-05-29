@@ -2,6 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
+import { buildCsp } from "@/lib/csp";
 import { env, hasEnvVars } from "@/lib/env";
 
 export async function updateSession(request: NextRequest, nonce: string) {
@@ -10,7 +11,7 @@ export async function updateSession(request: NextRequest, nonce: string) {
   // because the Supabase SSR setAll callback overwrites supabaseResponse with a
   // new NextResponse when auth cookies are refreshed, which would silently lose
   // a header set at construction time.
-  const csp = `default-src 'self'; script-src 'self' 'nonce-${nonce}' 'strict-dynamic'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co;`;
+  const csp = buildCsp(nonce);
 
   // Forward the nonce so RSC can read it via `await headers()`.
   const requestHeaders = new Headers(request.headers);
