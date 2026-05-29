@@ -54,8 +54,8 @@ export default async function EvidencePage({
 
   const serializedCounts: SerializedCaseCount[] = caseCounts.map((cc) => ({
     value: cc.value,
-    geoAdmin2: cc.geo_admin_2,
-    observedAt: cc.observed_at,
+    geoAdmin2: cc.admin2_code,
+    observedAt: cc.as_of,
   }));
 
   return (

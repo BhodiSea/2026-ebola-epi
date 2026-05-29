@@ -32,6 +32,7 @@
     "@next/eslint-plugin-next": "latest",
     "@vitest/eslint-plugin": "^1",
     "eslint": "^9",
+    "eslint-import-resolver-typescript": "^3",
     "eslint-plugin-drizzle": "^0.2",
     "eslint-plugin-erasable-syntax-only": "latest",
     "eslint-plugin-functional": "^9",

@@ -107,6 +107,25 @@ export async function getActiveOutbreak(): Promise<null | Outbreak> {
   return best === undefined ? null : toOutbreak(best);
 }
 
+export async function getOutbreakById(id: string): Promise<null | Outbreak> {
+  const supabase = await createClient();
+
+  const { data } = await supabase
+    .from("outbreaks")
+    .select(
+      "id, pathogen_icd11, pathogen_slug, country_iso3, onset_date, name, status, severity_level, created_at",
+    )
+    .eq("id", id)
+    .maybeSingle();
+
+  if (data === null) {
+    return null;
+  }
+
+  const parsed = OutbreakRow.safeParse(data);
+  return parsed.success ? toOutbreak(parsed.data) : null;
+}
+
 export async function getOutbreakBySlug(
   pathogenSlug: string,
   countryIso3: string,

@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 
 export interface SparklinePoint {
   date: string;
+  quoteId?: null | string;
   value: number;
 }
 
@@ -20,6 +21,7 @@ export interface StatTotals {
 const EpiRow = z.object({
   as_of: z.string(),
   metric: z.string(),
+  source_quote_id: z.string().nullable(),
   value: z.number(),
 });
 
@@ -67,6 +69,8 @@ const EMPTY_TOTALS: StatTotals = {
 
 /* ─── queries ───────────────────────────────────────────────────────────────── */
 
+type EpiRowType = z.infer<typeof EpiRow>;
+
 export async function getEpiCurveSeries(outbreakId: string): Promise<{
   confirmed: SparklinePoint[];
   deaths: SparklinePoint[];
@@ -75,7 +79,7 @@ export async function getEpiCurveSeries(outbreakId: string): Promise<{
 
   const { data } = await supabase
     .from("case_counts")
-    .select("as_of, metric, value")
+    .select("as_of, metric, value, source_quote_id")
     .eq("outbreak_id", outbreakId)
     .eq("status", "published")
     .is("superseded_by", null)
@@ -91,20 +95,9 @@ export async function getEpiCurveSeries(outbreakId: string): Promise<{
     return { confirmed: [], deaths: [] };
   }
 
-  const confirmedByDate = new Map<string, number>();
-  const deathsByDate = new Map<string, number>();
-
-  for (const row of rows.data) {
-    if (row.metric === "confirmed") {
-      confirmedByDate.set(row.as_of, (confirmedByDate.get(row.as_of) ?? 0) + row.value);
-    } else if (row.metric === "deaths") {
-      deathsByDate.set(row.as_of, (deathsByDate.get(row.as_of) ?? 0) + row.value);
-    }
-  }
-
   return {
-    confirmed: [...confirmedByDate.entries()].map(([date, value]) => ({ date, value })),
-    deaths: [...deathsByDate.entries()].map(([date, value]) => ({ date, value })),
+    confirmed: buildEpiSeries(rows.data, "confirmed"),
+    deaths: buildEpiSeries(rows.data, "deaths"),
   };
 }
 
@@ -170,6 +163,24 @@ export async function getStatTotals(outbreakId: string): Promise<StatTotals> {
   const zonesAffected = await countZonesAffected(outbreakId);
 
   return { confirmed, deaths, cfr, zonesAffected };
+}
+
+/** Group one metric's rows by date, summing values and keeping the first row's quote id as a
+ *  representative provenance link (matches the accumulate() convention for headline figures). */
+function buildEpiSeries(rows: EpiRowType[], metric: string): SparklinePoint[] {
+  const byDate = new Map<string, SparklinePoint>();
+  for (const row of rows) {
+    if (row.metric !== metric) {
+      continue;
+    }
+    const cur = byDate.get(row.as_of);
+    byDate.set(row.as_of, {
+      date: row.as_of,
+      value: (cur?.value ?? 0) + row.value,
+      quoteId: cur?.quoteId ?? row.source_quote_id,
+    });
+  }
+  return [...byDate.values()];
 }
 
 async function countZonesAffected(outbreakId: string): Promise<number> {

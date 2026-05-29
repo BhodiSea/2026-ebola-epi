@@ -31,8 +31,8 @@ export type SourceQuoteRow = z.infer<typeof SourceQuoteRow>;
 /* eslint-disable @typescript-eslint/naming-convention */
 const CaseCountSummary = z.object({
   value: z.number().nullable(),
-  geo_admin_2: z.string().nullable(),
-  observed_at: z.string().nullable(),
+  admin2_code: z.string().nullable(),
+  as_of: z.string().nullable(),
 });
 /* eslint-enable @typescript-eslint/naming-convention */
 
@@ -42,7 +42,7 @@ export async function getFiguresUsingQuote(id: SourceQuoteId): Promise<CaseCount
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("case_counts")
-    .select("value, geo_admin_2, observed_at")
+    .select("value, admin2_code, as_of")
     .eq("source_quote_id", id)
     .eq("status", "published")
     .is("superseded_by", null)

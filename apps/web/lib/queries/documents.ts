@@ -108,6 +108,44 @@ export async function getDocumentsForOutbreak(outbreakId: string): Promise<Docum
   return rows.success ? rows.data.map((d) => toDocument(d)) : [];
 }
 
+export async function getDocumentsForZone(
+  outbreakId: string,
+  admin2Code: string,
+): Promise<Document[]> {
+  const supabase = await createClient();
+
+  const { data: ccData } = await supabase
+    .from("case_counts")
+    .select("source_quote:source_quotes(document_id)")
+    .eq("outbreak_id", outbreakId)
+    .eq("admin2_code", admin2Code)
+    .eq("status", "published")
+    .is("superseded_by", null)
+    .limit(100);
+
+  if (ccData === null || ccData.length === 0) {
+    return [];
+  }
+
+  const docIds = extractDocumentIds(ccData);
+  if (docIds.length === 0) {
+    return [];
+  }
+
+  const { data } = await supabase
+    .from("documents")
+    .select(SELECT_COLS)
+    .in("id", docIds)
+    .order("published_at", { ascending: false });
+
+  if (data === null) {
+    return [];
+  }
+
+  const rows = z.array(DocumentRow).safeParse(data);
+  return rows.success ? rows.data.map((d) => toDocument(d)) : [];
+}
+
 export async function listSitreps(filter: ListSitrepsFilter): Promise<Document[]> {
   const supabase = await createClient();
   const page = filter.page ?? 1;
