@@ -8,6 +8,7 @@ export {
   caseCounts,
   documents,
   extractionRuns,
+  incidents,
   outbreaks,
   sourceQuotes,
   sources,

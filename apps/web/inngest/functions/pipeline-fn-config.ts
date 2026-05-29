@@ -1,0 +1,41 @@
+// Non-server-only: importable by config unit tests without pulling in Drizzle/server-only.
+// Function configs for the Phase 6 event-driven pipeline functions.
+
+import {
+  DOCUMENT_EXTRACTION_REQUESTED,
+  DOCUMENT_TRIAGE_REQUESTED,
+  RECONCILE_REQUESTED,
+} from "./pipeline-events-config.js";
+
+export const TRIAGE_DOCUMENT_FN_CONFIG = {
+  id: "triage-document",
+  retries: 3,
+  concurrency: { limit: 5 },
+} as const;
+
+export const TRIAGE_DOCUMENT_TRIGGER = { event: DOCUMENT_TRIAGE_REQUESTED } as const;
+
+export const EXTRACT_DOCUMENT_FN_CONFIG = {
+  id: "extract-document",
+  retries: 4,
+  concurrency: { limit: 3 },
+} as const;
+
+export const EXTRACT_DOCUMENT_TRIGGER = { event: DOCUMENT_EXTRACTION_REQUESTED } as const;
+
+export const RECONCILE_COUNTS_FN_CONFIG = {
+  id: "reconcile-counts",
+  retries: 3,
+  // idempotency key: collapses duplicate reconcile.requested events for the same pair
+  // within Inngest's dedup window, preventing double-spend of Opus calls.
+  idempotency: "event.data.pairKey",
+  concurrency: { limit: 1, key: "event.data.pairKey" },
+} as const;
+
+export const RECONCILE_COUNTS_TRIGGER = { event: RECONCILE_REQUESTED } as const;
+
+export const RECONCILE_SWEEP_FN_CONFIG = {
+  id: "reconcile-sweep",
+  retries: 2,
+  concurrency: { limit: 1 },
+} as const;

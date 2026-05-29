@@ -5,7 +5,9 @@ import { JSDOM } from "jsdom";
 import robotsParser from "robots-parser";
 import RSSParser from "rss-parser";
 
-const USER_AGENT = "ituri-sitrep/0.1 (+https://ituri-sitrep.example.org/about)";
+import type { FetchResult, ParseResult, RegisteredAdapter } from "../adapter.js";
+
+const USER_AGENT = "ituri-sitrep/1.0 (+https://ituri-sitrep.org/about/bot)";
 
 // In-memory robots cache keyed by hostname (function-instance lifetime)
 const robotsCache = new Map<string, ReturnType<typeof robotsParser>>();
@@ -110,3 +112,47 @@ function isOutbreakItem(link: string, title: string): boolean {
   const haystack = `${link} ${title}`.toLowerCase();
   return OUTBREAK_KEYWORDS.some((kw) => haystack.includes(kw));
 }
+
+// RegisteredAdapter wrapper — allows who-don to participate in the typed
+// ADAPTER_REGISTRY alongside Phase 6 sources. The legacy free functions
+// (pollWHODON, fetchAndParseDocument) are kept for backward compatibility.
+export const whoDONAdapter: RegisteredAdapter = {
+  sourceSlug: "who-don",
+  throttleKey: "who.int",
+  pollInterval: "*/30 * * * *",
+
+  async poll() {
+    const items = await pollWHODON();
+    return items.map((item) => ({
+      url: item.url,
+      title: item.title,
+      publishedAt: item.publishedAt,
+    }));
+  },
+
+  async fetch(url: string): Promise<FetchResult> {
+    const doc = await fetchAndParseDocument(url);
+    return {
+      skipped: false,
+      rawContent: doc.html,
+      sha256: doc.sha256,
+      mimeType: "text/html",
+    };
+  },
+
+  // eslint-disable-next-line @typescript-eslint/require-await
+  async parse(raw: string): Promise<ParseResult> {
+    const dom = new JSDOM(raw, { url: "https://www.who.int/" });
+    const reader = new Readability(dom.window.document);
+    const article = reader.parse();
+    if (article === null) {
+      return { skipped: true, reason: "readability_parse_failed" };
+    }
+    return {
+      skipped: false,
+      fullText: article.textContent,
+      title: article.title,
+      language: "en",
+    };
+  },
+};

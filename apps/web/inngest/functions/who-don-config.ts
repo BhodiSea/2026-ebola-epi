@@ -1,18 +1,11 @@
-/**
- * Function config is extracted into its own module so unit tests can assert
- * on throttle/concurrency settings without importing the server-only Inngest
- * handler (which pulls in Drizzle, Anthropic, and `server-only` guards).
- */
+import { buildIngestConfig, pollEventName } from "./ingest-source-config.js";
 
 /** Manual-trigger event name — used in tests and in the Inngest dev dashboard. */
-export const WHO_DON_POLL_EVENT = "ingest/who-don.poll" as const;
+export const WHO_DON_POLL_EVENT = pollEventName("who-don");
 
-export const WHO_DON_FN_CONFIG = {
-  id: "ingest-who-don",
-  retries: 4,
-  concurrency: { limit: 1 },
-  // Inngest server-side throttle — coordinates across all function instances.
-  // key binds per source host so multi-source Phase 6 functions inherit this shape.
-  // AGENTS.md hard rule 15: never use in-process p-throttle.
-  throttle: { limit: 2, period: "1s", scope: "account", key: "event.data.host" },
-} as const;
+// CEL string-literal throttle key: `"who.int"` — all ingest-who-don invocations
+// (cron + manual) share this host bucket regardless of event payload content.
+// Cron events have no event.data fields, so event-data refs evaluate to null;
+// a static CEL literal is required for correct per-host throttle isolation.
+// AGENTS.md rule 15: never use in-process p-throttle.
+export const WHO_DON_FN_CONFIG = buildIngestConfig("who-don", "who.int");

@@ -7,7 +7,8 @@ import { ChoroplethStub } from "@/components/outbreak/choropleth-stub";
 import { StatCard } from "@/components/outbreak/stat-card";
 import { AiGeneratedLabel } from "@/components/provenance/ai-generated-label";
 import { DAILY_BRIEF } from "@/lib/copy/daily-brief";
-import { getSparkline14d, getStatTotals } from "@/lib/queries/case-counts";
+import type { DisagreementEntry, DisagreementsMap } from "@/lib/queries/case-counts";
+import { getDisagreements, getSparkline14d, getStatTotals } from "@/lib/queries/case-counts";
 import type { Document } from "@/lib/queries/documents";
 import { listRecentDocuments } from "@/lib/queries/documents";
 import type { Outbreak } from "@/lib/queries/outbreaks";
@@ -33,7 +34,9 @@ export default async function TodayPage({
     );
   }
 
-  const { stats, sparkline, sitreps, allOutbreaks } = await loadTodayData(outbreak.id);
+  const { stats, sparkline, sitreps, allOutbreaks, disagreements } = await loadTodayData(
+    outbreak.id,
+  );
   const sparklineValues = sparkline.map((p) => p.value);
   const confirmedQuoteId = stats.confirmed.quoteId ?? PLACEHOLDER_QUOTE_ID;
   const deathsQuoteId = stats.deaths.quoteId ?? PLACEHOLDER_QUOTE_ID;
@@ -49,8 +52,14 @@ export default async function TodayPage({
           value={stats.confirmed.value}
           quoteId={confirmedQuoteId}
           sparkline={sparklineValues}
+          disagreements={pickDisagreements(disagreements, "confirmed")}
         />
-        <StatCard label="Deaths" value={stats.deaths.value} quoteId={deathsQuoteId} />
+        <StatCard
+          label="Deaths"
+          value={stats.deaths.value}
+          quoteId={deathsQuoteId}
+          disagreements={pickDisagreements(disagreements, "deaths")}
+        />
         <StatCard label="CFR" value={cfrValue} quoteId={confirmedQuoteId} />
         <StatCard label="Zones affected" value={stats.zonesAffected} quoteId={confirmedQuoteId} />
       </section>
@@ -136,13 +145,24 @@ function InlineOutbreakRow({ outbreak }: Readonly<{ outbreak: Outbreak }>) {
 }
 
 async function loadTodayData(outbreakId: string) {
-  const [stats, sparkline, sitreps, allOutbreaks] = await Promise.all([
+  const [stats, sparkline, sitreps, allOutbreaks, disagreements] = await Promise.all([
     getStatTotals(outbreakId),
     getSparkline14d(outbreakId, "confirmed"),
     listRecentDocuments(5),
     listOutbreaks({ status: "active" }),
+    getDisagreements(outbreakId),
   ]);
-  return { stats, sparkline, sitreps, allOutbreaks };
+  return { stats, sparkline, sitreps, allOutbreaks, disagreements };
+}
+
+/** Return the disagreement entries for the most recent date that has multi-source conflict. */
+function pickDisagreements(map: DisagreementsMap, metric: string): DisagreementEntry[] {
+  for (const [key, entries] of map) {
+    if (key.startsWith(`${metric}:`)) {
+      return entries;
+    }
+  }
+  return [];
 }
 
 function RecentDocsSection({ sitreps }: Readonly<{ sitreps: Document[] }>) {

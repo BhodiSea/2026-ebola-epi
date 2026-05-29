@@ -1,7 +1,10 @@
+import { DisagreementPill } from "@/components/outbreak/disagreement-pill";
 import { Figure } from "@/components/provenance/figure";
+import type { DisagreementEntry } from "@/lib/queries/case-counts";
 
 interface StatCardProps {
   deltaPct?: number;
+  disagreements?: DisagreementEntry[];
   label: string;
   quoteId: string;
   sparkline?: number[];
@@ -20,16 +23,28 @@ function buildSparklinePath(data: readonly number[]): string {
   return `M ${pts.join(" L ")}`;
 }
 
-function StatCard({ label, value, quoteId, deltaPct, sparkline }: Readonly<StatCardProps>) {
+function StatCard({
+  label,
+  value,
+  quoteId,
+  deltaPct,
+  sparkline,
+  disagreements,
+}: Readonly<StatCardProps>) {
   return (
     <div
       data-stat-card={label.toLowerCase()}
       className="flex flex-col gap-2 rounded-lg border bg-card p-4"
     >
       <p className="font-mono text-[12px] text-fg-muted uppercase tracking-wide">{label}</p>
-      <p className="font-semibold text-3xl tabular-nums">
-        <Figure value={value} quoteId={quoteId} />
-      </p>
+      <div className="flex items-center gap-2">
+        <p className="font-semibold text-3xl tabular-nums">
+          <Figure value={value} quoteId={quoteId} />
+        </p>
+        {disagreements !== undefined && disagreements.length > 0 ? (
+          <DisagreementPill count={disagreements.length} entries={disagreements} />
+        ) : null}
+      </div>
       {deltaPct === undefined ? null : (
         <p data-numeric className="font-mono text-[12px] text-fg-muted">
           {deltaPct >= 0 ? "+" : ""}

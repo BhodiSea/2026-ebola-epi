@@ -70,8 +70,24 @@ with
       'pending_review'
     from ob, sq, er
     returning id
+  ),
+  -- winner row used to supersede cc without a self-reference (Phase 6 CHECK constraint
+  -- case_counts_no_self_supersede forbids superseded_by = id)
+  cc_winner as (
+    insert into public.case_counts (
+      id, outbreak_id, as_of, metric, value,
+      source_quote_id, extraction_run_id, model_id, prompt_version_hash,
+      status
+    )
+    select
+      'ffffffff-ffff-4fff-8fff-000000000002',
+      ob.id, current_date, 'cases', 2,
+      sq.id, er.id, 'test-model', 'hash-rls-001',
+      'published'
+    from ob, sq, er
+    returning id
   )
-select 1 from cc;
+select 1 from cc, cc_winner;
 
 -- 1. anon cannot see a pending_review row
 set local role anon;
@@ -97,9 +113,10 @@ select is(
 );
 reset role;
 
--- 3. anon cannot see the row once superseded (self-reference is valid for a FK)
+-- 3. anon cannot see the row once superseded (use cc_winner as the superseding row;
+--    the Phase 6 CHECK constraint case_counts_no_self_supersede forbids superseded_by = id)
 update public.case_counts
-  set superseded_by = 'ffffffff-ffff-4fff-8fff-ffffffffffff'
+  set superseded_by = 'ffffffff-ffff-4fff-8fff-000000000002'
   where id = 'ffffffff-ffff-4fff-8fff-ffffffffffff';
 
 set local role anon;

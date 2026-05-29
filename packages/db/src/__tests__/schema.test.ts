@@ -1,5 +1,5 @@
 // Type-only smoke tests — no DB connection required.
-import type { DocumentId, ExtractionRunId, SourceQuoteId } from "@ituri/shared";
+import type { DocumentId, ExtractionRunId, OutbreakId, SourceQuoteId } from "@ituri/shared";
 import { describe, expectTypeOf, it } from "vitest";
 
 import type {
@@ -8,6 +8,7 @@ import type {
   anthropicUsageLog,
   caseCounts,
   documents,
+  incidents,
   outbreaks,
   sourceQuotes,
   sources,
@@ -93,5 +94,29 @@ describe("schema type inference", () => {
     expectTypeOf<Row["outputTokens"]>().toEqualTypeOf<number>();
     expectTypeOf<Row["extractionRunId"]>().toEqualTypeOf<null | string>();
     expectTypeOf<Row["costUsd"]>().toEqualTypeOf<null | string>();
+  });
+
+  // ── Phase 6 additions ─────────────────────────────────────────────────────
+
+  it("sources.$inferSelect has extractionPaused boolean (phase6 kill-switch column)", () => {
+    type Row = typeof sources.$inferSelect;
+    expectTypeOf<Row["extractionPaused"]>().toEqualTypeOf<boolean>();
+  });
+
+  it("documents.$inferSelect has conditional-GET columns (phase6)", () => {
+    type Row = typeof documents.$inferSelect;
+    expectTypeOf<Row["etag"]>().toEqualTypeOf<null | string>();
+    expectTypeOf<Row["lastModified"]>().toEqualTypeOf<Date | null>();
+    expectTypeOf<Row["httpStatus"]>().toEqualTypeOf<null | number>();
+    expectTypeOf<Row["license"]>().toEqualTypeOf<null | string>();
+  });
+
+  it("incidents.$inferSelect has class, status, outbreakId (phase6 escalation table)", () => {
+    type Row = typeof incidents.$inferSelect;
+    expectTypeOf<Row["class"]>().toEqualTypeOf<
+      "anomaly" | "conflict_unresolvable" | "novel_pathogen_country" | "substring_verify_fail"
+    >();
+    expectTypeOf<Row["status"]>().toEqualTypeOf<"acked" | "closed" | "open" | "snoozed">();
+    expectTypeOf<Row["outbreakId"]>().toEqualTypeOf<null | OutbreakId>();
   });
 });

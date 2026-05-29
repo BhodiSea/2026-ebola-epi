@@ -9,6 +9,13 @@ vi.mock("@/components/provenance/figure", () => ({
     <span data-figure>{value}</span>
   ),
 }));
+vi.mock("@/components/outbreak/disagreement-pill", () => ({
+  DisagreementPill: ({ count }: { count: number }) => (
+    <button type="button" data-disagreement-pill>
+      +{count} disagreement
+    </button>
+  ),
+}));
 
 const QUOTE_ID = "00000000-0000-0000-0000-000000000001";
 
@@ -61,5 +68,32 @@ describe("StatCard", () => {
       }),
     );
     expect(screen.getByText("-5.2%")).toBeInTheDocument();
+  });
+
+  it("renders disagreement pill when disagreements prop is non-empty", () => {
+    const { container } = render(
+      StatCard({
+        label: "Confirmed",
+        value: 142,
+        quoteId: QUOTE_ID,
+        disagreements: [
+          { rowId: "aaa", value: 142, sourceSlug: "who-don", quoteId: QUOTE_ID, superseded: false },
+          { rowId: "bbb", value: 108, sourceSlug: "ecdc-cdtr", quoteId: null, superseded: true },
+        ],
+      }),
+    );
+    expect(container.querySelector("[data-disagreement-pill]")).not.toBeNull();
+  });
+
+  it("does not render disagreement pill when disagreements prop is absent", () => {
+    const { container } = render(StatCard({ label: "Confirmed", value: 142, quoteId: QUOTE_ID }));
+    expect(container.querySelector("[data-disagreement-pill]")).toBeNull();
+  });
+
+  it("does not render disagreement pill when disagreements array is empty", () => {
+    const { container } = render(
+      StatCard({ label: "Confirmed", value: 142, quoteId: QUOTE_ID, disagreements: [] }),
+    );
+    expect(container.querySelector("[data-disagreement-pill]")).toBeNull();
   });
 });

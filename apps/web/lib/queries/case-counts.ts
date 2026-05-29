@@ -4,6 +4,20 @@ import { z } from "zod";
 
 import { createClient } from "@/lib/supabase/server";
 
+// ─── Disagreement types ────────────────────────────────────────────────────────
+
+export interface DisagreementEntry {
+  quoteId: null | string;
+  rowId: string;
+  sourceSlug: string;
+  /** true when superseded_by is non-null — this row lost reconciliation */
+  superseded: boolean;
+  value: number;
+}
+
+/** Keyed by `${metric}:${asOf}` (e.g. "cases:2026-05-27"). */
+export type DisagreementsMap = Map<string, DisagreementEntry[]>;
+
 export interface SparklinePoint {
   date: string;
   quoteId?: null | string;
@@ -210,4 +224,59 @@ async function countZonesAffected(outbreakId: string): Promise<number> {
     }
   }
   return zones.size;
+}
+
+/* eslint-disable @typescript-eslint/naming-convention */
+const DisagreementRow = z.object({
+  as_of: z.string(),
+  metric: z.string(),
+  row_id: z.string(),
+  source_quote_id: z.string().nullable(),
+  source_slug: z.string(),
+  superseded_by: z.string().nullable(),
+  value: z.number(),
+});
+/* eslint-enable @typescript-eslint/naming-convention */
+
+/**
+ * Returns published case_counts rows where multiple distinct sources reported
+ * conflicting values for the same (metric, as_of) key. Includes superseded rows
+ * so the UI can render the losing value strikethrough-dimmed after reconciliation.
+ * Uses the get_disagreements RPC (SECURITY DEFINER) to join across audit schema.
+ */
+export async function getDisagreements(outbreakId: string): Promise<DisagreementsMap> {
+  const supabase = await createClient();
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+  const { data } = await supabase.rpc("get_disagreements", {
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    p_outbreak_id: outbreakId,
+  });
+
+  const map: DisagreementsMap = new Map();
+  if (data === null) {
+    return map;
+  }
+
+  const rows = z.array(DisagreementRow).safeParse(data);
+  if (!rows.success) {
+    return map;
+  }
+
+  for (const row of rows.data) {
+    const key = `${row.metric}:${row.as_of}`;
+    const entry: DisagreementEntry = {
+      rowId: row.row_id,
+      value: row.value,
+      sourceSlug: row.source_slug,
+      quoteId: row.source_quote_id,
+      superseded: row.superseded_by !== null,
+    };
+    const existing = map.get(key);
+    if (existing) {
+      existing.push(entry);
+    } else {
+      map.set(key, [entry]);
+    }
+  }
+  return map;
 }

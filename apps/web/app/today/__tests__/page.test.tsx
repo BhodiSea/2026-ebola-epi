@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import TodayPage from "../page";
-import { getSparkline14d, getStatTotals } from "@/lib/queries/case-counts";
+import { getDisagreements, getSparkline14d, getStatTotals } from "@/lib/queries/case-counts";
 import { listRecentDocuments } from "@/lib/queries/documents";
 import { getActiveOutbreak, listOutbreaks } from "@/lib/queries/outbreaks";
 
@@ -15,8 +15,9 @@ vi.mock("@/lib/queries/outbreaks", () => ({
   listOutbreaks: vi.fn(),
 }));
 vi.mock("@/lib/queries/case-counts", () => ({
-  getStatTotals: vi.fn(),
+  getDisagreements: vi.fn(),
   getSparkline14d: vi.fn(),
+  getStatTotals: vi.fn(),
 }));
 vi.mock("@/lib/queries/documents", () => ({
   listRecentDocuments: vi.fn(),
@@ -71,14 +72,18 @@ const MOCK_STATS = {
   zonesAffected: 5,
 };
 
+function setupMocks(outbreak: null | typeof MOCK_OUTBREAK = MOCK_OUTBREAK) {
+  vi.mocked(getActiveOutbreak).mockResolvedValue(outbreak);
+  vi.mocked(getStatTotals).mockResolvedValue(MOCK_STATS);
+  vi.mocked(getSparkline14d).mockResolvedValue([]);
+  vi.mocked(getDisagreements).mockResolvedValue(new Map());
+  vi.mocked(listRecentDocuments).mockResolvedValue([]);
+  vi.mocked(listOutbreaks).mockResolvedValue([]);
+}
+
 describe("TodayPage", () => {
   it("renders all four data-stat-card attributes", async () => {
-    vi.mocked(getActiveOutbreak).mockResolvedValue(MOCK_OUTBREAK);
-    vi.mocked(getStatTotals).mockResolvedValue(MOCK_STATS);
-    vi.mocked(getSparkline14d).mockResolvedValue([]);
-    vi.mocked(listRecentDocuments).mockResolvedValue([]);
-    vi.mocked(listOutbreaks).mockResolvedValue([]);
-
+    setupMocks();
     const jsx = await TodayPage({ searchParams: Promise.resolve({}) });
     const { container } = render(jsx);
 
@@ -89,12 +94,7 @@ describe("TodayPage", () => {
   });
 
   it("renders data-figure for each stat value", async () => {
-    vi.mocked(getActiveOutbreak).mockResolvedValue(MOCK_OUTBREAK);
-    vi.mocked(getStatTotals).mockResolvedValue(MOCK_STATS);
-    vi.mocked(getSparkline14d).mockResolvedValue([]);
-    vi.mocked(listRecentDocuments).mockResolvedValue([]);
-    vi.mocked(listOutbreaks).mockResolvedValue([]);
-
+    setupMocks();
     const jsx = await TodayPage({ searchParams: Promise.resolve({}) });
     const { container } = render(jsx);
     const figures = container.querySelectorAll("[data-figure]");
@@ -102,53 +102,28 @@ describe("TodayPage", () => {
   });
 
   it("renders ActiveOutbreakBanner when outbreak exists", async () => {
-    vi.mocked(getActiveOutbreak).mockResolvedValue(MOCK_OUTBREAK);
-    vi.mocked(getStatTotals).mockResolvedValue(MOCK_STATS);
-    vi.mocked(getSparkline14d).mockResolvedValue([]);
-    vi.mocked(listRecentDocuments).mockResolvedValue([]);
-    vi.mocked(listOutbreaks).mockResolvedValue([]);
-
+    setupMocks();
     const jsx = await TodayPage({ searchParams: Promise.resolve({}) });
     const { container } = render(jsx);
     expect(container.querySelector("[data-banner]")).not.toBeNull();
   });
 
   it("renders ChoroplethStub", async () => {
-    vi.mocked(getActiveOutbreak).mockResolvedValue(MOCK_OUTBREAK);
-    vi.mocked(getStatTotals).mockResolvedValue(MOCK_STATS);
-    vi.mocked(getSparkline14d).mockResolvedValue([]);
-    vi.mocked(listRecentDocuments).mockResolvedValue([]);
-    vi.mocked(listOutbreaks).mockResolvedValue([]);
-
+    setupMocks();
     const jsx = await TodayPage({ searchParams: Promise.resolve({}) });
     const { container } = render(jsx);
     expect(container.querySelector("[data-choropleth-stub]")).not.toBeNull();
   });
 
   it("renders daily brief headline", async () => {
-    vi.mocked(getActiveOutbreak).mockResolvedValue(MOCK_OUTBREAK);
-    vi.mocked(getStatTotals).mockResolvedValue(MOCK_STATS);
-    vi.mocked(getSparkline14d).mockResolvedValue([]);
-    vi.mocked(listRecentDocuments).mockResolvedValue([]);
-    vi.mocked(listOutbreaks).mockResolvedValue([]);
-
+    setupMocks();
     const jsx = await TodayPage({ searchParams: Promise.resolve({}) });
     render(jsx);
     expect(screen.getByText("Test headline")).toBeInTheDocument();
   });
 
   it("renders graceful fallback when no active outbreak", async () => {
-    vi.mocked(getActiveOutbreak).mockResolvedValue(null);
-    vi.mocked(getStatTotals).mockResolvedValue({
-      confirmed: { value: 0, quoteId: null },
-      deaths: { value: 0, quoteId: null },
-      cfr: null,
-      zonesAffected: 0,
-    });
-    vi.mocked(getSparkline14d).mockResolvedValue([]);
-    vi.mocked(listRecentDocuments).mockResolvedValue([]);
-    vi.mocked(listOutbreaks).mockResolvedValue([]);
-
+    setupMocks(null);
     const jsx = await TodayPage({ searchParams: Promise.resolve({}) });
     const { container } = render(jsx);
     expect(container.querySelector("[data-banner]")).toBeNull();

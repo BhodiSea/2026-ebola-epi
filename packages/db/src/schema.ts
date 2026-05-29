@@ -69,6 +69,7 @@ export const sources = pgTable("sources", {
     .default("open"),
   licenseUrl: text("license_url"),
   attributionRequired: boolean("attribution_required").notNull().default(false),
+  extractionPaused: boolean("extraction_paused").notNull().default(false),
   metadata: jsonb("metadata").notNull().default(sql`'{}'::jsonb`),
   createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
 });
@@ -87,6 +88,11 @@ export const documents = pgTable("documents", {
   fullTextTsv: tsvector("full_text_tsv").generatedAlwaysAs(sql`to_tsvector('simple', full_text)`),
   publishedAt: timestamp("published_at", { withTimezone: true, mode: "date" }),
   ingestedAt: timestamp("ingested_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
+  // Phase 6: conditional GET support — stored to short-circuit re-extraction on unchanged docs.
+  license: text("license"),
+  etag: text("etag"),
+  lastModified: timestamp("last_modified", { withTimezone: true, mode: "date" }),
+  httpStatus: integer("http_status"),
 });
 
 export const sourceQuotes = pgTable("source_quotes", {
@@ -211,5 +217,27 @@ export const caseCounts = pgTable("case_counts", {
   promptVersionHash: text("prompt_version_hash").notNull(),
   supersededBy: uuid("superseded_by").references((): AnyPgColumn => caseCounts.id),
   status: text("status").notNull().default("pending_review"),
+  createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
+});
+
+// ─── public.incidents ─────────────────────────────────────────────────────────
+// Escalation-tracking table. Written by Inngest functions (service_role);
+// readable by authenticated users for the editorial UI; anon has no access.
+
+export const incidents = pgTable("incidents", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  class: text("class")
+    .notNull()
+    .$type<
+      "anomaly" | "conflict_unresolvable" | "novel_pathogen_country" | "substring_verify_fail"
+    >(),
+  outbreakId: uuid("outbreak_id")
+    .$type<OutbreakId>()
+    .references(() => outbreaks.id),
+  threadId: text("thread_id"),
+  status: text("status").notNull().default("open").$type<"acked" | "closed" | "open" | "snoozed">(),
+  snoozedUntil: timestamp("snoozed_until", { withTimezone: true, mode: "date" }),
+  ackBy: text("ack_by"),
+  ackAt: timestamp("ack_at", { withTimezone: true, mode: "date" }),
   createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
 });

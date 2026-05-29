@@ -2,12 +2,14 @@
 import type Anthropic from "@anthropic-ai/sdk";
 
 import { computePromptVersionHash, computeToolSchemaHash } from "./hash.js";
+import { MODEL_SONNET } from "./models.js";
 import { FEW_SHOTS, STATIC_INSTRUCTIONS } from "./prompt.js";
 import type { ExtractionRow } from "./tools.js";
 import { ExtractionBatchSchema, extractionTool } from "./tools.js";
 import { resolveSubstring } from "./verify.js";
 
-export const MODEL = "claude-sonnet-4-6" as const;
+// Back-compat alias — consumers that import MODEL from @ituri/extract continue to work.
+export const MODEL = MODEL_SONNET;
 
 export interface ExtractionResult {
   promptVersionHash: string;

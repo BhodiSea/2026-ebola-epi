@@ -27,10 +27,10 @@ values
    'https://www.who.int/about/policies/publishing/copyright',
    true),
   ('c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a01',
-   'ecdc',
+   'ecdc-cdtr',
    'ECDC Communicable Disease Threats Report',
    'https://www.ecdc.europa.eu/en/publications-data/communicable-disease-threats-report',
-   0.95,
+   0.90,
    'open',
    'https://www.ecdc.europa.eu/en/legal-notice',
    true)
@@ -107,9 +107,9 @@ values (
 --   "189 confirmed and 37 deaths" starts at char 0 (char_start=0, char_end=27)
 --   "37 deaths" starts at char 18 (char_start=18, char_end=27)
 insert into public.documents (id, source_id, sha256, url, title, full_text, published_at, ingested_at)
-values (
+select
   'e0eebc99-9c0b-4ef8-bb6d-6bb9bd380a01',
-  'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a01',
+  s.id,
   sha256(convert_to(
     '189 confirmed and 37 deaths as of 24 May 2026. WHO Disease Outbreak News 603.',
     'UTF8'
@@ -119,14 +119,15 @@ values (
   '189 confirmed and 37 deaths as of 24 May 2026. WHO Disease Outbreak News 603.',
   '2026-05-24T12:00:00Z',
   '2026-05-24T13:00:00Z'
-) on conflict (sha256) do nothing;
+from public.sources s where s.slug = 'who-don'
+on conflict (sha256) do nothing;
 
 -- doc2 — AFRO Sitrep 11 (15 May 2026)
 -- "312 suspected cases" starts at char 0 (char_start=0, char_end=19)
 insert into public.documents (id, source_id, sha256, url, title, full_text, published_at, ingested_at)
-values (
+select
   'e1eebc99-9c0b-4ef8-bb6d-6bb9bd380a01',
-  'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a01',
+  s.id,
   sha256(convert_to(
     '312 suspected cases as of 15 May 2026. AFRO Sitrep 11. Five health zones affected in Ituri Province.',
     'UTF8'
@@ -136,14 +137,15 @@ values (
   '312 suspected cases as of 15 May 2026. AFRO Sitrep 11. Five health zones affected in Ituri Province.',
   '2026-05-15T08:00:00Z',
   '2026-05-15T09:00:00Z'
-) on conflict (sha256) do nothing;
+from public.sources s where s.slug = 'who-afro'
+on conflict (sha256) do nothing;
 
 -- doc3 — AFRO Sitrep 12 (22 May 2026)
 -- "347 suspected cases" starts at char 0 (char_start=0, char_end=19)
 insert into public.documents (id, source_id, sha256, url, title, full_text, published_at, ingested_at)
-values (
+select
   'e2eebc99-9c0b-4ef8-bb6d-6bb9bd380a01',
-  'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a01',
+  s.id,
   sha256(convert_to(
     '347 suspected cases as of 22 May 2026. AFRO Sitrep 12. Mambasa health zone newly reported.',
     'UTF8'
@@ -153,7 +155,8 @@ values (
   '347 suspected cases as of 22 May 2026. AFRO Sitrep 12. Mambasa health zone newly reported.',
   '2026-05-22T08:00:00Z',
   '2026-05-22T09:00:00Z'
-) on conflict (sha256) do nothing;
+from public.sources s where s.slug = 'who-afro'
+on conflict (sha256) do nothing;
 
 -- audit.extraction_runs — one run referenced by all case_counts
 insert into audit.extraction_runs (

@@ -1,12 +1,13 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { getEpiCurveSeries } from "../case-counts";
+import { getDisagreements, getEpiCurveSeries } from "../case-counts";
 
 vi.mock("server-only", () => ({}));
 
 const mockFrom = vi.fn();
+const mockRpc = vi.fn();
 vi.mock("@/lib/supabase/server", () => ({
-  createClient: async () => ({ from: mockFrom }),
+  createClient: async () => ({ from: mockFrom, rpc: mockRpc }),
 }));
 
 interface ReturnVal {
@@ -46,5 +47,50 @@ describe("getEpiCurveSeries", () => {
       { date: "2026-05-08", value: 15, quoteId: Q1 },
     ]);
     expect(deaths).toEqual([{ date: "2026-05-08", value: 2, quoteId: Q1 }]);
+  });
+});
+
+const ROW_A = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+const ROW_B = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
+const Q2 = "22222222-2222-4222-8222-222222222222";
+
+describe("getDisagreements", () => {
+  it("returns a map keyed by metric:asOf with entries from multiple sources", async () => {
+    mockRpc.mockResolvedValueOnce({
+      data: [
+        {
+          row_id: ROW_A,
+          metric: "cases",
+          as_of: "2026-05-27",
+          value: 142,
+          source_slug: "who-don",
+          source_quote_id: Q1,
+          superseded_by: null,
+        },
+        {
+          row_id: ROW_B,
+          metric: "cases",
+          as_of: "2026-05-27",
+          value: 108,
+          source_slug: "ecdc-cdtr",
+          source_quote_id: Q2,
+          superseded_by: ROW_A,
+        },
+      ],
+      error: null,
+    });
+    const map = await getDisagreements(OUTBREAK);
+    const key = "cases:2026-05-27";
+    expect(map.has(key)).toBe(true);
+    const entries = map.get(key)!;
+    expect(entries).toHaveLength(2);
+    expect(entries.find((e) => e.sourceSlug === "who-don")?.value).toBe(142);
+    expect(entries.find((e) => e.sourceSlug === "ecdc-cdtr")?.superseded).toBe(true);
+  });
+
+  it("returns an empty map when the RPC returns no rows", async () => {
+    mockRpc.mockResolvedValueOnce({ data: [], error: null });
+    const map = await getDisagreements(OUTBREAK);
+    expect(map.size).toBe(0);
   });
 });
