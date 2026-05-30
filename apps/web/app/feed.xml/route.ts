@@ -55,7 +55,7 @@ ${entries}
 function entryXml(doc: FeedDoc): string {
   const title = escapeXml(doc.title ?? doc.url);
   const updated = doc.published_at ?? doc.ingested_at;
-  const link = `${SITE_URL}/sitreps/${doc.id}`;
+  const link = `${SITE_URL}/document/${doc.id}`;
   const sourceName = escapeXml(
     Array.isArray(doc.source) ? (doc.source[0]?.name ?? "Unknown") : "Unknown",
   );

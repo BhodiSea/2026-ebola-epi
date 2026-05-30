@@ -11,7 +11,7 @@ export async function updateSession(request: NextRequest, nonce: string) {
   // because the Supabase SSR setAll callback overwrites supabaseResponse with a
   // new NextResponse when auth cookies are refreshed, which would silently lose
   // a header set at construction time.
-  const csp = buildCsp(nonce);
+  const csp = buildCsp(nonce, request.nextUrl.pathname.startsWith("/embed/"));
 
   // Forward the nonce so RSC can read it via `await headers()`.
   const requestHeaders = new Headers(request.headers);

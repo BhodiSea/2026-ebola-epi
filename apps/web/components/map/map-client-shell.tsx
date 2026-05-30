@@ -11,6 +11,7 @@ import type { ZoneSelection } from "./map-pane";
 import { MapPane } from "./map-pane";
 import { MobileInspector } from "./mobile-inspector";
 import { TimeScrubber } from "./time-scrubber";
+import { buildChartAltText } from "@/lib/a11y/alt-text";
 import type { MapKeyboard } from "@/lib/map/keyboard";
 import { createMapKeyboard } from "@/lib/map/keyboard";
 import { parseLayers } from "@/lib/map/layers";
@@ -77,6 +78,12 @@ export function MapClientShell({
           onSelectZone={onSelectZone}
           terrain={activeLayers.has("terrain")}
           sentinel={activeLayers.has("sentinel")}
+          ariaLabel={buildChartAltText({
+            elementType: "map",
+            scope: "DRC health zones",
+            variable: "suspected Bundibugyo virus case count",
+            asOf: searchParams.get("as_of") ?? "current date",
+          })}
           {...(resolvedTheme === undefined ? {} : { theme: resolvedTheme })}
         />
         <TimeScrubber

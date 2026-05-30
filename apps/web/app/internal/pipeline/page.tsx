@@ -1,3 +1,4 @@
+import { RetryButton } from "@/components/internal/retry-button";
 import { env } from "@/lib/env";
 
 /* eslint-disable @typescript-eslint/naming-convention */
@@ -19,10 +20,14 @@ const STATUS_COLORS: Record<string, string> = {
 
 export default async function PipelinePage() {
   const runs = await fetchRuns();
+  const successRate = computeSuccessRate(runs);
 
   return (
     <div className="flex-1 space-y-6 p-6">
-      <h1 className="font-mono text-fg-muted text-sm uppercase tracking-wide">Pipeline</h1>
+      <div className="flex items-baseline gap-4">
+        <h1 className="font-mono text-fg-muted text-sm uppercase tracking-wide">Pipeline</h1>
+        {runs.length > 0 ? <SuccessRatePill rate={successRate} /> : null}
+      </div>
 
       {runs.length === 0 ? (
         <p className="font-mono text-fg-muted text-xs">
@@ -35,7 +40,9 @@ export default async function PipelinePage() {
               <th className="pr-4 pb-1">Function</th>
               <th className="pr-4 pb-1">Status</th>
               <th className="pr-4 pb-1">Started</th>
-              <th className="pb-1">Run ID</th>
+              <th className="pr-4 pb-1">Duration</th>
+              <th className="pr-4 pb-1">Run ID</th>
+              <th className="pb-1" />
             </tr>
           </thead>
           <tbody>
@@ -46,7 +53,13 @@ export default async function PipelinePage() {
                   {run.status}
                 </td>
                 <td className="py-1 pr-4 text-fg-muted">{run.started_at.slice(0, 16)}</td>
-                <td className="py-1 text-fg-subtle">{run.run_id.slice(0, 12)}&hellip;</td>
+                <td className="py-1 pr-4 text-fg-muted tabular-nums">
+                  {formatDuration(run.started_at, run.ended_at)}
+                </td>
+                <td className="py-1 pr-4 text-fg-subtle">{run.run_id.slice(0, 12)}&hellip;</td>
+                <td className="py-1">
+                  {run.status === "Failed" ? <RetryButton runId={run.run_id} /> : null}
+                </td>
               </tr>
             ))}
           </tbody>
@@ -54,6 +67,14 @@ export default async function PipelinePage() {
       )}
     </div>
   );
+}
+
+function computeSuccessRate(runs: InngestRun[]): number {
+  if (runs.length === 0) {
+    return 0;
+  }
+  const completed = runs.filter((r) => r.status === "Completed").length;
+  return completed / runs.length;
 }
 
 async function fetchRuns(): Promise<InngestRun[]> {
@@ -73,4 +94,41 @@ async function fetchRuns(): Promise<InngestRun[]> {
   } catch {
     return [];
   }
+}
+
+function formatDuration(startedAt: string, endedAt: null | string): string {
+  if (endedAt === null) {
+    return "—";
+  }
+  const ms = new Date(endedAt).getTime() - new Date(startedAt).getTime();
+  if (ms < 0) {
+    return "—";
+  }
+  if (ms < 1000) {
+    return `${ms}ms`;
+  }
+  if (ms < 60_000) {
+    return `${(ms / 1000).toFixed(1)}s`;
+  }
+  const minutes = Math.floor(ms / 60_000);
+  const seconds = Math.floor((ms % 60_000) / 1000);
+  return `${minutes}m${seconds}s`;
+}
+
+function successRateColour(rate: number): string {
+  if (rate >= 0.95) {
+    return "bg-green-100 text-green-800";
+  }
+  if (rate >= 0.8) {
+    return "bg-yellow-100 text-yellow-800";
+  }
+  return "bg-red-100 text-red-800";
+}
+
+function SuccessRatePill({ rate }: Readonly<{ rate: number }>) {
+  const pct = Math.round(rate * 100);
+  const colour = successRateColour(rate);
+  return (
+    <span className={`rounded px-2 py-0.5 font-mono text-[10px] ${colour}`}>{pct}% success</span>
+  );
 }

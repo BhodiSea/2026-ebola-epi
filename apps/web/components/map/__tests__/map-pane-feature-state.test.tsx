@@ -79,6 +79,7 @@ describe("MapPane choropleth feature-state", () => {
           outbreakId="d0eebc99-9c0b-4ef8-bb6d-6bb9bd380a01"
           keyboard={createMapKeyboard()}
           caseCountsByCode={{ "COD-IT-BU": 50 }}
+          ariaLabel="Test map"
         />,
       );
     });
@@ -96,6 +97,7 @@ describe("MapPane choropleth feature-state", () => {
           outbreakId="d0eebc99-9c0b-4ef8-bb6d-6bb9bd380a01"
           keyboard={createMapKeyboard()}
           caseCountsByCode={{ "COD-IT-BU": 50 }}
+          ariaLabel="Test map"
         />,
       );
     });
@@ -115,6 +117,7 @@ describe("MapPane choropleth feature-state", () => {
           outbreakId="d0eebc99-9c0b-4ef8-bb6d-6bb9bd380a01"
           keyboard={createMapKeyboard()}
           caseCountsByCode={{ "COD-IT-DJ": 12 }}
+          ariaLabel="Test map"
         />,
       );
     });

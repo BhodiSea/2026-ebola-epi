@@ -1,13 +1,25 @@
+import { AckButton } from "@/components/internal/ack-button";
 import { createClient } from "@/lib/supabase/server";
 
 /* eslint-disable @typescript-eslint/naming-convention */
 interface Incident {
-  category: string;
+  class: "anomaly" | "conflict_unresolvable" | "novel_pathogen_country" | "substring_verify_fail";
   created_at: string;
-  description: null | string;
+  detail: Record<string, unknown>;
+  document_id: null | string;
   id: string;
   status: string;
 }
+/* eslint-enable @typescript-eslint/naming-convention */
+
+// Maps DB class values to the spec's display column labels
+/* eslint-disable @typescript-eslint/naming-convention */
+const CLASS_TO_COLUMN: Record<string, string> = {
+  anomaly: "AnomalyDetected",
+  conflict_unresolvable: "DisagreementGT25%",
+  novel_pathogen_country: "LowConfidence",
+  substring_verify_fail: "SubstringVerifyFail",
+};
 /* eslint-enable @typescript-eslint/naming-convention */
 
 const COLUMNS = [
@@ -22,7 +34,7 @@ export default async function EscalationsPage() {
 
   const { data: rows } = await supabase
     .from("incidents")
-    .select("id, status, category, description, created_at")
+    .select("id, status, class, detail, document_id, created_at")
     .order("created_at", { ascending: false })
     .limit(200);
 
@@ -30,7 +42,7 @@ export default async function EscalationsPage() {
   const open = incidents.filter((i) => i.status !== "acked");
 
   function columnItems(col: string) {
-    return open.filter((i) => i.category === col);
+    return open.filter((i) => CLASS_TO_COLUMN[i.class] === col);
   }
 
   return (
@@ -52,8 +64,9 @@ export default async function EscalationsPage() {
                     key={incident.id}
                     className="rounded border border-border bg-surface-1 p-2 font-mono text-[11px]"
                   >
-                    <p className="truncate text-fg">{incident.description ?? incident.id}</p>
+                    <p className="truncate text-fg">{incidentLabel(incident)}</p>
                     <p className="mt-0.5 text-fg-muted">{incident.created_at.slice(0, 10)}</p>
+                    <AckButton incidentId={incident.id} />
                   </li>
                 ))}
               </ul>
@@ -63,4 +76,15 @@ export default async function EscalationsPage() {
       </div>
     </div>
   );
+}
+
+function incidentLabel(incident: Incident): string {
+  const d = incident.detail;
+  if (typeof d.summary === "string") {
+    return d.summary;
+  }
+  if (typeof d.message === "string") {
+    return d.message;
+  }
+  return incident.class;
 }

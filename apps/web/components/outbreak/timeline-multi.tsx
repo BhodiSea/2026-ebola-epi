@@ -6,21 +6,15 @@ import { useEffect, useRef, useState } from "react";
 import type { SparklinePoint } from "@/lib/queries/case-counts";
 
 interface TimelineMultiProps {
-  asOfDate?: string;
+  ariaLabel: string;
   confirmedSeries: SparklinePoint[];
   deathsSeries: SparklinePoint[];
-  peakConfirmed?: number;
 }
 
 const xAccessor = (d: SparklinePoint) => d.date;
 const yAccessor = (d: SparklinePoint) => d.value;
 
-function TimelineMulti({
-  confirmedSeries,
-  deathsSeries,
-  asOfDate,
-  peakConfirmed,
-}: Readonly<TimelineMultiProps>) {
+function TimelineMulti({ confirmedSeries, deathsSeries, ariaLabel }: Readonly<TimelineMultiProps>) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(640);
 
@@ -42,16 +36,8 @@ function TimelineMulti({
 
   const height = 200;
 
-  const dateLabel = asOfDate ?? "latest available date";
-  const peakLabel = peakConfirmed === undefined ? "" : ` Peak weekly confirmed: ${peakConfirmed}.`;
-
   return (
-    <div
-      ref={containerRef}
-      className="w-full"
-      role="img"
-      aria-label={`Line chart of confirmed cases and deaths by week, as of ${dateLabel}.${peakLabel}`}
-    >
+    <div ref={containerRef} className="w-full" role="img" aria-label={ariaLabel}>
       <XYChart
         width={width}
         height={height}

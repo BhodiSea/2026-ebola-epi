@@ -5,10 +5,7 @@ const nextConfig: NextConfig = {
     return [
       {
         source: "/embed/:path*",
-        headers: [
-          { key: "Content-Security-Policy", value: "frame-ancestors *" },
-          { key: "X-Frame-Options", value: "" },
-        ],
+        headers: [{ key: "X-Frame-Options", value: "" }],
       },
     ];
   },

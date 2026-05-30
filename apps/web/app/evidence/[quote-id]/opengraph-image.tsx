@@ -61,6 +61,7 @@ Readonly<{ params: Promise<{ "quote-id": string }> }>) {
         <div
           style={{
             fontSize: 28,
+            fontFamily: "Source Serif 4",
             fontStyle: "italic",
             color: "#1f2937",
             lineHeight: 1.45,

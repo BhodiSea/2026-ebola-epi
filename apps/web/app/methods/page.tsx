@@ -14,10 +14,12 @@ import { getQuotesForMethodsPage } from "@/lib/queries/source-quotes";
 import { buildBreadcrumbs } from "@/lib/seo/breadcrumbs";
 
 export const metadata: Metadata = {
-  title: "Methods — ituri-sitrep",
+  title: {
+    absolute: "Extraction Methods & Data Provenance — Bundibugyo Virus 2026 | ituri-sitrep",
+  },
   description: "How ituri-sitrep collects, extracts, and anchors data from public sitreps.",
   openGraph: {
-    title: "Methods — ituri-sitrep",
+    title: "Extraction Methods & Data Provenance — Bundibugyo Virus 2026 | ituri-sitrep",
     description:
       "Methodology and provenance model for the ituri-sitrep situational-awareness tool.",
   },
@@ -32,6 +34,14 @@ const DATASET_SCHEMA = {
   license: "https://creativecommons.org/licenses/by/4.0/",
   creator: { "@type": "Person", name: "Thomas Nicklin", email: "tnicklin@hawaii.edu" },
   keywords: ["Bundibugyo virus", "ebola", "outbreak", "DRC", "epidemiology", "sitrep"],
+  dateModified: "2026-05-30",
+  spatialCoverage: "Democratic Republic of the Congo",
+  temporalCoverage: "2026/..",
+  isBasedOn: [
+    "https://www.who.int/emergencies/disease-outbreak-news",
+    "https://www.afro.who.int/health-topics/disease-outbreaks",
+    "https://www.ecdc.europa.eu/en/publications-data/communicable-disease-threats-reports",
+  ],
 };
 
 const BREADCRUMBS = buildBreadcrumbs([

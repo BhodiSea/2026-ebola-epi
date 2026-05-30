@@ -4,6 +4,7 @@ import { TimelineMulti } from "@/components/outbreak/timeline-multi";
 import { FigureInteractive } from "@/components/provenance/figure-interactive";
 import type { SeverityLevel } from "@/components/provenance/severity-pill";
 import { SeverityPill } from "@/components/provenance/severity-pill";
+import { buildChartAltText } from "@/lib/a11y/alt-text";
 import type {
   ZoneDateFigure,
   ZoneDetailResponse,
@@ -94,7 +95,18 @@ export function TimelinePanel({ series }: Readonly<{ series: ZoneDetailResponse[
   if (series.confirmed.length === 0 && series.deaths.length === 0) {
     return <p className="text-[var(--color-fg-subtle)] text-sm">No time series for this zone.</p>;
   }
-  return <TimelineMulti confirmedSeries={series.confirmed} deathsSeries={series.deaths} />;
+  return (
+    <TimelineMulti
+      confirmedSeries={series.confirmed}
+      deathsSeries={series.deaths}
+      ariaLabel={buildChartAltText({
+        elementType: "timeline",
+        scope: "this health zone",
+        variable: "confirmed cases and deaths",
+        asOf: "latest available",
+      })}
+    />
+  );
 }
 
 /** CFR is derived from deaths/confirmed; attribute it to the deaths quote (the convention

@@ -16,11 +16,13 @@ import type { Outbreak } from "@/lib/queries/outbreaks";
 import { getActiveOutbreak, listOutbreaks } from "@/lib/queries/outbreaks";
 
 export const metadata: Metadata = {
-  title: "Today",
+  title: {
+    absolute: "Bundibugyo Virus Outbreak 2026 — Ituri, DRC | Live Map & Source-Linked Data",
+  },
   description:
     "Live headline figures, daily situation brief, and health-zone map for the 2026 Ituri Bundibugyo virus outbreak.",
   openGraph: {
-    title: "Today — ituri-sitrep",
+    title: "Bundibugyo Virus Outbreak 2026 — Ituri, DRC | Live Map & Source-Linked Data",
     description:
       "Live confirmed cases, deaths, and CFR for the 2026 Ituri Bundibugyo virus outbreak.",
   },

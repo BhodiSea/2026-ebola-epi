@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 
+import { InternalNav } from "@/components/layout/internal-nav";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function InternalLayout({
@@ -19,7 +20,10 @@ export default async function InternalLayout({
           <span className="mr-auto text-fg">ituri · internal</span>
           <span className="tabular-nums">{user.email}</span>
         </header>
-        <div className="flex flex-1">{children}</div>
+        <div className="flex flex-1">
+          <InternalNav />
+          <main className="min-w-0 flex-1 p-6">{children}</main>
+        </div>
       </div>
     );
   }

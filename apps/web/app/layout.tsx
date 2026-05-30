@@ -89,6 +89,11 @@ export default async function RootLayout({
                 "@type": "Person",
                 name: "Thomas Nicklin",
                 email: "tnicklin@hawaii.edu",
+                affiliation: {
+                  "@type": "Organization",
+                  name: "University of Western Australia",
+                },
+                sameAs: ["https://github.com/BhodiSea"],
               },
             }}
           />

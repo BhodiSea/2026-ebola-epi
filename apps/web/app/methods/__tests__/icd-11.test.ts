@@ -3,6 +3,7 @@ import path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
+// eslint-disable-next-line security/detect-non-literal-fs-filename -- path is statically derived from import.meta.dirname, not user input
 const pageSrc = readFileSync(path.join(import.meta.dirname, "../page.tsx"), "utf8");
 
 const INVALID_ICD_CODE = /1D64/;

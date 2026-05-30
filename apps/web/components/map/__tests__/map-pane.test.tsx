@@ -43,7 +43,12 @@ describe("MapPane", () => {
   it("renders a container with data-map-pane attribute", () => {
     const kb = createMapKeyboard();
     const { container } = render(
-      <MapPane outbreakId="d0eebc99-9c0b-4ef8-bb6d-6bb9bd380a01" keyboard={kb} terrain={false} />,
+      <MapPane
+        outbreakId="d0eebc99-9c0b-4ef8-bb6d-6bb9bd380a01"
+        keyboard={kb}
+        terrain={false}
+        ariaLabel="Test map"
+      />,
     );
     expect(container.querySelector("[data-map-pane]")).not.toBeNull();
   });
@@ -51,7 +56,12 @@ describe("MapPane", () => {
   it("renders without crashing when terrain is false", () => {
     const kb = createMapKeyboard();
     const { container } = render(
-      <MapPane outbreakId="d0eebc99-9c0b-4ef8-bb6d-6bb9bd380a01" keyboard={kb} terrain={false} />,
+      <MapPane
+        outbreakId="d0eebc99-9c0b-4ef8-bb6d-6bb9bd380a01"
+        keyboard={kb}
+        terrain={false}
+        ariaLabel="Test map"
+      />,
     );
     expect(container.firstChild).not.toBeNull();
   });
@@ -59,7 +69,12 @@ describe("MapPane", () => {
   it("renders without crashing when terrain is true", () => {
     const kb = createMapKeyboard();
     const { container } = render(
-      <MapPane outbreakId="d0eebc99-9c0b-4ef8-bb6d-6bb9bd380a01" keyboard={kb} terrain={true} />,
+      <MapPane
+        outbreakId="d0eebc99-9c0b-4ef8-bb6d-6bb9bd380a01"
+        keyboard={kb}
+        terrain={true}
+        ariaLabel="Test map"
+      />,
     );
     expect(container.firstChild).not.toBeNull();
   });

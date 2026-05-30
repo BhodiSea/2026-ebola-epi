@@ -38,4 +38,14 @@ describe("buildCsp", () => {
   it("includes blob: in worker-src", () => {
     expect(csp).toContain("worker-src 'self' blob:");
   });
+
+  it("defaults frame-ancestors to self", () => {
+    expect(csp).toContain("frame-ancestors 'self'");
+  });
+
+  it("allows any origin for frame-ancestors in embed mode", () => {
+    const embedCsp = buildCsp(nonce, true);
+    expect(embedCsp).toContain("frame-ancestors *");
+    expect(embedCsp).not.toContain("frame-ancestors 'self'");
+  });
 });

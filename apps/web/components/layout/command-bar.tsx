@@ -11,6 +11,7 @@ import {
   CommandList,
   CommandSeparator,
 } from "@/components/ui/command";
+import { subscribe } from "@/lib/command-bar-store";
 
 const STUB_GROUPS = [
   {
@@ -56,7 +57,11 @@ function CommandBar() {
     return () => globalThis.removeEventListener("keydown", onKey);
   }, []);
 
-  // Expose open trigger for TopBar button
+  useEffect(() => {
+    return subscribe(onOpen);
+  }, [onOpen]);
+
+  // Expose open trigger for TopBar button via data attribute
   useEffect(() => {
     const triggers = document.querySelectorAll("[data-command-trigger]");
     for (const el of triggers) {

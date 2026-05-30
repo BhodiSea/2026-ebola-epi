@@ -40,28 +40,30 @@ const DEATHS: { date: string; value: number }[] = [
 describe("TimelineMulti", () => {
   it("renders without crashing", () => {
     const { container } = render(
-      <TimelineMulti confirmedSeries={CONFIRMED} deathsSeries={DEATHS} />,
+      <TimelineMulti confirmedSeries={CONFIRMED} deathsSeries={DEATHS} ariaLabel="Test timeline" />,
     );
     expect(container.firstChild).not.toBeNull();
   });
 
   it("renders the XYChart", () => {
     const { getByTestId } = render(
-      <TimelineMulti confirmedSeries={CONFIRMED} deathsSeries={DEATHS} />,
+      <TimelineMulti confirmedSeries={CONFIRMED} deathsSeries={DEATHS} ariaLabel="Test timeline" />,
     );
     expect(getByTestId("xychart")).toBeInTheDocument();
   });
 
   it("renders legend labels for confirmed and deaths", () => {
     const { getByText } = render(
-      <TimelineMulti confirmedSeries={CONFIRMED} deathsSeries={DEATHS} />,
+      <TimelineMulti confirmedSeries={CONFIRMED} deathsSeries={DEATHS} ariaLabel="Test timeline" />,
     );
     expect(getByText(CONFIRMED_LABEL_RE)).toBeInTheDocument();
     expect(getByText(DEATHS_LABEL_RE)).toBeInTheDocument();
   });
 
   it("renders with empty series without crashing", () => {
-    const { container } = render(<TimelineMulti confirmedSeries={[]} deathsSeries={[]} />);
+    const { container } = render(
+      <TimelineMulti confirmedSeries={[]} deathsSeries={[]} ariaLabel="Test timeline" />,
+    );
     expect(container.firstChild).not.toBeNull();
   });
 });

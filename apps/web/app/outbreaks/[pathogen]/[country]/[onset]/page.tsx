@@ -13,6 +13,7 @@ import { TimelineMulti } from "@/components/outbreak/timeline-multi";
 import { AiGeneratedLabel } from "@/components/provenance/ai-generated-label";
 import { SkeletonChart } from "@/components/provenance/skeleton-chart";
 import { JsonLd } from "@/components/seo/json-ld";
+import { buildChartAltText } from "@/lib/a11y/alt-text";
 import { getOutbreakBrief } from "@/lib/copy/outbreak-briefs";
 import type { SparklinePoint, StatTotals } from "@/lib/queries/case-counts";
 import { getEpiCurveSeries, getStatTotals } from "@/lib/queries/case-counts";
@@ -38,6 +39,7 @@ interface TabsInput {
   deathsQuoteId: string;
   documents: Document[];
   epiCurve: { confirmed: SparklinePoint[]; deaths: SparklinePoint[] };
+  epiCurveLabel: string;
   outbreakId: string;
   stats: StatTotals;
   viewMode: "map" | "table";
@@ -87,6 +89,12 @@ export default async function OutbreakDetailPage({
   const confirmedQuoteId = stats.confirmed.quoteId ?? FALLBACK_QUOTE_ID;
   const deathsQuoteId = stats.deaths.quoteId ?? FALLBACK_QUOTE_ID;
   const cfrLabel = stats.cfr === null ? "—" : `${stats.cfr.toFixed(1)}%`;
+  const epiCurveLabel = buildChartAltText({
+    elementType: "timeline",
+    scope: outbreak.name ?? pathogen,
+    variable: "confirmed cases and deaths",
+    asOf: onset,
+  });
   const tabs = buildOutbreakTabs({
     brief,
     confirmedQuoteId,
@@ -94,6 +102,7 @@ export default async function OutbreakDetailPage({
     cfrLabel,
     stats,
     epiCurve,
+    epiCurveLabel,
     documents,
     outbreakId: outbreak.id,
     viewMode,
@@ -112,6 +121,8 @@ export default async function OutbreakDetailPage({
           "@context": "https://schema.org",
           "@type": "MedicalCondition",
           name: outbreak.name ?? pathogen,
+          alternateName: ["BDBV", "Bundibugyo Ebola"],
+          relevantSpecialty: "Infectious disease",
           code: { "@type": "MedicalCode", code: "1D60.00", codingSystem: "ICD-11" },
           epidemiology: `Confirmed: ${stats.confirmed.value}, Deaths: ${stats.deaths.value}`,
         }}
@@ -167,6 +178,7 @@ function buildOutbreakTabs({
   cfrLabel,
   stats,
   epiCurve,
+  epiCurveLabel,
   documents,
   outbreakId,
   viewMode,
@@ -190,7 +202,11 @@ function buildOutbreakTabs({
       label: "Epi curve",
       content: (
         <Suspense fallback={<SkeletonChart />}>
-          <TimelineMulti confirmedSeries={epiCurve.confirmed} deathsSeries={epiCurve.deaths} />
+          <TimelineMulti
+            confirmedSeries={epiCurve.confirmed}
+            deathsSeries={epiCurve.deaths}
+            ariaLabel={epiCurveLabel}
+          />
         </Suspense>
       ),
     },

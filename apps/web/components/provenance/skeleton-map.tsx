@@ -9,7 +9,10 @@ interface SkeletonMapProps {
 function SkeletonMap({ width = 640, height = 400, className }: Readonly<SkeletonMapProps>) {
   return (
     <div
-      className={cn("animate-pulse overflow-hidden rounded-md bg-surface-2", className)}
+      className={cn(
+        "animate-pulse overflow-hidden rounded-md bg-surface-2 motion-reduce:animate-none",
+        className,
+      )}
       style={{ width, height }}
       role="status"
       aria-label="Loading map"

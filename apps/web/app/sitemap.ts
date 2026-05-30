@@ -2,19 +2,10 @@ import "server-only";
 
 import type { MetadataRoute } from "next";
 
+import { listRecentDocuments } from "@/lib/queries/documents";
 import { createClient } from "@/lib/supabase/server";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://ituri-epi.com";
-
-function staticRoutePriority(path: string): number {
-  if (path === "/") {
-    return 1;
-  }
-  if (path === "/today") {
-    return 0.9;
-  }
-  return 0.8;
-}
 
 const STATIC_ROUTES = [
   "/",
@@ -29,9 +20,10 @@ const STATIC_ROUTES = [
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const supabase = await createClient();
 
-  const [zonesResult, briefsResult] = await Promise.all([
+  const [zonesResult, briefsResult, recentDocs] = await Promise.all([
     supabase.from("admin1").select("code").limit(200),
     supabase.from("daily_briefs").select("date").order("date", { ascending: false }).limit(30),
+    listRecentDocuments(50),
   ]);
 
   const zoneCodes: string[] = ((zonesResult.data ?? []) as { code: string }[]).map((r) => r.code);
@@ -55,5 +47,22 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.6,
   }));
 
-  return [...staticEntries, ...zoneEntries, ...briefEntries];
+  const documentEntries: MetadataRoute.Sitemap = recentDocs.map((doc) => ({
+    url: `${SITE_URL}/document/${doc.id}`,
+    lastModified: doc.ingestedAt,
+    changeFrequency: "never",
+    priority: 0.6,
+  }));
+
+  return [...staticEntries, ...zoneEntries, ...briefEntries, ...documentEntries];
+}
+
+function staticRoutePriority(path: string): number {
+  if (path === "/") {
+    return 1;
+  }
+  if (path === "/today") {
+    return 0.9;
+  }
+  return 0.8;
 }

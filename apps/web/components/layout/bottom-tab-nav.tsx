@@ -1,8 +1,10 @@
 "use client";
 
+import { Search } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+import { openCommandBar } from "@/lib/command-bar-store";
 import { NAV_ITEMS } from "@/lib/nav-items";
 import { cn } from "@/lib/utils";
 
@@ -43,6 +45,15 @@ export function BottomTabNav() {
           </Link>
         );
       })}
+      <button
+        type="button"
+        aria-label="Open command bar"
+        onClick={openCommandBar}
+        className="flex min-h-[44px] min-w-[44px] flex-col items-center justify-center gap-0.5 px-2 font-medium text-[10px] text-fg-muted transition-colors"
+      >
+        <Search aria-hidden="true" size={22} strokeWidth={1.5} />
+        <span>Search</span>
+      </button>
     </nav>
   );
 }

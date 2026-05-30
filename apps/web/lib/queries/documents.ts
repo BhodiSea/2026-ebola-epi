@@ -54,6 +54,22 @@ export interface ListSitrepsFilter {
   source?: string;
 }
 
+export async function getDocumentById(id: string): Promise<Document | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("documents")
+    .select(SELECT_COLS)
+    .eq("id", id)
+    .maybeSingle();
+
+  if (error !== null || data === null) {
+    return null;
+  }
+
+  const parsed = DocumentRow.safeParse(data);
+  return parsed.success ? toDocument(parsed.data) : null;
+}
+
 export async function listRecentDocuments(limit: number): Promise<Document[]> {
   const supabase = await createClient();
 

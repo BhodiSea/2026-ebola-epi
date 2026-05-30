@@ -6,6 +6,20 @@ vi.mock("@/lib/supabase/server", () => ({
   createClient: vi.fn(),
 }));
 
+vi.mock("@/lib/actions/client", () => ({
+  internalAction: {
+    inputSchema: vi.fn(() => ({ action: vi.fn((h: unknown) => h) })),
+  },
+}));
+
+vi.mock("@/app/internal/sources/actions", () => ({
+  toggleSourcePauseAction: vi.fn(),
+}));
+
+vi.mock("next-safe-action/hooks", () => ({
+  useAction: vi.fn(() => ({ execute: vi.fn(), isPending: false })),
+}));
+
 describe("/internal/sources page", () => {
   beforeEach(async () => {
     vi.clearAllMocks();

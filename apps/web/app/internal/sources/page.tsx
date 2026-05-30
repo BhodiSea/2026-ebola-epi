@@ -1,3 +1,4 @@
+import { SourcePauseButton } from "@/components/internal/source-pause-button";
 import { createClient } from "@/lib/supabase/server";
 
 /* eslint-disable @typescript-eslint/naming-convention */
@@ -42,7 +43,8 @@ export default async function SourcesPage() {
               <th className="pr-4 pb-1">Last fetch</th>
               <th className="pr-4 pb-1">Parser ver.</th>
               <th className="pr-4 pb-1 text-right">Fails (7d)</th>
-              <th className="pb-1">Status</th>
+              <th className="pr-4 pb-1">Status</th>
+              <th className="pb-1">Toggle</th>
             </tr>
           </thead>
           <tbody>
@@ -58,8 +60,11 @@ export default async function SourcesPage() {
                   <td className="py-1.5 pr-4 text-right tabular-nums">
                     {src.failure_count_7d ?? 0}
                   </td>
-                  <td className="py-1.5">
+                  <td className="py-1.5 pr-4">
                     <span className={STATUS_PILL[sk]}>{sk}</span>
+                  </td>
+                  <td className="py-1.5">
+                    <SourcePauseButton sourceId={src.id} paused={src.extraction_paused} />
                   </td>
                 </tr>
               );

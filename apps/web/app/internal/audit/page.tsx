@@ -1,3 +1,5 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
+
 import { createClient } from "@/lib/supabase/server";
 
 const PAGE_SIZE = 50;
@@ -12,6 +14,12 @@ interface AgentAction {
 }
 /* eslint-enable @typescript-eslint/naming-convention */
 
+interface Filters {
+  action: string | undefined;
+  agent: string | undefined;
+  figure: string | undefined;
+}
+
 export default async function AuditPage({
   searchParams,
 }: Readonly<{
@@ -19,20 +27,21 @@ export default async function AuditPage({
 }>) {
   const params = await searchParams;
   const page = Math.max(0, Number(params.page ?? 0));
+  const filters: Filters = {
+    action: typeof params.action === "string" ? params.action : undefined,
+    agent: typeof params.agent === "string" ? params.agent : undefined,
+    figure: typeof params.figure === "string" ? params.figure : undefined,
+  };
 
   const supabase = await createClient();
-
-  const { data: rows } = await supabase
-    .from("agent_actions")
-    .select("id, agent, action, figure_id, created_at")
-    .order("created_at", { ascending: false })
-    .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
-
+  const { data: rows } = await buildQuery(supabase, filters, page);
   const actions = (rows ?? []) as AgentAction[];
 
   return (
     <div className="flex-1 space-y-6 p-6">
       <h1 className="font-mono text-[13px] text-fg-muted uppercase tracking-wide">Agent Audit</h1>
+
+      <FilterBar filters={filters} />
 
       {actions.length === 0 ? (
         <p className="font-mono text-[12px] text-fg-muted">No actions recorded yet.</p>
@@ -74,5 +83,56 @@ export default async function AuditPage({
         </>
       )}
     </div>
+  );
+}
+
+function buildQuery(supabase: SupabaseClient, filters: Filters, page: number) {
+  let q = supabase.from("agent_actions").select("id, agent, action, figure_id, created_at");
+  if (filters.agent !== undefined) {
+    q = q.eq("agent", filters.agent);
+  }
+  if (filters.action !== undefined) {
+    q = q.eq("action", filters.action);
+  }
+  if (filters.figure !== undefined) {
+    q = q.eq("figure_id", filters.figure);
+  }
+  return q
+    .order("created_at", { ascending: false })
+    .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
+}
+
+function FilterBar({ filters }: Readonly<{ filters: Filters }>) {
+  const hasFilter =
+    filters.agent !== undefined || filters.action !== undefined || filters.figure !== undefined;
+  return (
+    <form method="get" className="flex flex-wrap gap-2 font-mono text-xs">
+      <input
+        name="agent"
+        defaultValue={filters.agent ?? ""}
+        placeholder="agent"
+        className="rounded border border-border bg-surface-2 px-2 py-1 placeholder-fg-subtle focus:outline-none"
+      />
+      <input
+        name="action"
+        defaultValue={filters.action ?? ""}
+        placeholder="action"
+        className="rounded border border-border bg-surface-2 px-2 py-1 placeholder-fg-subtle focus:outline-none"
+      />
+      <input
+        name="figure"
+        defaultValue={filters.figure ?? ""}
+        placeholder="figure id"
+        className="rounded border border-border bg-surface-2 px-2 py-1 placeholder-fg-subtle focus:outline-none"
+      />
+      <button type="submit" className="rounded bg-surface-2 px-2 py-1 text-fg hover:bg-surface-3">
+        Filter
+      </button>
+      {hasFilter ? (
+        <a href="/internal/audit" className="self-center text-fg-muted hover:text-fg">
+          Clear
+        </a>
+      ) : null}
+    </form>
   );
 }

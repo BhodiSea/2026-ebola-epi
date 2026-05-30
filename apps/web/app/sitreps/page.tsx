@@ -131,14 +131,22 @@ function SitrepRow({ doc }: Readonly<{ doc: Document }>) {
         </a>
         <span className="font-mono text-[12px] text-fg-muted">{doc.source.name}</span>
       </div>
-      {doc.publishedAt === null ? null : (
-        <span className="shrink-0 font-mono text-[12px] text-fg-muted tabular-nums">
-          {new Date(doc.publishedAt).toLocaleTimeString("en", {
-            hour: "2-digit",
-            minute: "2-digit",
-          })}
-        </span>
-      )}
+      <div className="flex shrink-0 items-center gap-3">
+        <a
+          href={`/document/${doc.id}`}
+          className="font-mono text-[12px] text-accent hover:underline"
+        >
+          View extraction →
+        </a>
+        {doc.publishedAt === null ? null : (
+          <span className="font-mono text-[12px] text-fg-muted tabular-nums">
+            {new Date(doc.publishedAt).toLocaleTimeString("en", {
+              hour: "2-digit",
+              minute: "2-digit",
+            })}
+          </span>
+        )}
+      </div>
     </div>
   );
 }

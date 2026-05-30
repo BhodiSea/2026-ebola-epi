@@ -54,7 +54,7 @@ function TopBar() {
           title="Data updated regularly from source documents"
         >
           <span
-            className="size-1.5 animate-pulse rounded-full bg-emergency"
+            className="size-1.5 animate-pulse rounded-full bg-emergency motion-reduce:animate-none"
             style={{ animationDuration: "1.6s" }}
           />
           <span className="hidden sm:inline">Live</span>
