@@ -7,6 +7,7 @@ import { BottomTabNav } from "@/components/layout/bottom-tab-nav";
 import { CommandBarLoader } from "@/components/layout/command-bar-loader";
 import { NavRail } from "@/components/layout/nav-rail";
 import { TopBar } from "@/components/layout/top-bar";
+import { JsonLd } from "@/components/seo/json-ld";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { env } from "@/lib/env";
 
@@ -17,8 +18,24 @@ const defaultUrl =
 
 export const metadata: Metadata = {
   metadataBase: new URL(defaultUrl),
-  title: "ituri-sitrep",
-  description: "2026 Ituri Bundibugyo virus outbreak situational awareness",
+  title: {
+    default: "ituri-sitrep",
+    template: "%s — ituri-sitrep",
+  },
+  description:
+    "Public situational-awareness companion for the 2026 Ituri Bundibugyo virus outbreak. Every figure is anchored to a verbatim source sentence.",
+  openGraph: {
+    siteName: "ituri-sitrep",
+    type: "website",
+    locale: "en_US",
+  },
+  alternates: {
+    languages: {
+      en: `${defaultUrl}/`,
+      fr: `${defaultUrl}/fr`,
+    },
+  },
+  robots: { index: true, follow: true },
 };
 
 const geistSans = Geist({
@@ -60,6 +77,21 @@ export default async function RootLayout({
           disableTransitionOnChange
           {...(nonce !== undefined && { nonce })}
         >
+          <JsonLd
+            schema={{
+              "@context": "https://schema.org",
+              "@type": "WebSite",
+              name: "ituri-sitrep",
+              url: defaultUrl,
+              description:
+                "Public situational-awareness companion for the 2026 Ituri Bundibugyo virus outbreak.",
+              author: {
+                "@type": "Person",
+                name: "Thomas Nicklin",
+                email: "tnicklin@hawaii.edu",
+              },
+            }}
+          />
           <TooltipProvider>
             <TopBar />
             <div className="flex min-h-[calc(100vh-3.5rem)]">

@@ -1,5 +1,6 @@
 import "server-only";
 
+import type { Metadata } from "next";
 import { Suspense } from "react";
 
 import { ActiveOutbreakBanner } from "@/components/outbreak/active-outbreak-banner";
@@ -13,6 +14,17 @@ import type { Document } from "@/lib/queries/documents";
 import { listRecentDocuments } from "@/lib/queries/documents";
 import type { Outbreak } from "@/lib/queries/outbreaks";
 import { getActiveOutbreak, listOutbreaks } from "@/lib/queries/outbreaks";
+
+export const metadata: Metadata = {
+  title: "Today",
+  description:
+    "Live headline figures, daily situation brief, and health-zone map for the 2026 Ituri Bundibugyo virus outbreak.",
+  openGraph: {
+    title: "Today — ituri-sitrep",
+    description:
+      "Live confirmed cases, deaths, and CFR for the 2026 Ituri Bundibugyo virus outbreak.",
+  },
+};
 
 const PLACEHOLDER_QUOTE_ID = "00000000-0000-0000-0000-000000000000";
 
@@ -66,11 +78,22 @@ export default async function TodayPage({
 
       <DailyBriefSection />
 
-      <Suspense fallback={<div className="h-80 animate-pulse rounded-lg bg-card" />}>
-        <ChoroplethStub outbreakId={outbreak.id} viewMode={viewMode} />
-      </Suspense>
+      {/* Desktop: choropleth before recent docs */}
+      <div className="hidden md:block">
+        <Suspense fallback={<div className="h-80 animate-pulse rounded-lg bg-card" />}>
+          <ChoroplethStub outbreakId={outbreak.id} viewMode={viewMode} />
+        </Suspense>
+      </div>
 
       <RecentDocsSection sitreps={sitreps} />
+
+      {/* Mobile: choropleth after recent docs (feed-first) */}
+      <div className="md:hidden">
+        <Suspense fallback={<div className="h-80 animate-pulse rounded-lg bg-card" />}>
+          <ChoroplethStub outbreakId={outbreak.id} viewMode={viewMode} />
+        </Suspense>
+      </div>
+
       <ActiveOutbreaksSection outbreaks={allOutbreaks} />
     </main>
   );
@@ -124,10 +147,10 @@ function DailyBriefSection() {
 function InlineOutbreakRow({ outbreak }: Readonly<{ outbreak: Outbreak }>) {
   const level = outbreak.severityLevel ?? "info";
   const levelColors: Record<string, string> = {
-    emergency: "text-emergency",
     alert: "text-alert",
-    warn: "text-warn",
+    emergency: "text-emergency",
     info: "text-info",
+    warn: "text-warn",
   };
   return (
     <div className="flex items-center justify-between border-b py-2 last:border-0">
@@ -174,9 +197,12 @@ function RecentDocsSection({ sitreps }: Readonly<{ sitreps: Document[] }>) {
       <h2 className="mb-3 font-mono text-[12px] text-fg-muted uppercase tracking-wide">
         Recent Documents
       </h2>
-      <div className="space-y-1">
+      <div className="flex snap-x snap-mandatory gap-3 overflow-x-auto pb-1 md:flex-col md:gap-0 md:space-y-1 md:overflow-x-visible md:pb-0">
         {sitreps.map((doc) => (
-          <div key={doc.id} className="flex items-baseline gap-2 font-mono text-[13px]">
+          <div
+            key={doc.id}
+            className="flex min-w-[80vw] shrink-0 snap-start flex-col gap-1 rounded-md border border-border p-3 font-mono text-[13px] md:min-w-0 md:shrink md:flex-row md:items-baseline md:gap-2 md:rounded-none md:border-0 md:p-0"
+          >
             <span className="shrink-0 text-fg-muted">{doc.source.name}</span>
             <span className="truncate">{doc.title ?? doc.url}</span>
             {doc.publishedAt === null ? null : (

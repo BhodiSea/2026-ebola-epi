@@ -1,8 +1,20 @@
 import "server-only";
 
+import type { Metadata } from "next";
+
 import { FilterChips } from "@/components/outbreak/filter-chips";
 import { OutbreakRow } from "@/components/outbreak/outbreak-row";
 import { listOutbreaks } from "@/lib/queries/outbreaks";
+
+export const metadata: Metadata = {
+  title: "Outbreaks",
+  description:
+    "All tracked outbreaks with source-cited epidemiological figures, severity levels, and provenance links.",
+  openGraph: {
+    title: "Outbreaks — ituri-sitrep",
+    description: "Tracked outbreaks with provenance-first epidemiological data.",
+  },
+};
 
 export default async function OutbreaksPage({
   searchParams,

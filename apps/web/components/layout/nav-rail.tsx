@@ -1,28 +1,12 @@
 "use client";
 
-import {
-  AlertCircleIcon,
-  BookOpenIcon,
-  DatabaseIcon,
-  FileTextIcon,
-  HomeIcon,
-  MapIcon,
-} from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { NAV_ITEMS } from "@/lib/nav-items";
 import { cn } from "@/lib/utils";
-
-const NAV_ITEMS = [
-  { href: "/today", label: "Today", Icon: HomeIcon },
-  { href: "/map", label: "Map", Icon: MapIcon },
-  { href: "/outbreaks", label: "Outbreaks", Icon: AlertCircleIcon },
-  { href: "/sitreps", label: "Sitreps", Icon: FileTextIcon },
-  { href: "/sources", label: "Sources", Icon: DatabaseIcon },
-  { href: "/methods", label: "Methods", Icon: BookOpenIcon },
-] as const;
 
 function NavRail() {
   const [expanded, setExpanded] = useState(false);
@@ -48,12 +32,12 @@ function NavRail() {
     <aside
       aria-label="Side navigation"
       className={cn(
-        "flex h-full flex-col border-border border-r bg-bg transition-[width] duration-150 ease-out",
-        expanded ? "w-60" : "w-[60px]",
+        "hidden h-full flex-col border-border border-r bg-bg transition-[width] duration-150 ease-out md:flex",
+        expanded ? "md:w-[60px] lg:w-60" : "w-[60px]",
       )}
     >
       {NAV_ITEMS.map((item) => {
-        const NavIcon = item.Icon;
+        const NavIcon = item.icon;
         const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
         return (
           <Tooltip key={item.href} delayDuration={expanded ? 999_999 : 300}>
@@ -71,7 +55,7 @@ function NavRail() {
                   <span className="absolute inset-y-1 left-0 w-0.5 rounded-full bg-emergency" />
                 ) : null}
                 <NavIcon size={24} strokeWidth={1.5} className="shrink-0" />
-                {expanded ? <span>{item.label}</span> : null}
+                {expanded ? <span className="hidden lg:inline">{item.label}</span> : null}
               </Link>
             </TooltipTrigger>
             {expanded ? null : (

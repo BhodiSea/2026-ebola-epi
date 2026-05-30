@@ -1,5 +1,6 @@
 import "server-only";
 
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
@@ -11,12 +12,14 @@ import { StatCard } from "@/components/outbreak/stat-card";
 import { TimelineMulti } from "@/components/outbreak/timeline-multi";
 import { AiGeneratedLabel } from "@/components/provenance/ai-generated-label";
 import { SkeletonChart } from "@/components/provenance/skeleton-chart";
+import { JsonLd } from "@/components/seo/json-ld";
 import { getOutbreakBrief } from "@/lib/copy/outbreak-briefs";
 import type { SparklinePoint, StatTotals } from "@/lib/queries/case-counts";
 import { getEpiCurveSeries, getStatTotals } from "@/lib/queries/case-counts";
 import type { Document } from "@/lib/queries/documents";
 import { getDocumentsForOutbreak } from "@/lib/queries/documents";
 import { getOutbreakBySlug } from "@/lib/queries/outbreaks";
+import { buildBreadcrumbs } from "@/lib/seo/breadcrumbs";
 
 const FALLBACK_QUOTE_ID = "00000000-0000-0000-0000-000000000000";
 
@@ -38,6 +41,24 @@ interface TabsInput {
   outbreakId: string;
   stats: StatTotals;
   viewMode: "map" | "table";
+}
+
+export async function generateMetadata({
+  params,
+}: Readonly<{
+  params: Promise<{ country: string; onset: string; pathogen: string }>;
+}>): Promise<Metadata> {
+  const { pathogen, country, onset } = await params;
+  const outbreak = await getOutbreakBySlug(pathogen, country.toUpperCase(), onset);
+  const name = outbreak?.name ?? `${pathogen} virus outbreak`;
+  return {
+    title: `${name} — ${country.toUpperCase()} ${onset} | ituri-sitrep`,
+    description: `Bundibugyo virus situational awareness for the ${country.toUpperCase()} outbreak onset ${onset}. Confirmed cases, deaths, and source-anchored figures.`,
+    openGraph: {
+      title: `${name} — ${country.toUpperCase()} ${onset} | ituri-sitrep`,
+      images: [{ url: "opengraph-image" }],
+    },
+  };
 }
 
 export default async function OutbreakDetailPage({
@@ -78,12 +99,30 @@ export default async function OutbreakDetailPage({
     viewMode,
   });
 
+  const breadcrumbs = buildBreadcrumbs([
+    { label: "Home", path: "/" },
+    { label: "Outbreaks", path: "/outbreaks" },
+    { label: outbreak.name ?? pathogen, path: `/outbreaks/${pathogen}/${country}/${onset}` },
+  ]);
+
   return (
-    <main className="mx-auto max-w-4xl space-y-8 px-4 py-8">
-      <OutbreakHeader outbreak={outbreak} />
-      <ActiveOutbreakBanner outbreak={outbreak} confirmedQuoteId={confirmedQuoteId} />
-      <OutbreakTabs tabs={tabs} />
-    </main>
+    <>
+      <JsonLd
+        schema={{
+          "@context": "https://schema.org",
+          "@type": "MedicalCondition",
+          name: outbreak.name ?? pathogen,
+          code: { "@type": "MedicalCode", code: "1D60.00", codingSystem: "ICD-11" },
+          epidemiology: `Confirmed: ${stats.confirmed.value}, Deaths: ${stats.deaths.value}`,
+        }}
+      />
+      <JsonLd schema={breadcrumbs} />
+      <main className="mx-auto max-w-4xl space-y-8 px-4 py-8">
+        <OutbreakHeader outbreak={outbreak} />
+        <ActiveOutbreakBanner outbreak={outbreak} confirmedQuoteId={confirmedQuoteId} />
+        <OutbreakTabs tabs={tabs} />
+      </main>
+    </>
   );
 }
 

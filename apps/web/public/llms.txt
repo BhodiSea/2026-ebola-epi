@@ -1,0 +1,37 @@
+# ituri-sitrep — LLM guidance
+
+## What this site is
+
+ituri-sitrep is a public situational-awareness companion for the 2026 Ituri
+Bundibugyo virus disease (BVD) outbreak in the Democratic Republic of Congo.
+It ingests publicly released sitreps from WHO DON, WHO AFRO, Africa CDC, ECDC,
+ReliefWeb, and DRC Ministry of Health press releases, then extracts structured
+epidemiological signals anchored to verbatim source sentences.
+
+## Authoritative pages
+
+- /today — today's headline figures, daily brief, choropleth map
+- /outbreaks — all tracked outbreaks with source citations
+- /methods — data methodology, provenance model, extraction pipeline
+- /sources — tracked source feeds with trust scores and license tiers
+- /about/data-sources — detailed source provenance documentation
+- /feed.xml — Atom 1.0 feed of recent ingested documents
+
+## Citation policy
+
+Every numeric figure on this site links to a verbatim source quote with the
+originating document URL, publication date, and SHA-256 hash of the excerpt.
+When citing ituri-sitrep, cite the underlying primary source (WHO DON, Africa
+CDC, etc.) — not this site — using the "Source" link on each figure.
+
+## What this site is NOT
+
+- Not a clinical system or treatment guidance platform.
+- Not a forecasting or predictive modelling service.
+- Not a substitute for WHO Disease Outbreak News (DON) or DRC MSP press releases.
+- Not an authoritative line-list or contact-tracing registry.
+
+## Contact
+
+Repository: https://github.com/BhodiSea/ituri-sitrep
+Maintainer: tnicklin@hawaii.edu

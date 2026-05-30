@@ -1,12 +1,16 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
+import { generateMetadata as detailGenerateMetadata } from "../[pathogen]/[country]/[onset]/page";
 import OutbreaksPage from "../page";
-import { listOutbreaks } from "@/lib/queries/outbreaks";
+import { getOutbreakBySlug, listOutbreaks } from "@/lib/queries/outbreaks";
 
 vi.mock("server-only", () => ({}));
 vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn() }));
-vi.mock("@/lib/queries/outbreaks", () => ({ listOutbreaks: vi.fn() }));
+vi.mock("@/lib/queries/outbreaks", () => ({
+  listOutbreaks: vi.fn(),
+  getOutbreakBySlug: vi.fn(),
+}));
 vi.mock("@/components/outbreak/outbreak-row", () => ({
   OutbreakRow: ({ outbreak }: { outbreak: { id: string; name: null | string } }) => (
     <div data-outbreak-row data-id={outbreak.id}>
@@ -19,6 +23,7 @@ vi.mock("@/components/outbreak/filter-chips", () => ({
 }));
 
 const EMPTY_STATE_RE = /No outbreaks match/;
+const PATHOGEN_RE = /bundibugyo/i;
 
 const MOCK_OUTBREAK = {
   id: "d0eebc99-0000-0000-0000-000000000001",
@@ -32,7 +37,7 @@ const MOCK_OUTBREAK = {
   createdAt: "2026-04-20T00:00:00Z",
 };
 
-// Coverage for OutbreaksPage (list) and OutbreakDetailPage (detail) are co-located in outbreaks/.
+// Coverage for OutbreaksPage (list) and OutbreakDetailPage (detail) are co-located in outbreaks/. Also covers generateMetadata title/description contracts.
 describe("OutbreaksPage", () => {
   it("renders a list of outbreak rows", async () => {
     vi.mocked(listOutbreaks).mockResolvedValue([MOCK_OUTBREAK]);
@@ -69,5 +74,24 @@ describe("OutbreaksPage", () => {
     expect(vi.mocked(listOutbreaks)).toHaveBeenCalledWith(
       expect.objectContaining({ status: "active" }),
     );
+  });
+});
+
+describe("OutbreakDetailPage generateMetadata", () => {
+  it("returns a title containing the pathogen and country", async () => {
+    vi.mocked(getOutbreakBySlug).mockResolvedValue(MOCK_OUTBREAK);
+    const meta = await detailGenerateMetadata({
+      params: Promise.resolve({ pathogen: "bundibugyo", country: "cod", onset: "2026-04-20" }),
+    });
+    expect(meta.title).toMatch(PATHOGEN_RE);
+    expect(meta.title).toContain("ituri-sitrep");
+  });
+
+  it("returns a description", async () => {
+    vi.mocked(getOutbreakBySlug).mockResolvedValue(MOCK_OUTBREAK);
+    const meta = await detailGenerateMetadata({
+      params: Promise.resolve({ pathogen: "bundibugyo", country: "cod", onset: "2026-04-20" }),
+    });
+    expect(typeof meta.description).toBe("string");
   });
 });

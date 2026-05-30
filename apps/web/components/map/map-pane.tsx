@@ -55,6 +55,7 @@ interface LiveProps {
 
 interface MapPaneProps {
   activeLayers?: Set<string>;
+  asOfDate?: string;
   caseCountsByCode?: Record<string, number>;
   keyboard: MapKeyboard;
   onSelectZone?: (zone: ZoneSelection) => void;
@@ -63,6 +64,8 @@ interface MapPaneProps {
   sentinel?: boolean;
   terrain?: boolean;
   theme?: string;
+  topCount?: number;
+  topZone?: string;
 }
 
 /* ─── map mutation helpers (top-level so the component stays small) ──────────── */
@@ -83,6 +86,9 @@ export function MapPane({
   terrain = false,
   sentinel = false,
   theme,
+  asOfDate = "unknown date",
+  topZone,
+  topCount,
 }: Readonly<MapPaneProps>) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
@@ -134,6 +140,12 @@ export function MapPane({
 
   useMapKeyboard({ keyboard, live, loadedZonesRef, mapRef });
 
+  const zoneDetail =
+    topZone !== undefined && topCount !== undefined
+      ? ` ${topZone} shows the highest count at ${topCount} suspected cases.`
+      : "";
+  const ariaLabel = `Choropleth map of DRC health zones, coloured by suspected Bundibugyo virus case count as of ${asOfDate}.${zoneDetail} Arrow keys pan, plus and minus zoom, square brackets cycle zones.`;
+
   return (
     <div
       ref={containerRef}
@@ -141,7 +153,7 @@ export function MapPane({
       role="application"
       tabIndex={-1}
       aria-roledescription="Interactive health-zone map"
-      aria-label="Health-zone map. Arrow keys pan, plus and minus zoom, square brackets cycle zones."
+      aria-label={ariaLabel}
       data-map-pane=""
       className="relative h-full min-h-0 flex-1 bg-[var(--color-surface-1)]"
     />

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 
 import { Figure } from "@/components/provenance/figure";
+import { JsonLd } from "@/components/seo/json-ld";
 import {
   ABOUT_AUTHOR_LINE,
   AI_GENERATED_LABEL,
@@ -10,6 +11,7 @@ import {
 } from "@/lib/copy";
 import type { SourceQuoteRow } from "@/lib/queries/source-quotes";
 import { getQuotesForMethodsPage } from "@/lib/queries/source-quotes";
+import { buildBreadcrumbs } from "@/lib/seo/breadcrumbs";
 
 export const metadata: Metadata = {
   title: "Methods — ituri-sitrep",
@@ -21,9 +23,31 @@ export const metadata: Metadata = {
   },
 };
 
+const DATASET_SCHEMA = {
+  "@context": "https://schema.org",
+  "@type": "Dataset",
+  name: "ituri-sitrep epidemiological signal dataset",
+  description:
+    "Structured epidemiological signals extracted from publicly released WHO DON, Africa CDC, and DRC MoH sitreps for the 2026 Ituri Bundibugyo virus outbreak.",
+  license: "https://creativecommons.org/licenses/by/4.0/",
+  creator: { "@type": "Person", name: "Thomas Nicklin", email: "tnicklin@hawaii.edu" },
+  keywords: ["Bundibugyo virus", "ebola", "outbreak", "DRC", "epidemiology", "sitrep"],
+};
+
+const BREADCRUMBS = buildBreadcrumbs([
+  { label: "Home", path: "/" },
+  { label: "Methods", path: "/methods" },
+]);
+
 export default async function MethodsPage() {
   const quotes = await getQuotesForMethodsPage();
-  return <MethodsArticle quotes={quotes} />;
+  return (
+    <>
+      <JsonLd schema={DATASET_SCHEMA} />
+      <JsonLd schema={BREADCRUMBS} />
+      <MethodsArticle quotes={quotes} />
+    </>
+  );
 }
 
 function DataSourcesSection() {
@@ -54,6 +78,48 @@ function ExtractionMethodSection() {
         <code className="font-mono text-[14px]">zodToJsonSchema</code>. Character offsets into the
         source document anchor each extracted figure to its verbatim sentence.
       </p>
+    </Section>
+  );
+}
+
+function Icd11Section() {
+  return (
+    <Section heading="ICD-11 classification">
+      <p className="font-mono text-[13px] text-fg-muted">
+        The following ICD-11 codes are used in all JSON-LD schemas, extraction schemas, and rendered
+        copy on this site. Verified against the WHO ICD-11 browser (icd.who.int).
+      </p>
+      <table className="w-full font-mono text-[13px]">
+        <thead>
+          <tr className="border-border border-b text-left text-fg-muted">
+            <th className="pr-4 pb-2 font-medium">Entity</th>
+            <th className="pr-4 pb-2 font-medium">ICD-11 Code</th>
+            <th className="pb-2 font-medium">Notes</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-border">
+          <tr>
+            <td className="py-2 pr-4">Bundibugyo virus disease</td>
+            <td className="py-2 pr-4 font-semibold">1D60.00</td>
+            <td className="py-2 text-fg-muted">Under 1D60.0 Ebola disease. Active outbreak.</td>
+          </tr>
+          <tr>
+            <td className="py-2 pr-4">Ebola virus disease (Zaire)</td>
+            <td className="py-2 pr-4">1D60.01</td>
+            <td className="py-2 text-fg-muted">Classic EBOV species.</td>
+          </tr>
+          <tr>
+            <td className="py-2 pr-4">Sudan virus disease</td>
+            <td className="py-2 pr-4">1D60.02</td>
+            <td className="py-2 text-fg-muted" />
+          </tr>
+          <tr>
+            <td className="py-2 pr-4">Marburg virus disease</td>
+            <td className="py-2 pr-4">1D60.10</td>
+            <td className="py-2 text-fg-muted">Under 1D60.1 Marburg disease.</td>
+          </tr>
+        </tbody>
+      </table>
     </Section>
   );
 }
@@ -131,6 +197,7 @@ function MethodsArticle({ quotes }: Readonly<{ quotes: SourceQuoteRow[] }>) {
         </p>
       </Section>
 
+      <Icd11Section />
       <LimitationsSection />
 
       <Section heading="Author">

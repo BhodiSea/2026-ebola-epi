@@ -140,3 +140,46 @@
     }
   }
 }
+
+/* ── Print ── */
+@media print {
+  nav,
+  aside,
+  [data-bottom-tab-nav],
+  [data-top-bar],
+  [data-nav-rail] {
+    display: none !important;
+  }
+
+  body {
+    max-width: 680px;
+    margin: 0 auto;
+    font-size: 11pt;
+    color: #000;
+    filter: grayscale(1);
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  /* Numbered footnotes for source figures */
+  [data-figure] {
+    counter-increment: footnote;
+  }
+  [data-figure]::after {
+    content: " [" counter(footnote) "]";
+    font-size: 0.75em;
+    vertical-align: super;
+  }
+
+  /* Replace sparklines with static values */
+  [data-sparkline] {
+    display: none;
+  }
+  [data-print-value]::before {
+    content: attr(data-print-value);
+    font-variant-numeric: tabular-nums;
+  }
+}

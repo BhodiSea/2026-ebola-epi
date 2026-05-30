@@ -3,15 +3,7 @@ import Link from "next/link";
 
 import { ThemeToggle } from "./theme-toggle";
 import { Button } from "@/components/ui/button";
-
-const NAV_LINKS = [
-  { href: "/today", label: "Today" },
-  { href: "/map", label: "Map" },
-  { href: "/outbreaks", label: "Outbreaks" },
-  { href: "/sitreps", label: "Sitreps" },
-  { href: "/sources", label: "Sources" },
-  { href: "/methods", label: "Methods" },
-] as const;
+import { NAV_ITEMS } from "@/lib/nav-items";
 
 function TopBar() {
   return (
@@ -25,15 +17,15 @@ function TopBar() {
         <span className="text-fg-muted">ituri-sitrep</span>
       </Link>
 
-      {/* Nav links */}
-      <nav aria-label="Primary navigation" className="flex items-center gap-1">
-        {NAV_LINKS.map((link) => (
+      {/* Nav links — desktop only; mobile uses BottomTabNav */}
+      <nav aria-label="Primary navigation" className="hidden items-center gap-1 md:flex">
+        {NAV_ITEMS.map((item) => (
           <Link
-            key={link.href}
-            href={link.href}
+            key={item.href}
+            href={item.href}
             className="rounded-md px-2.5 py-1.5 font-sans text-[13px] text-fg-muted transition-colors hover:bg-surface-3 hover:text-fg"
           >
-            {link.label}
+            {item.label}
           </Link>
         ))}
       </nav>

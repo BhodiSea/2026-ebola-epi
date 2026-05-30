@@ -1,18 +1,12 @@
 "use client";
 
-import { AlertCircleIcon, DatabaseIcon, FileTextIcon, HomeIcon, MapIcon } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+import { NAV_ITEMS } from "@/lib/nav-items";
 import { cn } from "@/lib/utils";
 
-const TAB_ITEMS = [
-  { href: "/today", label: "Today", icon: HomeIcon },
-  { href: "/map", label: "Map", icon: MapIcon },
-  { href: "/outbreaks", label: "Outbreaks", icon: AlertCircleIcon },
-  { href: "/sitreps", label: "Sitreps", icon: FileTextIcon },
-  { href: "/sources", label: "Sources", icon: DatabaseIcon },
-] as const;
+const MOBILE_ITEMS = NAV_ITEMS.filter((item) => item.mobileVisible);
 
 export function BottomTabNav() {
   const pathname = usePathname();
@@ -23,7 +17,7 @@ export function BottomTabNav() {
       data-bottom-tab-nav=""
       className="fixed inset-x-0 bottom-0 z-30 flex h-14 items-center justify-around border-border border-t bg-bg md:hidden"
     >
-      {TAB_ITEMS.map(({ href, label, icon }) => {
+      {MOBILE_ITEMS.map(({ href, label, icon }) => {
         const TabIcon = icon;
         const active = pathname === href || pathname.startsWith(`${href}/`);
         return (
