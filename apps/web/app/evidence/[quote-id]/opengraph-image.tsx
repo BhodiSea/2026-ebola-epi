@@ -6,7 +6,6 @@ import { SeverityBadge } from "@/lib/og/severity-badge";
 import { Wordmark } from "@/lib/og/wordmark";
 import { createClient } from "@/lib/supabase/server";
 
-export const runtime = "edge";
 export const alt = "Source evidence quote";
 // eslint-disable-next-line unicorn/prefer-export-from -- Biome noBarrelFile blocks re-export from syntax
 export const size = OG_SIZE;

@@ -8,7 +8,6 @@ import { getStatTotals } from "@/lib/queries/case-counts";
 import { getOutbreakBySlug } from "@/lib/queries/outbreaks";
 import { createClient } from "@/lib/supabase/server";
 
-export const runtime = "edge";
 export const alt = "Outbreak situation report";
 // eslint-disable-next-line unicorn/prefer-export-from -- Biome noBarrelFile blocks re-export from syntax
 export const size = OG_SIZE;

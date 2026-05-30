@@ -6,7 +6,6 @@ import { Wordmark } from "@/lib/og/wordmark";
 import { getStatTotals } from "@/lib/queries/case-counts";
 import { getActiveOutbreak } from "@/lib/queries/outbreaks";
 
-export const runtime = "edge";
 export const alt = "ituri-sitrep — today";
 // eslint-disable-next-line unicorn/prefer-export-from -- Biome noBarrelFile blocks re-export from syntax
 export const size = OG_SIZE;

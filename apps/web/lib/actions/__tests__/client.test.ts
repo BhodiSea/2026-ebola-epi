@@ -36,7 +36,14 @@ describe("authedAction", () => {
 describe("internalAction", () => {
   beforeEach(() => {
     getUser.mockResolvedValue({
-      data: { user: { id: "user-1", email: "admin@example.com" } },
+      data: {
+        user: {
+          id: "user-1",
+          email: "admin@example.com",
+          // eslint-disable-next-line @typescript-eslint/naming-convention
+          app_metadata: { role: "admin" },
+        },
+      },
     });
     protect.mockResolvedValue({ isDenied: () => true });
   });
@@ -46,5 +53,22 @@ describe("internalAction", () => {
     const testAction = internalAction.inputSchema(z.object({})).action(async () => "ok");
     const result = await testAction({});
     expect(result.serverError).toBe("RATE_LIMITED");
+  });
+
+  it("returns FORBIDDEN serverError when user lacks admin or staff role", async () => {
+    getUser.mockResolvedValue({
+      data: {
+        user: {
+          id: "user-2",
+          email: "viewer@example.com",
+          // eslint-disable-next-line @typescript-eslint/naming-convention
+          app_metadata: {},
+        },
+      },
+    });
+    const { internalAction } = await import("../client");
+    const testAction = internalAction.inputSchema(z.object({})).action(async () => "ok");
+    const result = await testAction({});
+    expect(result.serverError).toBe("FORBIDDEN");
   });
 });

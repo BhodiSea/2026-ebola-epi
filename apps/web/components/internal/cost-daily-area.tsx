@@ -1,14 +1,34 @@
 "use client";
 
-import { AnimatedAreaSeries, Axis, XYChart } from "@visx/xychart";
+import { AnimatedAreaSeries, AnimatedAreaStack, Axis, XYChart } from "@visx/xychart";
 import { useEffect, useRef, useState } from "react";
 
-import type { DailyPoint } from "@/app/internal/cost/page";
+import type { DailyViewRow } from "@/app/internal/cost/page";
 
-const xAccessor = (d: DailyPoint) => d.day;
-const yAccessor = (d: DailyPoint) => d.cost;
+const MODEL_COLOURS: Record<string, string> = {
+  opus: "hsl(270, 60%, 55%)",
+  sonnet: "hsl(210, 70%, 50%)",
+  haiku: "hsl(140, 60%, 45%)",
+};
 
-export function CostDailyArea({ data }: Readonly<{ data: DailyPoint[] }>) {
+function modelColour(modelId: string): string {
+  for (const [family, colour] of Object.entries(MODEL_COLOURS)) {
+    if (modelId.includes(family)) {
+      return colour;
+    }
+  }
+  return "hsl(0, 0%, 50%)";
+}
+
+interface DayPoint {
+  cost: number;
+  day: string;
+}
+
+const xAccessor = (d: DayPoint) => d.day;
+const yAccessor = (d: DayPoint) => d.cost;
+
+export function CostDailyArea({ data }: Readonly<{ data: DailyViewRow[] }>) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(640);
 
@@ -31,12 +51,26 @@ export function CostDailyArea({ data }: Readonly<{ data: DailyPoint[] }>) {
     };
   }, []);
 
+  const days = [...new Set(data.map((r) => r.day))].sort();
+  const models = [...new Set(data.map((r) => r.model_id))].sort();
+
+  const seriesByModel = new Map<string, DayPoint[]>();
+  for (const model of models) {
+    const costByDay = new Map(
+      data.filter((r) => r.model_id === model).map((r) => [r.day, Number(r.total_cost)]),
+    );
+    seriesByModel.set(
+      model,
+      days.map((day) => ({ day, cost: costByDay.get(day) ?? 0 })),
+    );
+  }
+
   return (
     <div
       ref={containerRef}
       className="w-full"
       role="img"
-      aria-label="Daily LLM spend over the last 30 days"
+      aria-label="Daily LLM spend by model over the last 30 days"
     >
       <XYChart
         width={width}
@@ -46,13 +80,19 @@ export function CostDailyArea({ data }: Readonly<{ data: DailyPoint[] }>) {
       >
         <Axis orientation="bottom" numTicks={5} />
         <Axis orientation="left" numTicks={3} tickFormat={(v: number) => `$${v.toFixed(2)}`} />
-        <AnimatedAreaSeries
-          dataKey="spend"
-          data={data}
-          xAccessor={xAccessor}
-          yAccessor={yAccessor}
-          fillOpacity={0.3}
-        />
+        <AnimatedAreaStack>
+          {models.map((model) => (
+            <AnimatedAreaSeries
+              key={model}
+              dataKey={model}
+              data={seriesByModel.get(model) ?? []}
+              xAccessor={xAccessor}
+              yAccessor={yAccessor}
+              fillOpacity={0.7}
+              fill={modelColour(model)}
+            />
+          ))}
+        </AnimatedAreaStack>
       </XYChart>
     </div>
   );

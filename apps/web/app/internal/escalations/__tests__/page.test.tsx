@@ -7,6 +7,31 @@ vi.mock("@/lib/supabase/server", () => ({
   createClient: vi.fn(),
 }));
 
+vi.mock("@/lib/actions/client", () => ({
+  internalAction: {
+    inputSchema: vi.fn(() => ({ action: vi.fn((h: unknown) => h) })),
+  },
+}));
+
+vi.mock("@/app/internal/escalations/actions", () => ({
+  ackIncidentAction: vi.fn(),
+}));
+
+vi.mock("next-safe-action/hooks", () => ({
+  useAction: vi.fn(() => ({ execute: vi.fn(), isPending: false })),
+}));
+
+vi.mock("@dnd-kit/core", () => ({
+  DndContext: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  useDraggable: vi.fn(() => ({
+    setNodeRef: vi.fn(),
+    listeners: {},
+    attributes: {},
+    transform: null,
+  })),
+  useDroppable: vi.fn(() => ({ setNodeRef: vi.fn(), isOver: false })),
+}));
+
 vi.mock("@/components/internal/ack-button", () => ({
   AckButton: ({ incidentId }: { incidentId: string }) => (
     <button type="button" data-testid={`ack-${incidentId}`}>
@@ -101,13 +126,9 @@ describe("EscalationsPage", () => {
     const jsx = await EscalationsPage();
     render(jsx);
 
-    // anomaly → AnomalyDetected: shows detail.summary
     expect(screen.getByText("Case count spike in Irumu")).toBeInTheDocument();
-    // novel_pathogen_country → LowConfidence: shows detail.message
     expect(screen.getByText("New country detected")).toBeInTheDocument();
-    // conflict_unresolvable → DisagreementGT25%: falls back to class name
     expect(screen.getByText("conflict_unresolvable")).toBeInTheDocument();
-    // substring_verify_fail → SubstringVerifyFail: falls back to class name
     expect(screen.getByText("substring_verify_fail")).toBeInTheDocument();
   });
 
@@ -146,7 +167,6 @@ describe("EscalationsPage", () => {
     const jsx = await EscalationsPage();
     render(jsx);
 
-    // 4 open incidents, 1 acked (id-5)
     expect(screen.getByTestId("ack-id-1")).toBeInTheDocument();
     expect(screen.getByTestId("ack-id-2")).toBeInTheDocument();
     expect(screen.getByTestId("ack-id-3")).toBeInTheDocument();

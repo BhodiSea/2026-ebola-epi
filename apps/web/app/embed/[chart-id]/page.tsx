@@ -2,6 +2,13 @@
 
 import { useParams, useSearchParams } from "next/navigation";
 import { useEffect, useRef } from "react";
+import { z } from "zod";
+
+// origin-untrusted: accept any parent frame but validate payload strictly
+const SET_THEME_SCHEMA = z.object({
+  type: z.literal("set-theme"),
+  theme: z.enum(["light", "dark"]),
+});
 
 const SITE_DOMAIN = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://ituri-epi.com")
   .replace("https://", "")
@@ -23,13 +30,9 @@ export default function EmbedPage() {
 
   useEffect(() => {
     function handleMessage(event: MessageEvent<unknown>) {
-      if (typeof event.data !== "object" || event.data === null) {
-        return;
-      }
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- narrowed to object; as unknown as Record is the accepted safe-cast idiom
-      const msg = event.data as unknown as Record<string, unknown>;
-      if (msg.type === "set-theme" && typeof msg.theme === "string") {
-        document.documentElement.dataset.theme = msg.theme;
+      const parsed = SET_THEME_SCHEMA.safeParse(event.data);
+      if (parsed.success) {
+        document.documentElement.dataset.theme = parsed.data.theme;
       }
     }
     // eslint-disable-next-line sonarjs/post-message -- embed intentionally accepts theme-sync from any parent frame

@@ -7,7 +7,6 @@ import { Wordmark } from "@/lib/og/wordmark";
 import { getActiveOutbreak } from "@/lib/queries/outbreaks";
 import { getZoneStatTotals } from "@/lib/queries/zone-detail";
 
-export const runtime = "edge";
 export const alt = "Health zone situation report";
 // eslint-disable-next-line unicorn/prefer-export-from -- Biome noBarrelFile blocks re-export from syntax
 export const size = OG_SIZE;

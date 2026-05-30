@@ -1,15 +1,7 @@
+import type { InngestRun } from "@/components/internal/pipeline-gantt";
+import { PipelineGantt } from "@/components/internal/pipeline-gantt";
 import { RetryButton } from "@/components/internal/retry-button";
 import { env } from "@/lib/env";
-
-/* eslint-disable @typescript-eslint/naming-convention */
-interface InngestRun {
-  ended_at: null | string;
-  function_id: string;
-  run_id: string;
-  started_at: string;
-  status: "Cancelled" | "Completed" | "Failed" | "Running";
-}
-/* eslint-enable @typescript-eslint/naming-convention */
 
 const STATUS_COLORS: Record<string, string> = {
   Cancelled: "text-fg-muted",
@@ -31,39 +23,42 @@ export default async function PipelinePage() {
 
       {runs.length === 0 ? (
         <p className="font-mono text-fg-muted text-xs">
-          No runs found. Verify INNGEST_SIGNING_KEY is set.
+          No runs found. Verify INNGEST_API_KEY is set.
         </p>
       ) : (
-        <table className="w-full font-mono text-xs">
-          <thead>
-            <tr className="border-border border-b text-left text-fg-muted">
-              <th className="pr-4 pb-1">Function</th>
-              <th className="pr-4 pb-1">Status</th>
-              <th className="pr-4 pb-1">Started</th>
-              <th className="pr-4 pb-1">Duration</th>
-              <th className="pr-4 pb-1">Run ID</th>
-              <th className="pb-1" />
-            </tr>
-          </thead>
-          <tbody>
-            {runs.map((run) => (
-              <tr key={run.run_id} className="border-border/50 border-b">
-                <td className="py-1 pr-4">{run.function_id}</td>
-                <td className={`py-1 pr-4 ${STATUS_COLORS[run.status] ?? "text-fg-muted"}`}>
-                  {run.status}
-                </td>
-                <td className="py-1 pr-4 text-fg-muted">{run.started_at.slice(0, 16)}</td>
-                <td className="py-1 pr-4 text-fg-muted tabular-nums">
-                  {formatDuration(run.started_at, run.ended_at)}
-                </td>
-                <td className="py-1 pr-4 text-fg-subtle">{run.run_id.slice(0, 12)}&hellip;</td>
-                <td className="py-1">
-                  {run.status === "Failed" ? <RetryButton runId={run.run_id} /> : null}
-                </td>
+        <>
+          <PipelineGantt runs={runs} />
+          <table className="w-full font-mono text-xs">
+            <thead>
+              <tr className="border-border border-b text-left text-fg-muted">
+                <th className="pr-4 pb-1">Function</th>
+                <th className="pr-4 pb-1">Status</th>
+                <th className="pr-4 pb-1">Started</th>
+                <th className="pr-4 pb-1">Duration</th>
+                <th className="pr-4 pb-1">Run ID</th>
+                <th className="pb-1" />
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {runs.map((run) => (
+                <tr key={run.run_id} className="border-border/50 border-b">
+                  <td className="py-1 pr-4">{run.function_id}</td>
+                  <td className={`py-1 pr-4 ${STATUS_COLORS[run.status] ?? "text-fg-muted"}`}>
+                    {run.status}
+                  </td>
+                  <td className="py-1 pr-4 text-fg-muted">{run.started_at.slice(0, 16)}</td>
+                  <td className="py-1 pr-4 text-fg-muted tabular-nums">
+                    {formatDuration(run.started_at, run.ended_at)}
+                  </td>
+                  <td className="py-1 pr-4 text-fg-subtle">{run.run_id.slice(0, 12)}&hellip;</td>
+                  <td className="py-1">
+                    {run.status === "Failed" ? <RetryButton runId={run.run_id} /> : null}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </>
       )}
     </div>
   );
@@ -78,7 +73,11 @@ function computeSuccessRate(runs: InngestRun[]): number {
 }
 
 async function fetchRuns(): Promise<InngestRun[]> {
-  const key = env.INNGEST_SIGNING_KEY;
+  const key = env.INNGEST_API_KEY;
+  if (!key) {
+    console.error("[pipeline] INNGEST_API_KEY is not set; cannot fetch runs from Inngest REST API");
+    return [];
+  }
 
   try {
     const res = await fetch("https://api.inngest.com/v1/runs?limit=100", {
@@ -86,12 +85,14 @@ async function fetchRuns(): Promise<InngestRun[]> {
       next: { revalidate: 30 },
     });
     if (!res.ok) {
+      console.error(`[pipeline] Inngest API returned ${res.status} — check INNGEST_API_KEY`);
       return [];
     }
     // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- res.json() returns any; as unknown as T is the accepted safe-assertion idiom
     const body = (await res.json()) as unknown as { data?: InngestRun[] };
     return body.data ?? [];
-  } catch {
+  } catch (err) {
+    console.error("[pipeline] Failed to fetch Inngest runs:", err);
     return [];
   }
 }

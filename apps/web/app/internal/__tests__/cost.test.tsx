@@ -16,9 +16,11 @@ function makeQuery() {
   return q;
 }
 
-const { mockUsageQuery, mockRunsQuery } = vi.hoisted(() => {
-  return { mockUsageQuery: makeQuery(), mockRunsQuery: makeQuery() };
-});
+const { mockDailyQuery, mockOutliersQuery, mockRunsQuery } = vi.hoisted(() => ({
+  mockDailyQuery: makeQuery(),
+  mockOutliersQuery: makeQuery(),
+  mockRunsQuery: makeQuery(),
+}));
 
 vi.mock("@/components/internal/cost-daily-area", () => ({
   CostDailyArea: vi.fn(() => null),
@@ -28,14 +30,39 @@ vi.mock("@/lib/supabase/server", () => ({
   createClient: vi.fn(),
 }));
 
+// BFS over a React element tree; returns the first node whose .type === target
+function findReactElement(
+  root: unknown,
+  target: unknown,
+): { props: Record<string, unknown> } | null {
+  const queue: unknown[] = [root];
+  while (queue.length > 0) {
+    const node = queue.shift();
+    if (node === null || typeof node !== "object") {
+      continue;
+    }
+    const el = node as { type?: unknown; props?: { children?: unknown } };
+    if (el.type === target) {
+      return el as { props: Record<string, unknown> };
+    }
+    const kids = el.props?.children;
+    queue.push(...(Array.isArray(kids) ? kids : [kids]));
+  }
+  return null;
+}
+
 describe("/internal/cost page", () => {
   beforeEach(async () => {
     vi.clearAllMocks();
 
-    mockUsageQuery.select.mockReturnValue(mockUsageQuery);
-    mockUsageQuery.gte.mockReturnValue(mockUsageQuery);
-    mockUsageQuery.order.mockReturnValue(mockUsageQuery);
-    mockUsageQuery.limit.mockResolvedValue({ count: 0, data: [], error: null });
+    mockDailyQuery.select.mockReturnValue(mockDailyQuery);
+    mockDailyQuery.gte.mockReturnValue(mockDailyQuery);
+    mockDailyQuery.order.mockReturnValue(mockDailyQuery);
+    mockDailyQuery.limit.mockResolvedValue({ count: 0, data: [], error: null });
+
+    mockOutliersQuery.select.mockReturnValue(mockOutliersQuery);
+    mockOutliersQuery.order.mockReturnValue(mockOutliersQuery);
+    mockOutliersQuery.limit.mockResolvedValue({ count: 0, data: [], error: null });
 
     mockRunsQuery.select.mockReturnValue(mockRunsQuery);
     mockRunsQuery.gte.mockReturnValue(mockRunsQuery);
@@ -43,9 +70,15 @@ describe("/internal/cost page", () => {
 
     const { createClient } = await import("@/lib/supabase/server");
     vi.mocked(createClient).mockResolvedValue({
-      from: vi.fn((table: string) =>
-        table === "extraction_runs" ? mockRunsQuery : mockUsageQuery,
-      ),
+      from: vi.fn((table: string) => {
+        if (table === "anthropic_usage_daily") {
+          return mockDailyQuery;
+        }
+        if (table === "anthropic_usage_log") {
+          return mockOutliersQuery;
+        }
+        return mockRunsQuery;
+      }),
     } as never);
   });
 
@@ -60,15 +93,33 @@ describe("/internal/cost page", () => {
     expect(result).toBeTruthy();
   });
 
-  it("applies a 30-day gte filter on anthropic_usage_log", async () => {
+  it("applies a 30-day gte filter on anthropic_usage_daily", async () => {
     const { default: CostPage } = await import("../cost/page");
     await CostPage();
-    expect(mockUsageQuery.gte).toHaveBeenCalledWith("logged_at", expect.any(String));
+    expect(mockDailyQuery.gte).toHaveBeenCalledWith("day", expect.any(String));
   });
 
   it("queries extraction_runs for run count", async () => {
     const { default: CostPage } = await import("../cost/page");
     await CostPage();
     expect(mockRunsQuery.select).toHaveBeenCalled();
+  });
+
+  it("passes all view rows to the chart component (no truncation)", async () => {
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    const multiModelRows = [
+      { day: "2026-05-01", model_id: "claude-sonnet-4-6", total_cost: "0.020000" },
+      { day: "2026-05-01", model_id: "claude-haiku-4-5", total_cost: "0.005000" },
+      { day: "2026-05-02", model_id: "claude-sonnet-4-6", total_cost: "0.030000" },
+    ];
+    mockDailyQuery.limit.mockResolvedValue({ count: 0, data: multiModelRows, error: null });
+
+    const { CostDailyArea } = await import("@/components/internal/cost-daily-area");
+    const { default: CostPage } = await import("../cost/page");
+    const result = await CostPage();
+
+    const chartEl = findReactElement(result, CostDailyArea);
+    expect(chartEl).not.toBeNull();
+    expect(chartEl?.props.data).toEqual(multiModelRows);
   });
 });

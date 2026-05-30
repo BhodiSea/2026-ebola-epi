@@ -20,6 +20,25 @@ vi.mock("next-safe-action/hooks", () => ({
   useAction: vi.fn(() => ({ execute: vi.fn(), isPending: false })),
 }));
 
+vi.mock("@dnd-kit/core", () => ({
+  DndContext: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  useDraggable: vi.fn(() => ({
+    setNodeRef: vi.fn(),
+    listeners: {},
+    attributes: {},
+    transform: null,
+  })),
+  useDroppable: vi.fn(() => ({ setNodeRef: vi.fn(), isOver: false })),
+}));
+
+vi.mock("@/components/internal/ack-button", () => ({
+  AckButton: ({ incidentId }: { incidentId: string }) => (
+    <button type="button" data-testid={`ack-${incidentId}`}>
+      Ack
+    </button>
+  ),
+}));
+
 describe("/internal/escalations page", () => {
   beforeEach(async () => {
     vi.clearAllMocks();
