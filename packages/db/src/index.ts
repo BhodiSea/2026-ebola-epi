@@ -15,3 +15,12 @@ export {
   sourceQuotes,
   sources,
 } from "./schema";
+export type {
+  CompositeTypes,
+  Database,
+  Enums,
+  Tables,
+  TablesInsert,
+  TablesUpdate,
+} from "./types.gen";
+export { Constants } from "./types.gen";

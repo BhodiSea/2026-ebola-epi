@@ -31,6 +31,7 @@ export default defineConfig(
       "**/.turbo/**",
       "**/node_modules/**",
       "**/*.generated.*",
+      "**/types.gen.ts",
       "**/next-env.d.ts",
       "supabase/.branches/**",
       "coverage/**",

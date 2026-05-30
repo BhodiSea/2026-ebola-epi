@@ -15,6 +15,7 @@ import type {
   sourceQuotes,
   sources,
 } from "../schema";
+import type { Constants, Database, Tables } from "../types.gen";
 
 // eslint-disable-next-line max-statements -- describe callback; rule fires on statement count, not cyclomatic complexity
 describe("schema type inference", () => {
@@ -162,5 +163,35 @@ describe("schema type inference", () => {
     type Insert = typeof caseCounts.$inferInsert;
     // status has a default so it should be optional in insert
     expectTypeOf<Insert["status"]>().toEqualTypeOf<string | undefined>();
+  });
+});
+
+// ── types.gen.ts smoke tests ───────────────────────────────────────────────
+// Verifies the generated Supabase type file exports are correct and complete.
+// The CI types-drift gate (supabase gen types diff) is the source of truth;
+// these tests verify the *shape* of the generated exports.
+describe("types.gen exports", () => {
+  it("Constants.public.Enums has no keys (no custom enums in schema)", () => {
+    expectTypeOf<keyof (typeof Constants)["public"]["Enums"]>().toEqualTypeOf<never>();
+  });
+
+  it("Database.public.Tables includes core tables", () => {
+    type PublicTables = Database["public"]["Tables"];
+    expectTypeOf<"case_counts" extends keyof PublicTables ? true : false>().toEqualTypeOf<true>();
+    expectTypeOf<"sources" extends keyof PublicTables ? true : false>().toEqualTypeOf<true>();
+    expectTypeOf<"source_quotes" extends keyof PublicTables ? true : false>().toEqualTypeOf<true>();
+    expectTypeOf<"outbreaks" extends keyof PublicTables ? true : false>().toEqualTypeOf<true>();
+    expectTypeOf<"documents" extends keyof PublicTables ? true : false>().toEqualTypeOf<true>();
+  });
+
+  it("Tables<'sources'> Row has license_tier string", () => {
+    type SourceRow = Tables<"sources">;
+    expectTypeOf<SourceRow["license_tier"]>().toEqualTypeOf<string>();
+  });
+
+  it("Tables<'case_counts'> Row has source_quote_id and prompt_version_hash", () => {
+    type CaseCountRow = Tables<"case_counts">;
+    expectTypeOf<CaseCountRow["source_quote_id"]>().toEqualTypeOf<string>();
+    expectTypeOf<CaseCountRow["prompt_version_hash"]>().toEqualTypeOf<string>();
   });
 });
