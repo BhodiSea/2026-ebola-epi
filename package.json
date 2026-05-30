@@ -18,6 +18,9 @@
     "db:types": "supabase gen types typescript --linked > packages/db/src/types.gen.ts"
   },
   "pnpm": {
+    "overrides": {
+      "drizzle-orm": "0.36.4"
+    },
     "onlyBuiltDependencies": [
       "esbuild",
       "lefthook",

@@ -1,0 +1,18 @@
+{
+  "content": [
+    {
+      "type": "tool_use",
+      "id": "toolu_fixture_empty_01",
+      "name": "extract_case_counts",
+      "input": {
+        "extractions": []
+      }
+    }
+  ],
+  "usage": {
+    "input_tokens": 800,
+    "output_tokens": 20,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 0
+  }
+}

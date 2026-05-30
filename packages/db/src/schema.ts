@@ -192,6 +192,27 @@ export const anthropicUsageLog = auditSchema.table("anthropic_usage_log", {
   ts: timestamp("ts", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
 });
 
+export const shadowResults = auditSchema.table("shadow_results", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  documentId: uuid("document_id")
+    .notNull()
+    .references(() => documents.id),
+  candidateVersion: text("candidate_version").notNull(),
+  productionRunId: uuid("production_run_id").references(() => extractionRuns.id),
+  fieldVariances: jsonb("field_variances").notNull().default(sql`'{}'::jsonb`),
+  promoted: boolean("promoted").notNull().default(false),
+  createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
+});
+
+export const batchResults = auditSchema.table("batch_results", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  batchId: text("batch_id").notNull(),
+  customId: text("custom_id").notNull(),
+  documentId: uuid("document_id").references(() => documents.id),
+  result: jsonb("result").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
+});
+
 // ─── public.case_counts ───────────────────────────────────────────────────────
 // Declared after audit.extraction_runs to satisfy the forward reference.
 
@@ -216,7 +237,10 @@ export const caseCounts = pgTable("case_counts", {
   modelId: text("model_id").notNull(),
   promptVersionHash: text("prompt_version_hash").notNull(),
   supersededBy: uuid("superseded_by").references((): AnyPgColumn => caseCounts.id),
-  status: text("status").notNull().default("pending_review"),
+  status: text("status").notNull().default("published"),
+  escalationClass: text("escalation_class").$type<
+    "anomaly" | "conflict_unresolvable" | "novel_pathogen_country" | "substring_verify_fail" | null
+  >(),
   createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
 });
 
@@ -239,5 +263,9 @@ export const incidents = pgTable("incidents", {
   snoozedUntil: timestamp("snoozed_until", { withTimezone: true, mode: "date" }),
   ackBy: text("ack_by"),
   ackAt: timestamp("ack_at", { withTimezone: true, mode: "date" }),
+  detail: jsonb("detail").notNull().default({}),
+  documentId: uuid("document_id")
+    .$type<DocumentId>()
+    .references(() => documents.id),
   createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
 });

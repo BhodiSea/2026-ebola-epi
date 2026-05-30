@@ -1,0 +1,44 @@
+# promptfoo evaluation config for the ituri-sitrep extraction prompt.
+# Run offline (fixtures only): pnpm --filter @ituri/evals test
+# Run live (Anthropic API, nightly CI): pnpm --filter @ituri/evals eval
+
+description: "Extraction prompt F1 evaluation — Bundibugyo 2026 gold set"
+
+providers:
+  - id: anthropic:messages:claude-sonnet-4-6
+    config:
+      cache: true
+      max_tokens: 4096
+      tool_choice:
+        type: tool
+        name: extract_case_counts
+
+prompts:
+  - file://../packages/extract/src/prompt.ts:STATIC_INSTRUCTIONS
+
+defaultTest:
+  assert:
+    - type: javascript
+      value: |
+        const { computeF1 } = require('./lib/f1.js');
+        const expected = JSON.parse(require('fs').readFileSync(
+          `gold-set/${context.vars.fixture}/ground-truth.json`, 'utf8'
+        ));
+        const rows = output.extractions ?? [];
+        const actual = rows.map(r => ({
+          pathogen_icd11: r.pathogen_icd11,
+          country_iso3: r.country_iso3,
+          metric: r.metric,
+          value: r.value,
+          as_of: r.as_of,
+        }));
+        const { f1 } = computeF1(expected, actual);
+        return { pass: f1 >= 0.95, score: f1, reason: `F1=${f1.toFixed(3)}` };
+
+tests:
+  - vars:
+      fixture: bundibugyo-ituri-2026-04-20
+      document: file://gold-set/bundibugyo-ituri-2026-04-20/source.txt
+  - vars:
+      fixture: no-confirmed-figures
+      document: file://gold-set/no-confirmed-figures/source.txt

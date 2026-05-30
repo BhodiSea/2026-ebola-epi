@@ -1,7 +1,7 @@
 import "server-only";
 
 import Anthropic from "@anthropic-ai/sdk";
-import { outbreaks } from "@ituri/db";
+import { incidents, outbreaks } from "@ituri/db";
 import {
   buildTriageParams,
   computeTriagePromptHash,
@@ -12,6 +12,8 @@ import {
 import { and, eq } from "drizzle-orm";
 
 import { inngest } from "../client";
+import { evaluateCapacity } from "../lib/capacity-guard";
+import { logAnthropicUsage } from "../lib/usage-log";
 import {
   DOCUMENT_EXTRACTION_REQUESTED,
   ESCALATION_CONFIRMED,
@@ -20,6 +22,8 @@ import {
 import { TRIAGE_DOCUMENT_FN_CONFIG, TRIAGE_DOCUMENT_TRIGGER } from "./pipeline-fn-config";
 import { db } from "@/lib/db";
 import { env } from "@/lib/env";
+import { getExtractionCapacity } from "@/lib/kill-switch";
+import { notifyKillSwitch, notifySlack } from "@/lib/notify";
 
 const anthropic = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
 
@@ -47,6 +51,7 @@ async function isNovelPair(pathogenIcd11: string, countryIso3: string): Promise<
 export const triageDocument = inngest.createFunction(
   TRIAGE_DOCUMENT_FN_CONFIG,
   TRIAGE_DOCUMENT_TRIGGER,
+  // eslint-disable-next-line max-statements, max-lines-per-function -- Inngest orchestration: step.run/ai.wrap calls are inherently sequential; count reflects coordination, not complexity.
   async ({ event, step }) => {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
     const { documentId, sourceSlug, fullText, sha256, publishedAtIso } = event.data as {
@@ -57,6 +62,16 @@ export const triageDocument = inngest.createFunction(
       sourceSlug: string;
     };
 
+    // Kill-switch: check cost capacity before burning Haiku/Sonnet tokens.
+    const capacity = await step.run("check-capacity", async () => getExtractionCapacity());
+    const guard = evaluateCapacity(capacity, "high");
+    if (!guard.proceed) {
+      if (capacity === "paused") {
+        await step.run("alert-paused", async () => notifyKillSwitch(documentId));
+      }
+      return { skipped: true, reason: guard.skipReason };
+    }
+
     const triageHash = computeTriagePromptHash();
 
     // First pass: Haiku (cheap, fast)
@@ -66,7 +81,18 @@ export const triageDocument = inngest.createFunction(
       buildTriageParams(fullText, MODEL_HAIKU),
     );
 
-    let { triage } = await step.run("parse-triage", () => parseTriageResponse(rawMsg));
+    const haiku = await step.run("parse-triage", () => parseTriageResponse(rawMsg));
+    await step.run("log-triage-haiku", async () =>
+      logAnthropicUsage({
+        modelId: MODEL_HAIKU,
+        inputTokens: haiku.usage.input_tokens,
+        outputTokens: haiku.usage.output_tokens,
+        cacheReadInputTokens: haiku.usage.cache_read_input_tokens ?? null,
+        cacheCreationInputTokens: haiku.usage.cache_creation_input_tokens ?? null,
+      }),
+    );
+
+    let { triage } = haiku;
 
     // Low-confidence second pass: Sonnet
     if (triage.confidence < 0.7) {
@@ -75,7 +101,17 @@ export const triageDocument = inngest.createFunction(
         createSonnetMessage,
         buildTriageParams(fullText, MODEL_SONNET),
       );
-      ({ triage } = await step.run("parse-triage-2", () => parseTriageResponse(rawMsg)));
+      const sonnet = await step.run("parse-triage-2", () => parseTriageResponse(rawMsg));
+      await step.run("log-triage-sonnet", async () =>
+        logAnthropicUsage({
+          modelId: MODEL_SONNET,
+          inputTokens: sonnet.usage.input_tokens,
+          outputTokens: sonnet.usage.output_tokens,
+          cacheReadInputTokens: sonnet.usage.cache_read_input_tokens ?? null,
+          cacheCreationInputTokens: sonnet.usage.cache_creation_input_tokens ?? null,
+        }),
+      );
+      triage = sonnet.triage;
     }
 
     if (!triage.is_outbreak) {
@@ -99,6 +135,23 @@ export const triageDocument = inngest.createFunction(
             sourceSlug,
           },
         });
+        // Class 1: write incident row and alert Slack before waiting on human confirmation.
+        await step.run("write-novel-incident", async () =>
+          Promise.all([
+            db.insert(incidents).values({
+              class: "novel_pathogen_country",
+              documentId,
+              detail: {
+                pathogenIcd11: triage.pathogen_icd11,
+                countryIso3: triage.country_iso3,
+                matchKey,
+              },
+            }),
+            notifySlack(
+              `Novel pathogen/country pair: ${triage.pathogen_icd11} in ${triage.country_iso3}. Document ${documentId} held pending editorial confirmation (7-day window).`,
+            ),
+          ]),
+        );
         // Wait up to 7 days for a human to confirm the novel pair.
         // On timeout (resolved to null), skip extraction for safety.
         // WARNING: with TRIAGE_DOCUMENT_FN_CONFIG.concurrency.limit = 5, up to 5

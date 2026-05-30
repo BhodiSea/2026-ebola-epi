@@ -5,11 +5,13 @@ export {
   agentActions,
   anthropicUsageLog,
   auditLlmTraces,
+  batchResults,
   caseCounts,
   documents,
   extractionRuns,
   incidents,
   outbreaks,
+  shadowResults,
   sourceQuotes,
   sources,
 } from "./schema";

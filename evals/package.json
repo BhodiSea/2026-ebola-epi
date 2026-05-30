@@ -1,0 +1,20 @@
+{
+  "name": "@ituri/evals",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "eval": "promptfoo eval --config promptfoo.config.yaml --batch",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@ituri/extract": "workspace:*"
+  },
+  "devDependencies": {
+    "@anthropic-ai/sdk": "^0.52.0",
+    "@types/node": "^20",
+    "promptfoo": "^0.103.0",
+    "vitest": "^3.2.4"
+  }
+}

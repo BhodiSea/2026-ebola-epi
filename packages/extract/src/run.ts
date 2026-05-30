@@ -11,6 +11,14 @@ import { resolveSubstring } from "./verify.js";
 // Back-compat alias — consumers that import MODEL from @ituri/extract continue to work.
 export const MODEL = MODEL_SONNET;
 
+/**
+ * Candidate prompt version for shadow-run comparisons.
+ * Defaults to the current production version until a real candidate is staged.
+ * Update this constant (with a bump to computePromptVersionHash) to start routing
+ * 10% of production traffic through the new prompt.
+ */
+export const CANDIDATE_PROMPT_VERSION = computePromptVersionHash();
+
 export interface ExtractionResult {
   promptVersionHash: string;
   rows: ExtractionRow[];

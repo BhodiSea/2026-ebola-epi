@@ -166,6 +166,22 @@ describe("parseExtractionResponse", () => {
   });
 });
 
+// ─── CANDIDATE_PROMPT_VERSION ────────────────────────────────────────────────
+
+describe("CANDIDATE_PROMPT_VERSION", () => {
+  it("is exported as a non-empty string (shadow-run sampler depends on it)", async () => {
+    const { CANDIDATE_PROMPT_VERSION } = await import("../run.js");
+    expect(typeof CANDIDATE_PROMPT_VERSION).toBe("string");
+    expect(CANDIDATE_PROMPT_VERSION.length).toBeGreaterThan(0);
+  });
+
+  it("equals computePromptVersionHash() (defaults to production until a real candidate is staged)", async () => {
+    const { CANDIDATE_PROMPT_VERSION } = await import("../run.js");
+    const { computePromptVersionHash } = await import("../hash.js");
+    expect(CANDIDATE_PROMPT_VERSION).toBe(computePromptVersionHash());
+  });
+});
+
 // ─── runExtraction (legacy wrapper) ──────────────────────────────────────────
 
 describe("runExtraction — Anthropic call params", () => {

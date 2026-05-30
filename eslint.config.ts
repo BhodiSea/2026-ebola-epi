@@ -65,11 +65,11 @@ export default defineConfig(
             "packages/*/vitest.config.ts",
             "packages/db/drizzle.config.ts",
             "apps/web/e2e/*.ts",
+            "evals/vitest.config.ts",
           ],
-          // Phase 2 added packages/extract and packages/ingest vitest configs,
-          // pushing the default-project count above the 8-file guard.
+          // Phase 7 added evals/vitest.config.ts, pushing the count to 17.
           // eslint-disable-next-line @typescript-eslint/naming-convention
-          maximumDefaultProjectFileMatchCount_THIS_WILL_SLOW_DOWN_LINTING: 16,
+          maximumDefaultProjectFileMatchCount_THIS_WILL_SLOW_DOWN_LINTING: 20,
         },
         tsconfigRootDir: import.meta.dirname,
         ecmaFeatures: { jsx: true },

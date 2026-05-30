@@ -6,14 +6,17 @@ import type {
   admin1,
   admin2,
   anthropicUsageLog,
+  batchResults,
   caseCounts,
   documents,
   incidents,
   outbreaks,
+  shadowResults,
   sourceQuotes,
   sources,
 } from "../schema";
 
+// eslint-disable-next-line max-statements -- describe callback; rule fires on statement count, not cyclomatic complexity
 describe("schema type inference", () => {
   it("sourceQuotes id column resolves to SourceQuoteId brand", () => {
     type Row = typeof sourceQuotes.$inferSelect;
@@ -118,5 +121,46 @@ describe("schema type inference", () => {
     >();
     expectTypeOf<Row["status"]>().toEqualTypeOf<"acked" | "closed" | "open" | "snoozed">();
     expectTypeOf<Row["outbreakId"]>().toEqualTypeOf<null | OutbreakId>();
+  });
+
+  // ── Phase 7 additions ─────────────────────────────────────────────────────
+
+  it("incidents.$inferSelect has detail and documentId added in phase7 migration", () => {
+    type Row = typeof incidents.$inferSelect;
+    expectTypeOf<Row["detail"]>().toEqualTypeOf<unknown>();
+    expectTypeOf<Row["documentId"]>().toEqualTypeOf<DocumentId | null>();
+  });
+
+  it("shadowResults.$inferSelect has candidateVersion, fieldVariances, promoted (phase7 shadow-run)", () => {
+    type Row = typeof shadowResults.$inferSelect;
+    expectTypeOf<Row["candidateVersion"]>().toEqualTypeOf<string>();
+    expectTypeOf<Row["fieldVariances"]>().toEqualTypeOf<unknown>();
+    expectTypeOf<Row["promoted"]>().toEqualTypeOf<boolean>();
+    expectTypeOf<Row["productionRunId"]>().toEqualTypeOf<null | string>();
+  });
+
+  it("batchResults.$inferSelect has batchId, customId, documentId, result (phase7 back-fill)", () => {
+    type Row = typeof batchResults.$inferSelect;
+    expectTypeOf<Row["batchId"]>().toEqualTypeOf<string>();
+    expectTypeOf<Row["customId"]>().toEqualTypeOf<string>();
+    expectTypeOf<Row["documentId"]>().toEqualTypeOf<null | string>();
+    expectTypeOf<Row["result"]>().toEqualTypeOf<unknown>();
+  });
+
+  it("caseCounts.$inferSelect has escalationClass nullable string (phase7 autonomy flip)", () => {
+    type Row = typeof caseCounts.$inferSelect;
+    expectTypeOf<Row["escalationClass"]>().toEqualTypeOf<
+      | "anomaly"
+      | "conflict_unresolvable"
+      | "novel_pathogen_country"
+      | "substring_verify_fail"
+      | null
+    >();
+  });
+
+  it("caseCounts.$inferInsert status defaults to 'published' (phase7 autonomy flip)", () => {
+    type Insert = typeof caseCounts.$inferInsert;
+    // status has a default so it should be optional in insert
+    expectTypeOf<Insert["status"]>().toEqualTypeOf<string | undefined>();
   });
 });

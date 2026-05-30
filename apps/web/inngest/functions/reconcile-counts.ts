@@ -4,7 +4,6 @@ import { createHash } from "node:crypto";
 import Anthropic from "@anthropic-ai/sdk";
 import {
   agentActions,
-  anthropicUsageLog,
   auditLlmTraces,
   caseCounts,
   documents,
@@ -23,10 +22,14 @@ import {
 import { and, eq, isNull, ne } from "drizzle-orm";
 
 import { inngest } from "../client";
+import { evaluateCapacity } from "../lib/capacity-guard";
+import { logAnthropicUsage } from "../lib/usage-log";
 import { ESCALATION_CONFLICT_UNRESOLVABLE } from "./pipeline-events-config";
 import { RECONCILE_COUNTS_FN_CONFIG, RECONCILE_COUNTS_TRIGGER } from "./pipeline-fn-config";
 import { db } from "@/lib/db";
 import { env } from "@/lib/env";
+import { getExtractionCapacity } from "@/lib/kill-switch";
+import { notifyKillSwitch, notifySlack } from "@/lib/notify";
 
 const anthropic = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
 
@@ -186,7 +189,7 @@ async function writeReconcileAudit(params: AuditParams): Promise<void> {
     outputTokens: params.outputTokens,
     durationMs: null,
   });
-  await db.insert(anthropicUsageLog).values({
+  await logAnthropicUsage({
     modelId: MODEL_OPUS,
     inputTokens: params.inputTokens,
     outputTokens: params.outputTokens,
@@ -200,11 +203,23 @@ async function writeReconcileAudit(params: AuditParams): Promise<void> {
 export const reconcileCounts = inngest.createFunction(
   RECONCILE_COUNTS_FN_CONFIG,
   RECONCILE_COUNTS_TRIGGER,
+  // eslint-disable-next-line max-lines-per-function, max-statements -- Inngest handler orchestrates multiple steps; complexity is in coordination, not logic
   async ({ event, step }) => {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
     const data = event.data as ReconcileRequestedData;
     // Compute outside steps so it is stable across Inngest retries.
     const reconcileHash = computeReconcilePromptHash();
+
+    // Kill-switch: reconcile burns Opus tokens — re-evaluate on every attempt; not memoized.
+    // Uses "low" priority: reconcile is downstream cleanup, not new ingestion.
+    const capacity = await getExtractionCapacity();
+    const guard = evaluateCapacity(capacity, "low");
+    if (!guard.proceed) {
+      if (capacity === "paused") {
+        await step.run("alert-paused", async () => notifyKillSwitch(data.outbreakId));
+      }
+      return { skipped: true, reason: guard.skipReason };
+    }
 
     const ctx = await step.run("load-pair", async () => loadReconcilePair(data));
     if (ctx.stale) {
@@ -243,8 +258,14 @@ export const reconcileCounts = inngest.createFunction(
             class: "conflict_unresolvable",
             outbreakId: data.outbreakId,
             status: "open",
+            detail: { rowAId: data.rowAId, rowBId: data.rowBId, reason: decision.reason },
           })
           .onConflictDoNothing(),
+      );
+      await step.run("notify-conflict", async () =>
+        notifySlack(
+          `Unresolvable conflict: outbreak ${data.outbreakId} — ${data.metric} on ${data.asOf}. Reason: ${decision.reason}`,
+        ),
       );
       // Every Opus call — including escalations — must be recorded for cost tracking.
       await step.run("write-audit-escalation", async () =>

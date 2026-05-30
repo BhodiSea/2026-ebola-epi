@@ -1,3 +1,4 @@
+/* eslint-disable max-lines -- persist-extraction orchestrates multiple DB steps; split would require a context object */
 import "server-only";
 
 import Anthropic from "@anthropic-ai/sdk";
@@ -15,10 +16,12 @@ import {
   sources,
 } from "@ituri/db";
 import type { ExtractionRow, ExtractionUsage } from "@ituri/extract";
-import { MODEL, parseExtractionResponse } from "@ituri/extract";
+import { computeCost, MODEL, parseExtractionResponse } from "@ituri/extract";
 import { ExtractionRunId } from "@ituri/shared";
 import { and, asc, eq, isNull, ne, sql } from "drizzle-orm";
 
+import type { AnomalyEscalation } from "@/inngest/lib/anomaly";
+import { detectAnomalies } from "@/inngest/lib/anomaly";
 import type { Tx } from "@/lib/db";
 import { db } from "@/lib/db";
 import { env } from "@/lib/env";
@@ -68,6 +71,13 @@ export interface TxParams {
 
 export const anthropic = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
 
+export interface PersistResult {
+  escalations: AnomalyEscalation[];
+  extractionRunId: string;
+}
+
+// ─── database helpers ─────────────────────────────────────────────────────────
+
 /**
  * Apply superseded_by on the loser row within a transaction.
  * Guards: loser != winner, loser.superseded_by IS NULL (idempotent).
@@ -98,8 +108,6 @@ export async function applySupersede(opts: {
     });
   });
 }
-
-// ─── database helpers ─────────────────────────────────────────────────────────
 
 /** Typed wrapper so step.ai.wrap infers Promise<Anthropic.Message>, not APIPromise. */
 export async function createMessage(
@@ -165,7 +173,11 @@ export async function detectDivergence(extractionRunId: string): Promise<Diverge
   }));
 }
 
-export async function insertExtractionInTransaction(tx: Tx, params: TxParams): Promise<void> {
+// eslint-disable-next-line max-lines-per-function, max-statements -- transaction helper orchestrates multiple DB inserts; extracting would require threading a transaction handle
+export async function insertExtractionInTransaction(
+  tx: Tx,
+  params: TxParams,
+): Promise<AnomalyEscalation[]> {
   const intermediates: {
     admin2Code: null | string;
     outbreakId: string;
@@ -177,19 +189,8 @@ export async function insertExtractionInTransaction(tx: Tx, params: TxParams): P
   for (const row of params.rows) {
     // eslint-disable-next-line no-await-in-loop
     const outbreakId = await upsertOutbreak(tx, row, params.publishedAt);
-    let admin2Code: null | string = null;
-    if (row.admin1_name !== undefined) {
-      // eslint-disable-next-line no-await-in-loop
-      admin2Code = await resolveAdmin2Code(tx, row.country_iso3, row.admin1_name);
-      if (admin2Code === null) {
-        // eslint-disable-next-line no-await-in-loop
-        await tx.insert(agentActions).values({
-          agent: `ingest-${params.sourceSlug}`,
-          action: "admin2_unmatched",
-          payload: { adminName: row.admin1_name, countryIso3: row.country_iso3 },
-        });
-      }
-    }
+    // eslint-disable-next-line no-await-in-loop
+    const admin2Code = await resolveAndLogAdmin2(tx, row, params.sourceSlug);
     // eslint-disable-next-line no-await-in-loop
     const sqRows: { id: string }[] = await tx
       .insert(sourceQuotes)
@@ -224,20 +225,49 @@ export async function insertExtractionInTransaction(tx: Tx, params: TxParams): P
     sourceQuoteIds: sqIds,
   });
 
+  const escalations: AnomalyEscalation[] = [];
+
   for (const { outbreakId, sqId, admin2Code, row } of intermediates) {
+    const asOf = new Date(row.as_of);
     // eslint-disable-next-line no-await-in-loop
-    await tx.insert(caseCounts).values({
+    const signals = await detectAnomalies(tx, {
       outbreakId,
-      asOf: new Date(row.as_of),
-      admin2Code,
+      asOf,
       metric: row.metric,
       value: row.value,
-      sourceQuoteId: sqId,
-      extractionRunId: params.extractionRunId,
-      modelId: params.modelId,
-      promptVersionHash: params.pvHash,
+      admin2Code,
     });
+    // Autonomy flip: rows always publish immediately; anomaly signals are recorded
+    // via escalation_class for audit, but do not gate publication.
+    const escalationClass = signals.length > 0 ? ("anomaly" as const) : null;
+    // eslint-disable-next-line no-await-in-loop
+    const inserted: { id: string }[] = await tx
+      .insert(caseCounts)
+      .values({
+        outbreakId,
+        asOf,
+        admin2Code,
+        metric: row.metric,
+        value: row.value,
+        sourceQuoteId: sqId,
+        extractionRunId: params.extractionRunId,
+        modelId: params.modelId,
+        promptVersionHash: params.pvHash,
+        status: "published",
+        escalationClass,
+      })
+      .returning({ id: caseCounts.id });
+    const caseCountId = inserted[0]?.id;
+    if (caseCountId === undefined) {
+      throw new Error("caseCounts insert returned no row");
+    }
+    if (signals.length > 0) {
+      escalations.push({ caseCountId, outbreakId, signals });
+    }
   }
+
+  await insertUsageLogInTx(tx, params);
+  return escalations;
 }
 
 /**
@@ -257,16 +287,16 @@ export async function isAlreadyExtracted(documentId: string, pvHash: string): Pr
 
 /**
  * Parse, verify, and persist an extraction result.
- * Returns the new extraction_run_id (used by detect-divergence).
+ * Returns the extraction_run_id and any anomaly escalations for held rows.
  */
 export async function persistExtraction(
   doc: FetchedDocument,
   rawMsg: Pick<Anthropic.Message, "content" | "usage">,
-): Promise<string> {
+): Promise<PersistResult> {
   const { rows, toolSchemaHash, usage } = parseExtractionResponse(rawMsg, doc.fullText);
   const extractionRunId = ExtractionRunId.parse(crypto.randomUUID());
-  await db.transaction(async (tx) => {
-    await insertExtractionInTransaction(tx, {
+  const escalations = await db.transaction(async (tx) =>
+    insertExtractionInTransaction(tx, {
       documentId: doc.documentId,
       extractionRunId,
       inputDocSha256: Buffer.from(doc.inputDocSha256Hex, "hex"),
@@ -277,8 +307,8 @@ export async function persistExtraction(
       sourceSlug: doc.sourceSlug,
       toolSchemaHash,
       usage,
-    });
-  });
+    }),
+  );
   await db.insert(auditLlmTraces).values({
     extractionRunId,
     traceId: crypto.randomUUID(),
@@ -293,15 +323,7 @@ export async function persistExtraction(
     outputTokens: usage.output_tokens,
     durationMs: null,
   });
-  await db.insert(anthropicUsageLog).values({
-    extractionRunId,
-    modelId: MODEL,
-    inputTokens: usage.input_tokens,
-    outputTokens: usage.output_tokens,
-    cacheReadInputTokens: usage.cache_read_input_tokens ?? 0,
-    cacheCreationInputTokens: usage.cache_creation_input_tokens ?? 0,
-  });
-  return extractionRunId;
+  return { extractionRunId, escalations };
 }
 
 export async function resolveAdmin2Code(
@@ -406,4 +428,48 @@ export async function upsertOutbreak(tx: Tx, row: ExtractionRow, onsetDate: Date
     await tx.update(outbreaks).set({ onsetDate }).where(eq(outbreaks.id, found.id));
   }
   return found.id;
+}
+
+async function insertUsageLogInTx(tx: Tx, params: TxParams): Promise<void> {
+  const costUsd = computeCost(
+    {
+      // eslint-disable-next-line @typescript-eslint/naming-convention -- Anthropic API field names
+      input_tokens: params.usage.input_tokens,
+      // eslint-disable-next-line @typescript-eslint/naming-convention -- Anthropic API field names
+      output_tokens: params.usage.output_tokens,
+      // eslint-disable-next-line @typescript-eslint/naming-convention -- Anthropic API field names
+      cache_read_input_tokens: params.usage.cache_read_input_tokens ?? null,
+      // eslint-disable-next-line @typescript-eslint/naming-convention -- Anthropic API field names
+      cache_creation_input_tokens: params.usage.cache_creation_input_tokens ?? null,
+    },
+    params.modelId,
+  );
+  await tx.insert(anthropicUsageLog).values({
+    extractionRunId: params.extractionRunId,
+    modelId: params.modelId,
+    inputTokens: params.usage.input_tokens,
+    outputTokens: params.usage.output_tokens,
+    cacheReadInputTokens: params.usage.cache_read_input_tokens ?? 0,
+    cacheCreationInputTokens: params.usage.cache_creation_input_tokens ?? 0,
+    costUsd: String(costUsd),
+  });
+}
+
+async function resolveAndLogAdmin2(
+  tx: Tx,
+  row: ExtractionRow,
+  sourceSlug: string,
+): Promise<null | string> {
+  if (row.admin1_name === undefined) {
+    return null;
+  }
+  const code = await resolveAdmin2Code(tx, row.country_iso3, row.admin1_name);
+  if (code === null) {
+    await tx.insert(agentActions).values({
+      agent: `ingest-${sourceSlug}`,
+      action: "admin2_unmatched",
+      payload: { adminName: row.admin1_name, countryIso3: row.country_iso3 },
+    });
+  }
+  return code;
 }

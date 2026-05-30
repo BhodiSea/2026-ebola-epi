@@ -1,0 +1,43 @@
+{
+  "content": [
+    {
+      "type": "tool_use",
+      "id": "toolu_fixture_bdbv_01",
+      "name": "extract_case_counts",
+      "input": {
+        "extractions": [
+          {
+            "pathogen_icd11": "1D60.2",
+            "country_iso3": "COD",
+            "metric": "confirmed",
+            "value": 47,
+            "as_of": "2026-04-20",
+            "source_quote": {
+              "char_start": 69,
+              "char_end": 87,
+              "quote_text": "47 confirmed cases"
+            }
+          },
+          {
+            "pathogen_icd11": "1D60.2",
+            "country_iso3": "COD",
+            "metric": "deaths",
+            "value": 12,
+            "as_of": "2026-04-20",
+            "source_quote": {
+              "char_start": 92,
+              "char_end": 101,
+              "quote_text": "12 deaths"
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "usage": {
+    "input_tokens": 1200,
+    "output_tokens": 120,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 0
+  }
+}

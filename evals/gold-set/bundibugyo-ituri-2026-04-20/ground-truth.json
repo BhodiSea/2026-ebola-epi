@@ -1,0 +1,16 @@
+[
+  {
+    "pathogen_icd11": "1D60.2",
+    "country_iso3": "COD",
+    "metric": "confirmed",
+    "value": 47,
+    "as_of": "2026-04-20"
+  },
+  {
+    "pathogen_icd11": "1D60.2",
+    "country_iso3": "COD",
+    "metric": "deaths",
+    "value": 12,
+    "as_of": "2026-04-20"
+  }
+]
