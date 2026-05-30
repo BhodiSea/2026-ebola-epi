@@ -1,3 +1,5 @@
+// @vitest-environment jsdom
+/* eslint-disable unicorn/prefer-global-this -- fireEvent targets window (jsdom DOM node); globalThis type lacks Next.js Window augmentations */
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 

@@ -24,7 +24,7 @@ export const authedAction = actionClient.use(async ({ next }) => {
 });
 
 export const internalAction = authedAction.use(async ({ next, ctx }) => {
-  const role = ctx.user.app_metadata.role;
+  const role: unknown = ctx.user.app_metadata.role as unknown;
   if (role !== "admin" && role !== "staff") {
     throw new Error("FORBIDDEN");
   }

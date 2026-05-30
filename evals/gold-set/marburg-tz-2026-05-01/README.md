@@ -6,8 +6,10 @@
 
 ## Source document
 
-Drop the WHO DON or Tanzania MoH press release for the 2026 Marburg outbreak as `source.txt`
-(plain text) or `source.html`.
+**SYNTHETIC** — `source.txt` contains a plausible WHO-style sitrep synthesised for eval
+purposes. No real WHO DON for a Marburg outbreak in Tanzania of this scope exists as of
+the eval authoring date (2026-05-30). Ground-truth figures (5 confirmed, 2 deaths) are
+fabricated; replace with real figures if a real sitrep becomes available.
 
 ## Ground-truth format
 

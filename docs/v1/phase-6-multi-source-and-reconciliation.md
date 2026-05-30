@@ -162,7 +162,9 @@ limit 1;
 -- Note: SET pg_trgm.similarity_threshold = 0.6; before executing, or use pg_trgm.word_similarity_threshold.
 ```
 
-### Code — Anomaly detection (`packages/extract/src/agents/anomaly.ts`)
+### Code — Anomaly detection (`apps/web/inngest/lib/anomaly.ts`)
+
+> **Implementation note:** The anomaly detector landed in `apps/web/inngest/lib/anomaly.ts` (called from `persist-extraction.ts`) rather than the originally specified `packages/extract/src/agents/anomaly.ts`. This is the correct home — it runs inside the Inngest pipeline and does not need to be a standalone extract-package agent. The spec path below is updated to reflect reality.
 
 Statistical first (no LLM):
 
@@ -174,6 +176,7 @@ LLM tiebreak (Sonnet 4.6) only when statistical z > 2.5:
 - Input: new row + 5 prior rows + source quote text.
 - Output: `{ severity: "info" | "warn" | "alert" | "emergency", reason: string }`.
 - Severity routing: `info` → log only; `warn` → daily digest; `alert` → Slack DM; `emergency` → Twilio SMS + Slack @channel.
+- **Status:** Statistical detection (z-score, CFR, cluster spread) is implemented. The LLM tiebreak layer is deferred to Phase 7 — it requires prompt caching instrumentation and evals coverage that Phase 7 provides.
 
 Dedup: `audit.agent_actions` records every anomaly detection; severity pills in the UI dedup by `(outbreak_id, severity, day)`.
 
@@ -229,7 +232,7 @@ Reason: `step.waitForEvent` inside the for-loop of an ingest function blocks all
 
 **`packages/extract/src/__tests__/reconcile.test.ts`** — unit test: given two `case_counts` rows with values 100 and 80 (> 25% divergence), `shouldReconcile(100, 80)` returns `true`. Given 100 and 90 (10% divergence), returns `false`.
 
-**`packages/extract/src/__tests__/anomaly.test.ts`** — unit test: `rollingZScore([10,11,10,12,10,11,10,11,10,11,10,11,10,11], 14)` returns a z-score < 2.5 for the last value; `rollingZScore([...sameSeries..., 35], 14)` returns z > 2.5 for the outlier.
+**`apps/web/inngest/lib/__tests__/anomaly.test.ts`** — unit test: `rollingZScore([10,11,10,12,10,11,10,11,10,11,10,11,10,11], 14)` returns a z-score < 2.5 for the last value; `rollingZScore([...sameSeries..., 35], 14)` returns z > 2.5 for the outlier.
 
 ### pgTAP
 

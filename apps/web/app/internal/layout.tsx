@@ -15,7 +15,7 @@ export default async function InternalLayout({
     return redirect("/auth/login");
   }
 
-  const role = user.app_metadata.role;
+  const role: unknown = user.app_metadata.role as unknown;
   if (role !== "admin" && role !== "staff") {
     return redirect("/today");
   }

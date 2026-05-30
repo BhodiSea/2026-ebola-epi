@@ -11,7 +11,6 @@ export default async function EscalationsPage() {
     .order("created_at", { ascending: false })
     .limit(200);
 
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- Supabase returns `any`; Incident shape mirrors the DB columns exactly
   const open = ((rows ?? []) as Incident[]).filter((i) => i.status !== "acked");
 
   return (

@@ -3,7 +3,11 @@
 // These import only the non-server-only config modules (no Drizzle/Anthropic/server-only).
 import { describe, expect, it } from "vitest";
 
+import { ACLED_FN_CONFIG } from "../acled-config.js";
+import { AFRICA_CDC_FN_CONFIG } from "../africa-cdc-config.js";
+import { ECDC_CDTR_FN_CONFIG } from "../ecdc-cdtr-config.js";
 import { buildIngestConfig, pollEventName } from "../ingest-source-config.js";
+import { MOH_DRC_FN_CONFIG } from "../moh-drc-config.js";
 import {
   DOCUMENT_EXTRACTION_REQUESTED,
   DOCUMENT_TRIAGE_REQUESTED,
@@ -17,6 +21,10 @@ import {
   RECONCILE_COUNTS_FN_CONFIG,
   TRIAGE_DOCUMENT_FN_CONFIG,
 } from "../pipeline-fn-config.js";
+import { RELIEFWEB_FN_CONFIG } from "../reliefweb-config.js";
+import { UGANDA_MOH_FN_CONFIG } from "../uganda-moh-config.js";
+import { WHO_AFRO_FN_CONFIG } from "../who-afro-config.js";
+import { WHO_DON_FN_CONFIG } from "../who-don-config.js";
 
 // ── Event names ──────────────────────────────────────────────────────────────
 
@@ -87,6 +95,26 @@ describe("pollEventName", () => {
   });
 });
 
+// Asserts id and throttle key for all 8 per-source ingest functions so that
+// a slug/key typo in any new config file is caught before wiring into route.ts.
+describe("all 8 per-source ingest configs", () => {
+  it.each([
+    ["who-don", "who.int"],
+    ["who-afro", "afro.who.int"],
+    ["ecdc-cdtr", "www.ecdc.europa.eu"],
+    ["africa-cdc", "africacdc.org"],
+    ["reliefweb", "api.reliefweb.int"],
+    ["acled", "api.acleddata.com"],
+    ["moh-drc", "sante.gouv.cd"],
+    ["uganda-moh", "health.go.ug"],
+  ] as const)("ingest-%s: id and CEL throttle key are correct", (slug, throttleKey) => {
+    const cfg = buildIngestConfig(slug, throttleKey);
+    expect(cfg.id).toBe(`ingest-${slug}`);
+    expect(cfg.throttle.key).toBe(`"${throttleKey}"`);
+    expect(cfg.throttle.scope).toBe("account");
+  });
+});
+
 describe("TRIAGE_DOCUMENT_FN_CONFIG", () => {
   it("has an id of triage-document", () => {
     expect(TRIAGE_DOCUMENT_FN_CONFIG.id).toBe("triage-document");
@@ -128,5 +156,24 @@ describe("RECONCILE_COUNTS_FN_CONFIG", () => {
   // (duplicates the DB CHECK constraint case_counts_no_self_supersede at the query layer).
   it("retries is a positive integer (function will retry transient DB errors)", () => {
     expect(RECONCILE_COUNTS_FN_CONFIG.retries).toBeGreaterThan(0);
+  });
+});
+
+// Verifies the ACTUAL exported config constants — not just that buildIngestConfig works.
+// A typo in any *-config.ts throttle key string would be invisible in the it.each above.
+describe("actual config object instances have correct ids and throttle keys", () => {
+  it.each([
+    ["who-don", WHO_DON_FN_CONFIG, "who.int"],
+    ["who-afro", WHO_AFRO_FN_CONFIG, "afro.who.int"],
+    ["ecdc-cdtr", ECDC_CDTR_FN_CONFIG, "www.ecdc.europa.eu"],
+    ["africa-cdc", AFRICA_CDC_FN_CONFIG, "africacdc.org"],
+    ["reliefweb", RELIEFWEB_FN_CONFIG, "api.reliefweb.int"],
+    ["acled", ACLED_FN_CONFIG, "api.acleddata.com"],
+    ["moh-drc", MOH_DRC_FN_CONFIG, "sante.gouv.cd"],
+    ["uganda-moh", UGANDA_MOH_FN_CONFIG, "health.go.ug"],
+  ] as const)("%s config: id and throttle key match their config file", (slug, cfg, throttleKey) => {
+    expect(cfg.id).toBe(`ingest-${slug}`);
+    expect(cfg.throttle.key).toBe(`"${throttleKey}"`);
+    expect(cfg.throttle.scope).toBe("account");
   });
 });

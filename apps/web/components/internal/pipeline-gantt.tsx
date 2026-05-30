@@ -19,30 +19,6 @@ const STATUS_BAR_CLASSES: Record<string, string> = {
   Running: "bg-warn motion-safe:animate-pulse",
 };
 
-function computeWindow(runs: InngestRun[]): { end: number; start: number } {
-  const starts = runs.map((r) => new Date(r.started_at).getTime());
-  const ends = runs.flatMap((r) => (r.ended_at === null ? [] : [new Date(r.ended_at).getTime()]));
-  const start = Math.min(...starts);
-  const end = ends.length > 0 ? Math.max(...ends) : start + 60_000;
-  return { start, end: end > start ? end : start + 60_000 };
-}
-
-function barGeometry(
-  run: InngestRun,
-  windowStart: number,
-  windowDuration: number,
-): { left: string; width: string } {
-  const runStart = new Date(run.started_at).getTime();
-  const runEnd =
-    run.ended_at === null ? windowStart + windowDuration : new Date(run.ended_at).getTime();
-  const leftPct = ((runStart - windowStart) / windowDuration) * 100;
-  const widthPct = ((runEnd - runStart) / windowDuration) * 100;
-  return {
-    left: `${Math.max(0, leftPct).toFixed(2)}%`,
-    width: `${Math.max(1, widthPct).toFixed(2)}%`,
-  };
-}
-
 export function PipelineGantt({ runs }: Readonly<{ runs: InngestRun[] }>) {
   if (runs.length === 0) {
     return null;
@@ -84,4 +60,28 @@ export function PipelineGantt({ runs }: Readonly<{ runs: InngestRun[] }>) {
       })}
     </ul>
   );
+}
+
+function barGeometry(
+  run: InngestRun,
+  windowStart: number,
+  windowDuration: number,
+): { left: string; width: string } {
+  const runStart = new Date(run.started_at).getTime();
+  const runEnd =
+    run.ended_at === null ? windowStart + windowDuration : new Date(run.ended_at).getTime();
+  const leftPct = ((runStart - windowStart) / windowDuration) * 100;
+  const widthPct = ((runEnd - runStart) / windowDuration) * 100;
+  return {
+    left: `${Math.max(0, leftPct).toFixed(2)}%`,
+    width: `${Math.max(1, widthPct).toFixed(2)}%`,
+  };
+}
+
+function computeWindow(runs: InngestRun[]): { end: number; start: number } {
+  const starts = runs.map((r) => new Date(r.started_at).getTime());
+  const ends = runs.flatMap((r) => (r.ended_at === null ? [] : [new Date(r.ended_at).getTime()]));
+  const start = Math.min(...starts);
+  const end = ends.length > 0 ? Math.max(...ends) : start + 60_000;
+  return { start, end: end > start ? end : start + 60_000 };
 }

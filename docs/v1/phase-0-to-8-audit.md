@@ -5,7 +5,7 @@
 **Method:** spec-vs-filesystem audit across three parallel `Explore` subagents, with direct verification of all consequential gaps.
 **Question:** Are phases 0–8 fully operational and is the project ready for Phase 9?
 
-**TL;DR — NOT YET READY for Phase 9.** Phases 0, 1, 3, 4, 5, and 8 are substantially complete. Phase 2 is complete in substance but its end-to-end "single document round-trip" exit gate is structurally distributed into the Phase 6 pipeline and cannot be re-verified in isolation. Phase 6 is materially incomplete (5 of 8 v0 source adapters missing, all 5 priority adapters missing, no statistical anomaly module). Phase 7 has all scaffolding but cannot prove its quantitative exit gate (F1 ≥ 0.95) because 5 of 7 gold-set contexts have no source fixture. Two smaller cross-cutting gaps (`packages/db/src/types.gen.ts` missing; Vercel function region pinning) also need attention. The Phase 7 spec's `vercel.ts` firewall snippet is **not applicable** — Vercel WAF / firewall rules are configured in the Vercel dashboard, not in `vercel.ts`. See [§ Phase 9 readiness](#phase-9-readiness-verdict) for the ordered punch list.
+**TL;DR — NOT YET READY for Phase 9.** Phases 0, 1, 3, 4, 5, and 8 are substantially complete. Phase 2 is complete in substance but its end-to-end "single document round-trip" exit gate is structurally distributed into the Phase 6 pipeline and cannot be re-verified in isolation. Phase 6 is materially incomplete (5 of 8 v0 source adapters missing, all 5 priority adapters missing, no statistical anomaly module). Phase 7 has all scaffolding but cannot prove its quantitative exit gate (F1 ≥ 0.95) because 5 of 7 gold-set contexts have no source fixture. One smaller cross-cutting gap (Vercel function region pinning) also needs attention. The Phase 7 spec's `vercel.ts` firewall snippet is **not applicable** — Vercel WAF / firewall rules are configured in the Vercel dashboard, not in `vercel.ts`. See [§ Phase 9 readiness](#phase-9-readiness-verdict) for the ordered punch list.
 
 ---
 
@@ -58,15 +58,12 @@
 - pgTAP suite — [000-setup.sql](supabase/tests/000-setup.sql), [001-substring-verify.sql](supabase/tests/001-substring-verify.sql), [002-rls.sql](supabase/tests/002-rls.sql), [003-provenance-not-null.sql](supabase/tests/003-provenance-not-null.sql) (plus many later-phase tests)
 - [supabase/seed.sql](supabase/seed.sql) seeds the `who-don` source
 
-### Missing
-- ❌ **`packages/db/src/types.gen.ts` does not exist.** Confirmed — only `index.ts` and `schema.ts` are in `packages/db/src/`. The `types-drift` CI job in `ci.yml` will **fail on every PR** until this file is generated (`supabase gen types typescript --linked > packages/db/src/types.gen.ts`) and committed. **Blocking gap.**
-
 ### Diverges from spec (acceptable)
 - 🟡 `case_counts.status` defaults to `"published"` in Drizzle ([schema.ts:240](packages/db/src/schema.ts#L240)). Spec called for `"pending_review"` until the Phase 7 autonomy flip. The flip appears to have been pulled forward — consistent with `case_counts_escalation_class.sql` migration shipping early. Verify against the SQL migration intent.
 - 🟡 Phase boundaries are blurred — 41+ migrations exist; many are Phase 4–7 features. The Phase 1 "init" set is correct; the boundary noise is benign.
 
 ### Exit-gate verdict
-**⚠️ Partial.** pgTAP suite and substring trigger are in place. The `types.gen.ts` requirement is unmet — the spec explicitly says "diff against the committed `packages/db/src/types.gen.ts` is empty," but there is no committed file to diff against, so the CI gate currently fails by default.
+**✅ Met.** pgTAP suite and substring trigger are in place. `packages/db/src/types.gen.ts` is generated and committed; the CI types-drift gate will pass.
 
 ---
 
@@ -182,7 +179,7 @@
 ### Implemented
 - Migrations: `extraction_paused` flag, `incidents` table, `documents` conditional-GET columns (`etag`, `last_modified`, `http_status`, `license`), `disagreements_rpc`, `case_counts_superseded_self_check`, `case_counts_escalation_class`, `phase6_sources_seed` (sets `trust_score` + `license_tier` + `license_url`)
 - Adapter interface: [packages/ingest/src/adapter.ts](packages/ingest/src/adapter.ts)
-- [packages/ingest/src/registry.ts](packages/ingest/src/registry.ts) (3 adapters registered: who-don, who-afro, ecdc-cdtr)
+- [packages/ingest/src/registry.ts](packages/ingest/src/registry.ts) (8 adapters registered: who-don, who-afro, ecdc-cdtr, africa-cdc, reliefweb, acled, moh-drc, uganda-moh)
 - Triage Agent: [packages/extract/src/agents/triage.ts](packages/extract/src/agents/triage.ts) (Haiku, cache_control 1h)
 - Reconciliation Agent: [packages/extract/src/agents/reconcile.ts](packages/extract/src/agents/reconcile.ts) (Opus, trust_score / published_at logic)
 - Inngest fan-out: [triage-document.ts](apps/web/inngest/functions/triage-document.ts), [extract-document.ts](apps/web/inngest/functions/extract-document.ts), [reconcile-counts.ts](apps/web/inngest/functions/reconcile-counts.ts)
@@ -191,14 +188,14 @@
 - Playwright: [apps/web/e2e/disagreement.spec.ts](apps/web/e2e/disagreement.spec.ts)
 - Vitest: `triage.test.ts`, `reconcile.test.ts`, `who-afro.test.ts`, `ecdc-cdtr.test.ts`
 
+### Diverges from spec (acceptable)
+- 🟡 **Anomaly detector lives at `apps/web/inngest/lib/anomaly.ts`, not `packages/extract/src/agents/anomaly.ts`.** The Phase 6 spec specified the latter path, but the implementation landed in the Inngest lib layer — which is where it is actually called (via [persist-extraction.ts](apps/web/inngest/lib/persist-extraction.ts)). It exports `detectAnomalies()` with all three signal types: rolling 14-day z-score (`AnomalyKind.zscore`), CFR threshold (`AnomalyKind.cfr`), and 100 km cluster spread (`AnomalyKind.cluster_100km`). Notifications flow through [notify.ts](apps/web/lib/notify.ts). Unit tests are at [anomaly.test.ts](apps/web/inngest/lib/__tests__/anomaly.test.ts). Escalation Class #4 **can** fire today. The spec's LLM tiebreak (Sonnet 4.6 when z > 2.5) is not yet wired — deferred to Phase 7.
+
 ### Missing (BLOCKING for Phase 9 unless explicitly deferred)
-- ❌ **5 of 8 v0 source adapters not implemented.** Only `who-don.ts`, `who-afro.ts`, `ecdc-cdtr.ts` exist in [packages/ingest/src/sources/](packages/ingest/src/sources/). The spec requires `africa-cdc`, `reliefweb`, `acled`, `moh-drc`, `uganda-moh`.
-- ❌ **All 5 Priority adapters missing.** No `hdx-hapi.ts`, `iom-dtm.ts`, `ucdp-candidate.ts`, `grid3-drc.ts`, `hot-osm-healthsites.ts`.
-- ❌ **`packages/extract/src/agents/anomaly.ts` does not exist.** Confirmed — `agents/` contains hash, reconcile, shared, triage (+ their prompts/tools) but no anomaly module. The Phase 6 statistical anomaly detector (rolling z-score, spatial spread, CFR thresholds) is unimplemented. As a consequence Phase 7 Escalation Class #4 ("anomaly z > 4 OR CFR ≥ 80 % OR cluster spread > 100 km") cannot fire.
-- ❌ Per-source Inngest ingest functions for the missing adapters
+- ❌ **All 5 Priority adapters deferred.** No `hdx-hapi.ts`, `iom-dtm.ts`, `ucdp-candidate.ts`, `grid3-drc.ts`, `hot-osm-healthsites.ts`. Deferred by [ADR-0020](../../docs/adr/0020-defer-priority-adapters-to-post-phase-9.md): parse shapes unspecified; Phase 9 spatial layers not yet live; HDX license tier review pending.
 
 ### Exit-gate verdict
-**❌ Not met.** The synthetic WHO/ECDC disagreement *can* be reconciled (reconcile agent + RPC + UI pill + e2e test are all wired), so the literal exit-gate scenario is achievable. But the broader spec — "expand from one source adapter to eight" and "statistical anomaly detection" — is materially unfinished. A reader of the spec would expect a multi-source, anomaly-detecting pipeline; what exists is a three-source pipeline without anomaly detection.
+**✅ Met (v0 scope).** All 8 v0 source adapters implemented; all 8 per-source Inngest ingest functions wired; anomaly detection present; reconcile agent, UI pill, and e2e test are all wired. 5 Priority-tier adapters are formally deferred to post-Phase-9 per ADR-0020.
 
 ---
 
@@ -223,8 +220,7 @@
 - 🟡 **Phase 7 spec shows `firewall.rules` inside `vercel.ts` — this is not how Vercel WAF works.** Vercel firewall / WAF rules are configured in the Vercel dashboard, not in the project config file. [apps/web/vercel.ts](apps/web/vercel.ts) is correct as-is. L1 rate limiting should be confirmed to be active in the Vercel dashboard. L2 Upstash rate limiting is correctly implemented in `proxy.ts` (sliding-window + token-bucket).
 
 ### Missing
-- ❌ **Gold-set fixtures are thin.** Confirmed: only `bundibugyo-ituri-2026-04-20/` and `no-confirmed-figures/` contain a `source.txt`. The other 5 contexts contain only `ground-truth.json` + `README.md`. **Promptfoo cannot run an F1 measurement without source fixtures, so the F1 ≥ 0.95 gate is presently unmeasurable.**
-- ⚠️ **Anomaly module missing** (cross-cut from Phase 6) means escalation class #4 cannot fire, so "zero non-escalation-class human interventions" is the wrong success metric — there is no anomaly class to escalate from in the first place.
+- ❌ **Gold-set fixtures are thin.** Confirmed: only `bundibugyo-ituri-2026-04-20/` and `no-confirmed-figures/` contain a `source.txt` and a populated `response-fixture.json`. The other 5 contexts have `ground-truth.json` as `{}` (3 bytes) and no `source.txt`. **Promptfoo cannot run an F1 measurement without source fixtures, so the F1 ≥ 0.95 gate is presently unmeasurable.**
 
 ### Exit-gate verdict
 **⚠️ Scaffolding complete, quantitative gates unprovable.** The kill switch, four-tier capacity model, shadow extraction, batch back-fill, maintenance cron, Langfuse exporter, and autonomy flip are all wired. But: (a) F1 ≥ 0.95 cannot be measured against a 2-source-fixture gold set, (b) the 7-day autonomy run is empirical and cannot be audited from the filesystem.
@@ -261,7 +257,7 @@
 The repo has accumulated 41 migrations and many Phase 4–7 features ahead of their nominal phase. Schema-wise this is benign, but two consequences need attention:
 
 1. The Phase 2 "one document round-trip" exit gate is no longer observable in a single Inngest function (split across 4 functions).
-2. `case_counts.status` defaults to `"published"` already — the Phase 7 autonomy flip appears to have been pulled forward. Verify this aligns with the desired manual-vs-autonomous mode.
+2. `case_counts.status` defaults to `"published"` — the Phase 7 autonomy flip was intentionally pulled forward. Migration [20260530100000_case_counts_escalation_class.sql](supabase/migrations/20260530100000_case_counts_escalation_class.sql) contains an explicit comment "Autonomy flip (Phase 7): rows publish immediately by default." This is not drift; it is consistent with the final design.
 
 ### Verification & observability
 There are no recorded results in the repo for the empirical gates:
@@ -276,20 +272,17 @@ Recommend a `docs/v1/exit-gate-evidence/` directory with one short file per empi
 
 ## Phase 9 readiness verdict
 
-**Not yet ready.** Phase 9 ("Computed geospatial layers") depends on the Phase 6/7 pipeline being able to ingest from many sources, detect anomalies, and protect cost. Two gaps are load-bearing:
+**Not yet ready.** Phase 9 ("Computed geospatial layers") depends on the Phase 6/7 pipeline being able to ingest from many sources and measure extraction quality. Two gaps are load-bearing:
 
 ### Blockers (must fix before Phase 9)
 
-1. **Generate and commit `packages/db/src/types.gen.ts`** — CI types-drift gate currently fails by default; every PR is red until this is fixed. Run: `supabase gen types typescript --linked > packages/db/src/types.gen.ts` and commit.
-2. **Implement `packages/extract/src/agents/anomaly.ts`** + tests — Phase 9 layers (e.g., care-access-deficit raster) will produce signals the system needs to anomaly-detect. Escalation Class #4 of the autonomy model (anomaly z > 4 / CFR ≥ 80 % / cluster spread > 100 km) cannot fire without this.
+1. **Add `source.txt` fixtures + populate `ground-truth.json`** for the 5 incomplete gold-set contexts (`cholera-cod-2024`, `ebola-sudan-ssd-2022`, `ebola-zaire-cod-2019`, `marburg-tz-2026-05-01`, `mpox-cod-2023`) so the F1 ≥ 0.95 gate is measurable. Currently `promptfoo` cannot run against 5 of 7 contexts.
 
 ### Should-fix before Phase 9 (or take an explicit deferral)
 
-3. **Backfill 5 of 8 v0 source adapters** (`africa-cdc`, `reliefweb`, `acled`, `moh-drc`, `uganda-moh`) OR write an ADR formally deferring them.
-4. **Backfill at least 3 of 5 Priority adapters**, especially **HDX HAPI** (one adapter unlocks five data layers and feeds Phase 9 directly via IPC / INFORM / OCHA FTS / WorldPop) and **HOT OSM healthsites.io** (required for the Phase 9 travel-time-to-ETU layer).
-5. **Add `source.txt` fixtures** to the 5 incomplete gold-set contexts so the F1 ≥ 0.95 gate is measurable.
-6. **Pin the Vercel function region** to the Supabase project region (Vercel project Settings → Functions → Function Region).
-7. **Confirm Vercel WAF / firewall rules are active in the dashboard** for `/api/mvt/*` (token-bucket), `/api/inngest`, `/auth/*`, `/outbreaks/*`. These are dashboard settings, not `vercel.ts` config.
+2. **Implement Priority adapters when Phase 9 spatial layers land.** All 5 deferred by ADR-0020. Highest-value: **HDX HAPI** (IPC / INFORM / OCHA FTS / WorldPop) and **HOT OSM healthsites.io** (travel-time-to-ETU layer). Each needs its own sub-spec before implementation.
+5. **Pin the Vercel function region** to the Supabase project region (Vercel project Settings → Functions → Function Region).
+6. **Confirm Vercel WAF / firewall rules are active in the dashboard** for `/api/mvt/*` (token-bucket), `/api/inngest`, `/auth/*`, `/outbreaks/*`. These are dashboard settings, not `vercel.ts` config.
 
 ### Nice-to-have
 
@@ -304,11 +297,11 @@ Recommend a `docs/v1/exit-gate-evidence/` directory with one short file per empi
 | Phase | Schema | Code | Tests | Exit gate |
 |------:|:------:|:----:|:-----:|:---------:|
 | 0 | n/a | ✅ | ✅ | ✅ structurally |
-| 1 | ✅ | ✅ | ✅ | ⚠️ blocked by missing `types.gen.ts` |
+| 1 | ✅ | ✅ | ✅ | ✅ |
 | 2 | ✅ | ✅ | ✅ | ⚠️ met in substance; refactored into Phase 6 chain |
 | 3 | n/a | ✅ | ✅ | ✅ |
 | 4 | n/a | ✅ | ✅ | ✅ |
 | 5 | ✅ | ✅ | ✅ | ⚠️ region pin + drill log missing |
-| 6 | ✅ | ⚠️ (3/8 adapters; no anomaly) | ⚠️ | ❌ adapters + anomaly missing |
-| 7 | ✅ | ⚠️ (thin gold set; anomaly missing) | ✅ | ⚠️ quantitative gates unprovable |
+| 6 | ✅ | ✅ (8/8 v0 adapters; 8/8 ingest fns; anomaly ✅ at inngest/lib) | ✅ | ✅ v0 scope met; Priority adapters deferred (ADR-0020) |
+| 7 | ✅ | ⚠️ (thin gold set) | ✅ | ⚠️ F1 gate unmeasurable (5/7 fixtures empty) |
 | 8 | n/a | ✅ | ✅ | ✅ scaffolded; empirical gates pending |

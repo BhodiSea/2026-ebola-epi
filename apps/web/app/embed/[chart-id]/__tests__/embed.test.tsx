@@ -6,15 +6,15 @@ vi.mock("next/navigation", () => ({
   useSearchParams: vi.fn(() => new URLSearchParams()),
 }));
 
+function post(data: unknown) {
+  act(() => {
+    globalThis.dispatchEvent(new MessageEvent("message", { data }));
+  });
+}
+
 async function renderEmbed() {
   const { default: EmbedPage } = await import("../page");
   return render(<EmbedPage />);
-}
-
-function post(data: unknown) {
-  act(() => {
-    window.dispatchEvent(new MessageEvent("message", { data }));
-  });
 }
 
 describe("embed postMessage handler", () => {

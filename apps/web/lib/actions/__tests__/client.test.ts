@@ -40,7 +40,7 @@ describe("internalAction", () => {
         user: {
           id: "user-1",
           email: "admin@example.com",
-          // eslint-disable-next-line @typescript-eslint/naming-convention
+
           app_metadata: { role: "admin" },
         },
       },
@@ -61,7 +61,7 @@ describe("internalAction", () => {
         user: {
           id: "user-2",
           email: "viewer@example.com",
-          // eslint-disable-next-line @typescript-eslint/naming-convention
+
           app_metadata: {},
         },
       },

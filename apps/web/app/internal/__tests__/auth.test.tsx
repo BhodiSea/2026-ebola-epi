@@ -39,7 +39,7 @@ describe("internal layout auth gate", () => {
             user: {
               id: "u_123",
               email: "admin@test.com",
-              // eslint-disable-next-line @typescript-eslint/naming-convention
+
               app_metadata: { role: "admin" },
             },
           },
@@ -66,7 +66,7 @@ describe("internal layout auth gate", () => {
             user: {
               id: "u_456",
               email: "user@test.com",
-              // eslint-disable-next-line @typescript-eslint/naming-convention
+
               app_metadata: {},
             },
           },
@@ -92,7 +92,7 @@ describe("internal layout auth gate", () => {
             user: {
               id: "u_789",
               email: "staff@test.com",
-              // eslint-disable-next-line @typescript-eslint/naming-convention
+
               app_metadata: { role: "staff" },
             },
           },

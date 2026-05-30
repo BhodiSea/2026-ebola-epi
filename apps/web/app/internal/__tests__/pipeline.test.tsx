@@ -8,7 +8,7 @@ vi.stubGlobal("fetch", mockFetch);
 vi.mock("@/lib/env", () => ({
   env: {
     INNGEST_SIGNING_KEY: "signkey-test-00000000",
-    // eslint-disable-next-line @typescript-eslint/naming-convention
+
     INNGEST_API_KEY: "apikey-test-00000000",
   },
 }));

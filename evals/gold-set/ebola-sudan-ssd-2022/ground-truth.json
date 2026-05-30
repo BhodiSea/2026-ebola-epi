@@ -1,1 +1,30 @@
-[]
+[
+  {
+    "pathogen_icd11": "1D60.3",
+    "country_iso3": "UGA",
+    "metric": "confirmed",
+    "value": 87,
+    "as_of": "2022-11-30"
+  },
+  {
+    "pathogen_icd11": "1D60.3",
+    "country_iso3": "UGA",
+    "metric": "probable",
+    "value": 54,
+    "as_of": "2022-11-30"
+  },
+  {
+    "pathogen_icd11": "1D60.3",
+    "country_iso3": "UGA",
+    "metric": "deaths",
+    "value": 55,
+    "as_of": "2022-11-30"
+  },
+  {
+    "pathogen_icd11": "1D60.3",
+    "country_iso3": "UGA",
+    "metric": "healthcare_workers",
+    "value": 6,
+    "as_of": "2022-11-30"
+  }
+]

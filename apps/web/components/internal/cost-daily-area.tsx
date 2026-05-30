@@ -11,6 +11,11 @@ const MODEL_COLOURS: Record<string, string> = {
   haiku: "hsl(140, 60%, 45%)",
 };
 
+interface DayPoint {
+  cost: number;
+  day: string;
+}
+
 function modelColour(modelId: string): string {
   for (const [family, colour] of Object.entries(MODEL_COLOURS)) {
     if (modelId.includes(family)) {
@@ -18,11 +23,6 @@ function modelColour(modelId: string): string {
     }
   }
   return "hsl(0, 0%, 50%)";
-}
-
-interface DayPoint {
-  cost: number;
-  day: string;
 }
 
 const xAccessor = (d: DayPoint) => d.day;
@@ -51,8 +51,8 @@ export function CostDailyArea({ data }: Readonly<{ data: DailyViewRow[] }>) {
     };
   }, []);
 
-  const days = [...new Set(data.map((r) => r.day))].sort();
-  const models = [...new Set(data.map((r) => r.model_id))].sort();
+  const days = [...new Set(data.map((r) => r.day))].sort((a, b) => a.localeCompare(b));
+  const models = [...new Set(data.map((r) => r.model_id))].sort((a, b) => a.localeCompare(b));
 
   const seriesByModel = new Map<string, DayPoint[]>();
   for (const model of models) {

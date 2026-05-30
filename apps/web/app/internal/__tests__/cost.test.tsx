@@ -34,19 +34,20 @@ vi.mock("@/lib/supabase/server", () => ({
 function findReactElement(
   root: unknown,
   target: unknown,
-): { props: Record<string, unknown> } | null {
+): null | { props: Record<string, unknown> } {
   const queue: unknown[] = [root];
   while (queue.length > 0) {
     const node = queue.shift();
     if (node === null || typeof node !== "object") {
       continue;
     }
-    const el = node as { type?: unknown; props?: { children?: unknown } };
+    const el = node as { props?: { children?: unknown }; type?: unknown };
     if (el.type === target) {
       return el as { props: Record<string, unknown> };
     }
     const kids = el.props?.children;
-    queue.push(...(Array.isArray(kids) ? kids : [kids]));
+    // Array.isArray narrows to any[] by TS design; cast is safe — we verified it's an array
+    queue.push(...(Array.isArray(kids) ? (kids as unknown[]) : [kids]));
   }
   return null;
 }
@@ -106,7 +107,6 @@ describe("/internal/cost page", () => {
   });
 
   it("passes all view rows to the chart component (no truncation)", async () => {
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     const multiModelRows = [
       { day: "2026-05-01", model_id: "claude-sonnet-4-6", total_cost: "0.020000" },
       { day: "2026-05-01", model_id: "claude-haiku-4-5", total_cost: "0.005000" },

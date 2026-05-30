@@ -1,12 +1,14 @@
 import { CostDailyArea } from "@/components/internal/cost-daily-area";
 import { createClient } from "@/lib/supabase/server";
 
+/* eslint-disable @typescript-eslint/naming-convention */
 // Exported for the chart component
 export interface DailyViewRow {
   day: string;
   model_id: string;
   total_cost: number | string;
 }
+/* eslint-enable @typescript-eslint/naming-convention */
 
 /* eslint-disable @typescript-eslint/naming-convention */
 interface OutlierRow {
@@ -23,7 +25,7 @@ const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
 export default async function CostPage() {
   // eslint-disable-next-line react-hooks/purity -- Server Component runs once per request; Date.now() is safe
   const cutoffDate = new Date(Date.now() - THIRTY_DAYS_MS).toISOString().slice(0, 10);
-  // eslint-disable-next-line react-hooks/purity -- Server Component runs once per request
+
   const todayDate = new Date().toISOString().slice(0, 10);
   const supabase = await createClient();
 
@@ -48,11 +50,7 @@ export default async function CostPage() {
   const daily = (viewData ?? []) as DailyViewRow[];
   const outliers = (outlierData ?? []) as OutlierRow[];
 
-  const total30d = daily.reduce((s, r) => s + Number(r.total_cost), 0);
-  const totalToday = daily
-    .filter((r) => r.day === todayDate)
-    .reduce((s, r) => s + Number(r.total_cost), 0);
-  const costPerRun = (runCount ?? 0) > 0 ? total30d / (runCount ?? 1) : 0;
+  const { total30d, totalToday, costPerRun } = computeKpis(daily, todayDate, runCount ?? 0);
 
   return (
     <div className="flex-1 space-y-8 p-6">
@@ -107,6 +105,19 @@ export default async function CostPage() {
       </section>
     </div>
   );
+}
+
+function computeKpis(
+  daily: DailyViewRow[],
+  todayDate: string,
+  runCount: number,
+): { costPerRun: number; total30d: number; totalToday: number } {
+  const total30d = daily.reduce((s, r) => s + Number(r.total_cost), 0);
+  const totalToday = daily
+    .filter((r) => r.day === todayDate)
+    .reduce((s, r) => s + Number(r.total_cost), 0);
+  const costPerRun = runCount > 0 ? total30d / runCount : 0;
+  return { total30d, totalToday, costPerRun };
 }
 
 function KpiCard({ label, value }: Readonly<{ label: string; value: string }>) {

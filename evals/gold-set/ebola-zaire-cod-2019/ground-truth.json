@@ -1,1 +1,30 @@
-[]
+[
+  {
+    "pathogen_icd11": "1D60.1",
+    "country_iso3": "COD",
+    "metric": "confirmed",
+    "value": 2359,
+    "as_of": "2019-07-17"
+  },
+  {
+    "pathogen_icd11": "1D60.1",
+    "country_iso3": "COD",
+    "metric": "probable",
+    "value": 153,
+    "as_of": "2019-07-17"
+  },
+  {
+    "pathogen_icd11": "1D60.1",
+    "country_iso3": "COD",
+    "metric": "deaths",
+    "value": 1676,
+    "as_of": "2019-07-17"
+  },
+  {
+    "pathogen_icd11": "1D60.1",
+    "country_iso3": "COD",
+    "metric": "healthcare_workers",
+    "value": 131,
+    "as_of": "2019-07-17"
+  }
+]

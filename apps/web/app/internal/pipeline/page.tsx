@@ -74,7 +74,7 @@ function computeSuccessRate(runs: InngestRun[]): number {
 
 async function fetchRuns(): Promise<InngestRun[]> {
   const key = env.INNGEST_API_KEY;
-  if (!key) {
+  if (key === undefined) {
     console.error("[pipeline] INNGEST_API_KEY is not set; cannot fetch runs from Inngest REST API");
     return [];
   }
@@ -91,8 +91,8 @@ async function fetchRuns(): Promise<InngestRun[]> {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- res.json() returns any; as unknown as T is the accepted safe-assertion idiom
     const body = (await res.json()) as unknown as { data?: InngestRun[] };
     return body.data ?? [];
-  } catch (err) {
-    console.error("[pipeline] Failed to fetch Inngest runs:", err);
+  } catch (error) {
+    console.error("[pipeline] Failed to fetch Inngest runs:", error);
     return [];
   }
 }

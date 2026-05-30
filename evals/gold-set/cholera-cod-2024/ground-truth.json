@@ -1,1 +1,23 @@
-[]
+[
+  {
+    "pathogen_icd11": "1A00",
+    "country_iso3": "COD",
+    "metric": "suspected",
+    "value": 35278,
+    "as_of": "2024-09-01"
+  },
+  {
+    "pathogen_icd11": "1A00",
+    "country_iso3": "COD",
+    "metric": "confirmed",
+    "value": 6842,
+    "as_of": "2024-09-01"
+  },
+  {
+    "pathogen_icd11": "1A00",
+    "country_iso3": "COD",
+    "metric": "deaths",
+    "value": 614,
+    "as_of": "2024-09-01"
+  }
+]

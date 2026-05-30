@@ -1,1 +1,23 @@
-[]
+[
+  {
+    "pathogen_icd11": "1E71",
+    "country_iso3": "COD",
+    "metric": "suspected",
+    "value": 14626,
+    "as_of": "2023-12-31"
+  },
+  {
+    "pathogen_icd11": "1E71",
+    "country_iso3": "COD",
+    "metric": "confirmed",
+    "value": 1002,
+    "as_of": "2023-12-31"
+  },
+  {
+    "pathogen_icd11": "1E71",
+    "country_iso3": "COD",
+    "metric": "deaths",
+    "value": 654,
+    "as_of": "2023-12-31"
+  }
+]
