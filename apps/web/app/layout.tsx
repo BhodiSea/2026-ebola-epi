@@ -3,6 +3,7 @@ import { Geist, Geist_Mono, Source_Serif_4 } from "next/font/google";
 import { headers } from "next/headers";
 import { ThemeProvider } from "next-themes";
 
+import { BottomTabNav } from "@/components/layout/bottom-tab-nav";
 import { CommandBarLoader } from "@/components/layout/command-bar-loader";
 import { NavRail } from "@/components/layout/nav-rail";
 import { TopBar } from "@/components/layout/top-bar";
@@ -63,8 +64,9 @@ export default async function RootLayout({
             <TopBar />
             <div className="flex min-h-[calc(100vh-3.5rem)]">
               <NavRail />
-              <main className="flex-1 overflow-auto">{children}</main>
+              <main className="flex-1 overflow-auto pb-14 md:pb-0">{children}</main>
             </div>
+            <BottomTabNav />
             <CommandBarLoader />
           </TooltipProvider>
         </ThemeProvider>

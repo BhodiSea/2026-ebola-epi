@@ -9,7 +9,9 @@ import type { OutbreakOption } from "./layer-rail";
 import { LayerRail } from "./layer-rail";
 import type { ZoneSelection } from "./map-pane";
 import { MapPane } from "./map-pane";
+import { MobileInspector } from "./mobile-inspector";
 import { TimeScrubber } from "./time-scrubber";
+import type { MapKeyboard } from "@/lib/map/keyboard";
 import { createMapKeyboard } from "@/lib/map/keyboard";
 import { parseLayers } from "@/lib/map/layers";
 import type { TimeWindow } from "@/lib/map/zone-detail-response";
@@ -57,22 +59,14 @@ export function MapClientShell({
     );
   }, []);
 
-  useEffect(() => {
-    document.addEventListener("keydown", keyboard.handleKeyDown);
-    const unsubscribe = keyboard.subscribe((ev) => {
-      if (ev.type === "cycleTime") {
-        cycleWindow();
-      }
-    });
-    return () => {
-      document.removeEventListener("keydown", keyboard.handleKeyDown);
-      unsubscribe();
-    };
-  }, [keyboard, cycleWindow]);
+  useKeyboardCycle(keyboard, cycleWindow);
 
   return (
-    <div className="flex h-full min-h-0">
-      <LayerRail outbreakId={outbreakId} keyboard={keyboard} outbreaks={outbreaks} />
+    <div className="relative flex h-full min-h-0">
+      {/* Layer rail: hidden on mobile, visible on md+ */}
+      <div className="hidden md:flex">
+        <LayerRail outbreakId={outbreakId} keyboard={keyboard} outbreaks={outbreaks} />
+      </div>
       <div className="flex min-h-0 flex-1 flex-col">
         <MapPane
           outbreakId={outbreakId}
@@ -94,13 +88,37 @@ export function MapClientShell({
           onCycleWindow={cycleWindow}
         />
       </div>
-      <InspectorTabs
+      {/* Desktop inspector panel */}
+      <div className="hidden md:flex">
+        <InspectorTabs
+          outbreakId={outbreakId}
+          timeWindow={timeWindow}
+          {...(selected === null ? {} : { selectedAdmin1: selected })}
+        />
+      </div>
+      {/* Mobile vaul drawer — Drawer.Content carries md:hidden */}
+      <MobileInspector
         outbreakId={outbreakId}
         timeWindow={timeWindow}
         {...(selected === null ? {} : { selectedAdmin1: selected })}
       />
     </div>
   );
+}
+
+function useKeyboardCycle(keyboard: MapKeyboard, onCycle: () => void): void {
+  useEffect(() => {
+    document.addEventListener("keydown", keyboard.handleKeyDown);
+    const unsubscribe = keyboard.subscribe((ev) => {
+      if (ev.type === "cycleTime") {
+        onCycle();
+      }
+    });
+    return () => {
+      document.removeEventListener("keydown", keyboard.handleKeyDown);
+      unsubscribe();
+    };
+  }, [keyboard, onCycle]);
 }
 
 /** Choropleth totals: server-provided current totals by default; when the TimeScrubber sets

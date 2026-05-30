@@ -131,4 +131,12 @@
   [data-numeric] {
     font-variant-numeric: tabular-nums slashed-zero;
   }
+  [data-vaul-drawer] {
+    --vaul-drawer-transition: transform 300ms cubic-bezier(0.32, 0.72, 0, 1);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    [data-vaul-drawer] {
+      --vaul-drawer-transition: none;
+    }
+  }
 }

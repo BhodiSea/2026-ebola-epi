@@ -46,7 +46,7 @@ export default async function TodayPage({
     <main className="mx-auto max-w-4xl space-y-8 px-4 py-8">
       <ActiveOutbreakBanner outbreak={outbreak} confirmedQuoteId={confirmedQuoteId} />
 
-      <section className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+      <section className="grid grid-cols-2 gap-4 md:grid-cols-4">
         <StatCard
           label="Confirmed"
           value={stats.confirmed.value}
