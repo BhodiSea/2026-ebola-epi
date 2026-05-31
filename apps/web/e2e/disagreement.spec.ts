@@ -6,8 +6,8 @@ test("disagreement pill visible when multi-source conflict exists on confirmed s
   await page.goto("/today");
   await page.locator('[data-stat-card="confirmed"]').waitFor({ timeout: 10_000 });
 
-  // If disagreements are seeded in the test DB, the pill will be present.
-  // This test asserts the selector shape; in CI the DB must have divergent rows.
+  // seed.sql inserts a divergent Africa CDC confirmed count for 2026-05-24.
+  // get_disagreements RPC returns it alongside the WHO DON value, triggering the pill.
   const pill = page.locator("[data-disagreement-pill]").first();
   await expect(pill).toBeVisible({ timeout: 5000 });
 });

@@ -46,6 +46,9 @@ const config: KnipConfig = {
     "apps/web/components/theme-switcher.tsx",
     "apps/web/components/provenance/skeleton-map.tsx",
     "apps/web/lib/copy/daily-brief.ts",
+    // Playwright globalSetup — referenced as a string path in playwright.config.ts,
+    // not as an import, so knip's Playwright plugin does not discover it automatically.
+    "apps/web/e2e/global-setup.ts",
   ],
   rules: {
     files: "error",

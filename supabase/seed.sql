@@ -260,3 +260,100 @@ values
    'a4eebc99-9c0b-4ef8-bb6d-6bb9bd380a01', 'f0eebc99-9c0b-4ef8-bb6d-6bb9bd380a01',
    'claude-sonnet-4-6', 'seed-v1-phase4', 'published')
 on conflict (id) do nothing;
+
+-- ─── WP7 e2e seed additions ───────────────────────────────────────────────────
+-- Africa CDC source for disagreement spec: two sources reporting different
+-- confirmed totals for the same (outbreak, metric, as_of) triggers the
+-- get_disagreements RPC and makes [data-disagreement-pill] visible on /today.
+
+insert into public.sources (id, slug, name, url, trust_score, license_tier, license_url, attribution_required, posture_terms, posture_attribution)
+values (
+  'd1eebc99-9c0b-4ef8-bb6d-6bb9bd380a01',
+  'africa-cdc',
+  'Africa CDC Outbreak Brief',
+  'https://africacdc.org/disease-outbreaks/',
+  0.90,
+  'open',
+  'https://africacdc.org/terms-of-use',
+  true,
+  'Africa CDC outbreak briefs are released as public documents. Reproduction with attribution is permitted for public-health purposes.',
+  '© Africa Centres for Disease Control and Prevention'
+) on conflict (slug) do nothing;
+
+-- Africa CDC document — 24 May 2026 brief with a divergent confirmed count
+insert into public.documents (id, source_id, sha256, url, title, full_text, published_at, ingested_at)
+select
+  'e3eebc99-9c0b-4ef8-bb6d-6bb9bd380a01',
+  s.id,
+  sha256(convert_to(
+    '172 confirmed cases as of 24 May 2026. Africa CDC Outbreak Brief 4.',
+    'UTF8'
+  )),
+  'https://africacdc.org/briefs/bdbv-drc-2026-04',
+  'Africa CDC Outbreak Brief 4 — Bundibugyo Virus Disease, DRC',
+  '172 confirmed cases as of 24 May 2026. Africa CDC Outbreak Brief 4.',
+  '2026-05-24T10:00:00Z',
+  '2026-05-24T11:00:00Z'
+from public.sources s where s.slug = 'africa-cdc'
+on conflict (sha256) do nothing;
+
+-- extraction run for the Africa CDC document
+insert into audit.extraction_runs (
+  id, document_id, model_id, prompt_version_hash, tool_schema_hash,
+  schema_version, rows_extracted, rows_verified, started_at, ended_at
+)
+values (
+  'f1eebc99-9c0b-4ef8-bb6d-6bb9bd380a01',
+  'e3eebc99-9c0b-4ef8-bb6d-6bb9bd380a01',
+  'claude-sonnet-4-6',
+  'seed-v1-africa-cdc',
+  'seed-v1-africa-cdc',
+  '1',
+  1,
+  1,
+  '2026-05-24T11:00:00Z',
+  '2026-05-24T11:02:00Z'
+) on conflict (document_id, prompt_version_hash) do nothing;
+
+-- source quote from Africa CDC doc — char_start=0, char_end=19
+insert into public.source_quotes (id, document_id, char_start, char_end, quote_text)
+values (
+  'a5eebc99-9c0b-4ef8-bb6d-6bb9bd380a01',
+  'e3eebc99-9c0b-4ef8-bb6d-6bb9bd380a01',
+  0, 19,
+  '172 confirmed cases'
+) on conflict (id) do nothing;
+
+-- Divergent confirmed total from Africa CDC — triggers get_disagreements RPC.
+-- superseded_by points to the first WHO DON zone row so this row is excluded
+-- from getEpiCurveSeries (.is("superseded_by", null) filter) while remaining
+-- visible to get_disagreements (which includes superseded rows by design).
+insert into public.case_counts (
+  id, outbreak_id, as_of, admin2_code, metric, value,
+  source_quote_id, extraction_run_id, model_id, prompt_version_hash,
+  status, superseded_by
+)
+values (
+  'cc000000-0000-0000-0000-000000000010',
+  'd0eebc99-9c0b-4ef8-bb6d-6bb9bd380a01',
+  '2026-05-24',
+  null,
+  'confirmed',
+  172,
+  'a5eebc99-9c0b-4ef8-bb6d-6bb9bd380a01',
+  'f1eebc99-9c0b-4ef8-bb6d-6bb9bd380a01',
+  'claude-sonnet-4-6',
+  'seed-v1-africa-cdc',
+  'published',
+  'cc000000-0000-0000-0000-000000000001'
+) on conflict (id) do nothing;
+
+-- public.incidents — one open anomaly for the escalations spec
+insert into public.incidents (id, class, outbreak_id, status, detail)
+values (
+  '11111111-1111-1111-1111-111111111111',
+  'anomaly',
+  'd0eebc99-9c0b-4ef8-bb6d-6bb9bd380a01',
+  'open',
+  '{"metric": "confirmed", "z_score": 3.4}'::jsonb
+) on conflict (id) do nothing;

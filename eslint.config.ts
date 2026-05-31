@@ -65,10 +65,10 @@ export default defineConfig(
             "vitest.config.ts",
             "packages/*/vitest.config.ts",
             "packages/db/drizzle.config.ts",
-            "apps/web/e2e/*.ts",
             "evals/vitest.config.ts",
           ],
-          // Phase 7 added evals/vitest.config.ts, pushing the count to 17.
+          // WP7: apps/web/e2e/*.ts removed from allowDefaultProject — they now have
+          // their own apps/web/e2e/tsconfig.json which ESLint projectService picks up.
           // eslint-disable-next-line @typescript-eslint/naming-convention
           maximumDefaultProjectFileMatchCount_THIS_WILL_SLOW_DOWN_LINTING: 20,
         },
