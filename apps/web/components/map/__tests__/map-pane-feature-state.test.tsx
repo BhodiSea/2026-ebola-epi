@@ -44,6 +44,9 @@ vi.mock("maplibre-gl", () => ({
     NavigationControl: vi.fn(),
     ScaleControl: vi.fn(),
   },
+  Map: vi.fn(() => h.map),
+  NavigationControl: vi.fn(),
+  ScaleControl: vi.fn(),
 }));
 vi.mock("@deck.gl/mapbox", () => ({
   MapboxOverlay: vi.fn(() => ({ setProps: vi.fn(), onAdd: vi.fn(), onRemove: vi.fn() })),

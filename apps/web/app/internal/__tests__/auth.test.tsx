@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+vi.mock("server-only", () => ({}));
+
 vi.mock("next/navigation", () => ({
   redirect: vi.fn(),
 }));

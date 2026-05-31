@@ -2,6 +2,11 @@ import type { ExpressionSpecification, FilterSpecification, Map as MlMap } from 
 
 export const MVT_SOURCE = "mvt-zones";
 const ZONES_LAYER = "zones";
+const FILL_LAYER = "zones-fill";
+const HATCH_LAYER = "zones-hatch";
+const LINE_LAYER = "zones-line";
+const SELECTED_CASING_LAYER = "selected-zone-casing";
+const SELECTED_LAYER = "selected-zone";
 
 /** ColorBrewer Reds 5-class sequential, driven by per-zone feature-state caseCount. */
 const ZONE_FILL_COLOR: ExpressionSpecification = [
@@ -46,21 +51,21 @@ export function addZoneLayers(map: MlMap, tileUrl: string): void {
     map.addImage("hatch", createHatchImage(16));
   }
   map.addLayer({
-    id: "zones-hatch",
+    id: HATCH_LAYER,
     type: "fill",
     source: MVT_SOURCE,
     "source-layer": ZONES_LAYER,
     paint: { "fill-pattern": "hatch", "fill-opacity": 0.9 },
   });
   map.addLayer({
-    id: "zones-fill",
+    id: FILL_LAYER,
     type: "fill",
     source: MVT_SOURCE,
     "source-layer": ZONES_LAYER,
     paint: { "fill-color": ZONE_FILL_COLOR, "fill-opacity": ZONE_FILL_OPACITY },
   });
   map.addLayer({
-    id: "zones-line",
+    id: LINE_LAYER,
     type: "line",
     source: MVT_SOURCE,
     "source-layer": ZONES_LAYER,
@@ -71,7 +76,7 @@ export function addZoneLayers(map: MlMap, tileUrl: string): void {
   // line clears it on the light buckets, so the selected outline is always perceivable. (3:1 is
   // the applicable graphical-object threshold; 7:1 is the AAA *text* ratio and does not apply.)
   map.addLayer({
-    id: "selected-zone-casing",
+    id: SELECTED_CASING_LAYER,
     type: "line",
     source: MVT_SOURCE,
     "source-layer": ZONES_LAYER,
@@ -79,7 +84,7 @@ export function addZoneLayers(map: MlMap, tileUrl: string): void {
     paint: { "line-color": "#ffffff", "line-width": 5 },
   });
   map.addLayer({
-    id: "selected-zone",
+    id: SELECTED_LAYER,
     type: "line",
     source: MVT_SOURCE,
     "source-layer": ZONES_LAYER,
@@ -170,42 +175,42 @@ export function registerZoneInteractions(
   map: MlMap,
   getOnSelect: () => ((zone: LoadedZone) => void) | undefined,
 ): void {
-  map.on("click", "zones-fill", (e) => {
+  map.on("click", FILL_LAYER, (e) => {
     const props: unknown = e.features?.[0]?.properties;
     const code = readString(props, "code");
     if (code !== null) {
       getOnSelect()?.({ code, name: readString(props, "name") ?? code });
     }
   });
-  map.on("mouseenter", "zones-fill", () => {
+  map.on("mouseenter", FILL_LAYER, () => {
     map.getCanvas().style.cursor = "pointer";
   });
-  map.on("mouseleave", "zones-fill", () => {
+  map.on("mouseleave", FILL_LAYER, () => {
     map.getCanvas().style.cursor = "";
   });
 }
 
 export function setSelectedZone(map: MlMap, code: null | string): void {
-  if (map.getLayer("selected-zone") === undefined) {
+  if (map.getLayer(SELECTED_LAYER) === undefined) {
     return;
   }
   // Feature-state can't be used in a layer filter, so the focus ring filters on the
   // rendered `code` property. "__none__" is a sentinel that matches no real zone code.
   const filter: FilterSpecification = ["==", ["get", "code"], code ?? "__none__"];
-  map.setFilter("selected-zone-casing", filter);
-  map.setFilter("selected-zone", filter);
+  map.setFilter(SELECTED_CASING_LAYER, filter);
+  map.setFilter(SELECTED_LAYER, filter);
 }
 
 export function setZoneVisibility(map: MlMap, active: Set<string>): void {
-  if (map.getLayer("zones-fill") !== undefined) {
-    map.setLayoutProperty("zones-fill", "visibility", visibility(active.has("confirmed")));
+  if (map.getLayer(FILL_LAYER) !== undefined) {
+    map.setLayoutProperty(FILL_LAYER, "visibility", visibility(active.has("confirmed")));
   }
-  if (map.getLayer("zones-hatch") !== undefined) {
-    map.setLayoutProperty("zones-hatch", "visibility", visibility(active.has("confirmed")));
+  if (map.getLayer(HATCH_LAYER) !== undefined) {
+    map.setLayoutProperty(HATCH_LAYER, "visibility", visibility(active.has("confirmed")));
   }
-  if (map.getLayer("zones-line") !== undefined) {
+  if (map.getLayer(LINE_LAYER) !== undefined) {
     map.setLayoutProperty(
-      "zones-line",
+      LINE_LAYER,
       "visibility",
       visibility(active.has("admin2") || active.has("admin1")),
     );

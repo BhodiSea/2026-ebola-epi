@@ -2,7 +2,7 @@
 # Run offline (fixtures only): pnpm --filter @ituri/evals test
 # Run live (Anthropic API, nightly CI): pnpm --filter @ituri/evals eval
 
-description: "Extraction prompt F1 evaluation — Bundibugyo 2026 gold set"
+description: "Extraction prompt F1 evaluation — multi-pathogen gold set (7 contexts)"
 
 providers:
   - id: anthropic:messages:claude-sonnet-4-6
@@ -42,3 +42,18 @@ tests:
   - vars:
       fixture: no-confirmed-figures
       document: file://gold-set/no-confirmed-figures/source.txt
+  - vars:
+      fixture: cholera-cod-2024
+      document: file://gold-set/cholera-cod-2024/source.txt
+  - vars:
+      fixture: ebola-sudan-ssd-2022
+      document: file://gold-set/ebola-sudan-ssd-2022/source.txt
+  - vars:
+      fixture: ebola-zaire-cod-2019
+      document: file://gold-set/ebola-zaire-cod-2019/source.txt
+  - vars:
+      fixture: marburg-tz-2026-05-01
+      document: file://gold-set/marburg-tz-2026-05-01/source.txt
+  - vars:
+      fixture: mpox-cod-2023
+      document: file://gold-set/mpox-cod-2023/source.txt

@@ -248,26 +248,32 @@ pglast --version            # >= 6.0
 
 ### Environment variables
 
+The canonical reference is [`.env.example`](.env.example). Copy it to `.env.local` and fill in the six required vars; everything else is optional and env-gated.
+
 ```
+# Required
 NEXT_PUBLIC_SUPABASE_URL=
-NEXT_PUBLIC_SUPABASE_ANON_KEY=
-SUPABASE_SERVICE_ROLE_KEY=
-
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=
+POSTGRES_URL_NON_POOLING=
 ANTHROPIC_API_KEY=
-ANTHROPIC_MODEL_TRIAGE=claude-haiku-4-5-20251001      # triage / cheap routing
-ANTHROPIC_MODEL_EXTRACT=claude-sonnet-4-6             # schema-strict extraction
-ANTHROPIC_MODEL_RECONCILE=claude-opus-4-7             # multi-source reconciliation
-
 INNGEST_EVENT_KEY=
 INNGEST_SIGNING_KEY=
 
-UPSTASH_REDIS_REST_URL=               # for inbound rate limiting (L2)
+# Phase 7 — optional; features are no-ops without these
+EDGE_CONFIG=                          # kill-switch (ADR-0016)
+SLACK_WEBHOOK_URL=
+TWILIO_ACCOUNT_SID=
+TWILIO_AUTH_TOKEN=
+TWILIO_FROM_NUMBER=
+TWILIO_TO_NUMBER=
+GITHUB_TOKEN=
+GITHUB_REPO=
+UPSTASH_REDIS_REST_URL=
 UPSTASH_REDIS_REST_TOKEN=
-
-ACLED_API_KEY=
-ACLED_EMAIL=
-
-MAPLIBRE_STYLE_URL=                   # any vector style; default is in-repo
+LANGFUSE_PUBLIC_KEY=
+LANGFUSE_SECRET_KEY=
+LANGFUSE_BASE_URL=
+SENTRY_DSN=
 ```
 
 ### One-shot ingest (for testing)
@@ -284,7 +290,7 @@ Then open http://localhost:8288, select the `ingest/who-don.scheduled` function,
 ### Running the gold-set check
 
 ```bash
-pnpm test:gold   # available from Phase 7 onward — not yet wired
+pnpm --filter=@ituri/evals test   # offline F1 check against 7 gold-set fixtures
 ```
 
 ---
@@ -315,14 +321,14 @@ Phase specs live in [`docs/v1/`](docs/v1/). Phases 0–2 are implemented.
 |-------|---------|--------|
 | 0 | Monorepo, CI/CD, Vercel + Supabase scaffold | ✅ shipped |
 | 1 | Postgres schema, RLS, pgTAP test suite | ✅ shipped |
-| 2 | WHO DON ingest → Anthropic-cached extraction → `audit.llm_traces` | ✅ shipped |
-| 3 | Design system, provenance UI, voice & microcopy library | planned |
-| 4 | Editorial surfaces: map landing, zone drill-down, document explorer, daily brief | planned |
-| 5 | Map command centre: MVT tiles, PostGIS perf, deck.gl terrain | planned |
-| 6 | Multi-source adapters (HDX HAPI, IOM DTM, UCDP, WorldPop, GHSL, …) + license tiers | planned |
-| 7 | Evals, kill switch, layered rate limiting, Batch API back-fill | planned |
-| 8 | Mobile polish, a11y, JSON-LD structured data, SEO/GEO | planned |
-| 9 | Computed geospatial layers (offline Modal/GEE pipeline) | planned |
+| 2 | WHO DON ingest → Anthropic-cached extraction → `audit.llm_traces` | ⚠️ partial |
+| 3 | Design system, provenance UI, voice & microcopy library | ✅ shipped |
+| 4 | Editorial surfaces: map landing, zone drill-down, document explorer, daily brief | ✅ shipped |
+| 5 | Map command centre: MVT tiles, PostGIS perf, deck.gl terrain | ⚠️ partial |
+| 6 | Multi-source adapters (v0 adapters live; statistical anomaly module pending) | ⚠️ partial |
+| 7 | Evals, kill switch, layered rate limiting, Batch API back-fill | ⚠️ partial |
+| 8 | Mobile polish, a11y, JSON-LD structured data, SEO/GEO | ✅ shipped |
+| 9 | Computed geospatial layers (offline Modal/GEE pipeline) | 🚧 next |
 
 ### v2 — deferred
 
@@ -347,13 +353,20 @@ If you maintain Go.Data, SORMAS, DHIS2 Tracker, Epiverse-TRACE, or Global.health
 
 ## Research notes
 
-The three documents below are the authoritative source for the design decisions folded into each phase spec. They are inputs, not deliverables — do not edit them.
+The documents below are the authoritative source for the design decisions folded into each phase spec. They are inputs, not deliverables — do not edit them.
 
 | Document | Covers |
 |----------|--------|
-| [`research/data.md`](research/data.md) | Data layer inventory, derived geospatial products, 3D map recommendation, offline GEE/MPC/CDSE compute architecture, three-tier licensing matrix |
-| [`research/performance.md`](research/performance.md) | PostGIS MVT optimisations, Next.js 16 proxy patterns, Anthropic cache TTL fix, Inngest throttle, layered rate limiting, Fluid Compute audit |
-| [`research/copy.md`](research/copy.md) | OWID voice register, page-level copy templates, JSON-LD schema.org markup, GEO/AI-Overviews discoverability, ICD-11 code reference |
+| [`research/architecture.md`](research/architecture.md) | Full target architecture |
+| [`research/claude-code-arcitecture.md`](research/claude-code-arcitecture.md) | `.claude/` automation blueprint |
+| [`research/backend.md`](research/backend.md) | Schema, RLS, MVT, extraction |
+| [`research/data.md`](research/data.md) | Data layer inventory, licensing |
+| [`research/performance.md`](research/performance.md) | PostGIS, cache, rate limiting |
+| [`research/ui.md`](research/ui.md) | Design system |
+| [`research/ux.md`](research/ux.md) | UX flows |
+| [`research/copy.md`](research/copy.md) | Voice guide |
+| [`research/ts-rules.md`](research/ts-rules.md) | TypeScript conventions |
+| [`research/agent-automation.md`](research/agent-automation.md) | Inngest + agent orchestration |
 
 ---
 

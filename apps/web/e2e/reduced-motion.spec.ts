@@ -14,6 +14,7 @@ test.describe("prefers-reduced-motion", () => {
   test("TopBar live dot has no active animation under reduced motion", async ({ page }) => {
     await page.goto("/");
     const dot = page.locator(".animate-pulse").first();
+    // eslint-disable-next-line playwright/no-conditional-in-test -- element is optional; skip assertion when absent
     if ((await dot.count()) === 0) {
       return;
     }

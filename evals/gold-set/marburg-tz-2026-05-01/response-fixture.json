@@ -1,0 +1,43 @@
+{
+  "content": [
+    {
+      "type": "tool_use",
+      "id": "toolu_fixture_marburg_tz_01",
+      "name": "extract_case_counts",
+      "input": {
+        "extractions": [
+          {
+            "pathogen_icd11": "1D61",
+            "country_iso3": "TZA",
+            "metric": "confirmed",
+            "value": 5,
+            "as_of": "2026-05-01",
+            "source_quote": {
+              "char_start": 124,
+              "char_end": 141,
+              "quote_text": "5 confirmed cases"
+            }
+          },
+          {
+            "pathogen_icd11": "1D61",
+            "country_iso3": "TZA",
+            "metric": "deaths",
+            "value": 2,
+            "as_of": "2026-05-01",
+            "source_quote": {
+              "char_start": 146,
+              "char_end": 154,
+              "quote_text": "2 deaths"
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "usage": {
+    "input_tokens": 1250,
+    "output_tokens": 140,
+    "cache_read_input_tokens": 2048,
+    "cache_creation_input_tokens": 0
+  }
+}

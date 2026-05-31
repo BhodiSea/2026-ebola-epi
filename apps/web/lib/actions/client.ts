@@ -4,6 +4,7 @@ import { request } from "@arcjet/next";
 import { createSafeActionClient } from "next-safe-action";
 
 import { ajInternal } from "@/lib/arcjet";
+import { isInternalUser } from "@/lib/auth/internal-user";
 import { createClient } from "@/lib/supabase/server";
 
 const actionClient = createSafeActionClient({
@@ -24,8 +25,7 @@ export const authedAction = actionClient.use(async ({ next }) => {
 });
 
 export const internalAction = authedAction.use(async ({ next, ctx }) => {
-  const role: unknown = ctx.user.app_metadata.role as unknown;
-  if (role !== "admin" && role !== "staff") {
+  if (!isInternalUser(ctx.user)) {
     throw new Error("FORBIDDEN");
   }
   const req = await request();

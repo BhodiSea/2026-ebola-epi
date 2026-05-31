@@ -93,11 +93,11 @@ When you write or modify any Anthropic call in this repo:
 - Never start coding before the plan exists and has been reviewed.
 - Use sub-agents for noisy exploration so the main thread stays clean.
 
-## Per-area navigation (current single-app layout)
+## Per-area navigation
 
-- Next.js app & routes: `app/CLAUDE.md`
-- Shared client utilities & Supabase clients: `lib/`
-- Forthcoming monorepo packages: see `.claude/references/architecture.md`
+- Next.js app & routes: `apps/web/app/CLAUDE.md`
+- Shared client utilities & Supabase clients: `apps/web/lib/CLAUDE.md`
+- Monorepo packages: see `.claude/references/architecture.md`
 
 ## Style
 

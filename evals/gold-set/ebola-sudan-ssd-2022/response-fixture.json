@@ -1,0 +1,67 @@
+{
+  "content": [
+    {
+      "type": "tool_use",
+      "id": "toolu_fixture_ebola_sudan_01",
+      "name": "extract_case_counts",
+      "input": {
+        "extractions": [
+          {
+            "pathogen_icd11": "1D60.3",
+            "country_iso3": "UGA",
+            "metric": "confirmed",
+            "value": 87,
+            "as_of": "2022-11-30",
+            "source_quote": {
+              "char_start": 120,
+              "char_end": 145,
+              "quote_text": "87 confirmed, 54 probable"
+            }
+          },
+          {
+            "pathogen_icd11": "1D60.3",
+            "country_iso3": "UGA",
+            "metric": "probable",
+            "value": 54,
+            "as_of": "2022-11-30",
+            "source_quote": {
+              "char_start": 120,
+              "char_end": 145,
+              "quote_text": "87 confirmed, 54 probable"
+            }
+          },
+          {
+            "pathogen_icd11": "1D60.3",
+            "country_iso3": "UGA",
+            "metric": "deaths",
+            "value": 55,
+            "as_of": "2022-11-30",
+            "source_quote": {
+              "char_start": 151,
+              "char_end": 160,
+              "quote_text": "55 deaths"
+            }
+          },
+          {
+            "pathogen_icd11": "1D60.3",
+            "country_iso3": "UGA",
+            "metric": "healthcare_workers",
+            "value": 6,
+            "as_of": "2022-11-30",
+            "source_quote": {
+              "char_start": 310,
+              "char_end": 330,
+              "quote_text": "6 healthcare workers"
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "usage": {
+    "input_tokens": 1350,
+    "output_tokens": 220,
+    "cache_read_input_tokens": 2048,
+    "cache_creation_input_tokens": 0
+  }
+}

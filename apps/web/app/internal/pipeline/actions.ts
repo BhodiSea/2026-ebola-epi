@@ -9,12 +9,22 @@ import { internalAction } from "@/lib/actions/client";
 import { env } from "@/lib/env";
 
 export const retryInngestRunAction = internalAction
-  .inputSchema(z.object({ runId: z.string().min(1) }))
+  .inputSchema(
+    z.object({
+      runId: z
+        .string()
+        .regex(/^[\w-]+$/)
+        .min(1),
+    }),
+  )
   .action(async ({ parsedInput }) => {
+    if (env.INNGEST_API_KEY === undefined) {
+      throw new Error("INNGEST_API_KEY is not configured");
+    }
     const res = await fetch(`https://api.inngest.com/v1/runs/${parsedInput.runId}/retry`, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${env.INNGEST_SIGNING_KEY}`,
+        Authorization: `Bearer ${env.INNGEST_API_KEY}`,
       },
     });
     if (!res.ok) {

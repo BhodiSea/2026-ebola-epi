@@ -8,16 +8,16 @@ const PAGE_SIZE = 50;
 interface AgentAction {
   action: string;
   agent: string;
-  created_at: string;
-  figure_id: null | string;
-  id: string;
+  id: number;
+  subject_id: null | string;
+  ts: string;
 }
 /* eslint-enable @typescript-eslint/naming-convention */
 
 interface Filters {
   action: string | undefined;
   agent: string | undefined;
-  figure: string | undefined;
+  subject: string | undefined;
 }
 
 export default async function AuditPage({
@@ -26,11 +26,12 @@ export default async function AuditPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }>) {
   const params = await searchParams;
-  const page = Math.max(0, Number(params.page ?? 0));
+  const rawPage = Number(params.page ?? 0);
+  const page = Number.isFinite(rawPage) ? Math.max(0, Math.floor(rawPage)) : 0;
   const filters: Filters = {
     action: typeof params.action === "string" ? params.action : undefined,
     agent: typeof params.agent === "string" ? params.agent : undefined,
-    figure: typeof params.figure === "string" ? params.figure : undefined,
+    subject: typeof params.subject === "string" ? params.subject : undefined,
   };
 
   const supabase = await createClient();
@@ -59,10 +60,10 @@ export default async function AuditPage({
             <tbody>
               {actions.map((a) => (
                 <tr key={a.id} className="border-border/50 border-b">
-                  <td className="py-1 pr-4 text-fg-muted">{a.created_at.slice(0, 16)}</td>
+                  <td className="py-1 pr-4 text-fg-muted">{a.ts.slice(0, 16)}</td>
                   <td className="py-1 pr-4">{a.agent}</td>
                   <td className="py-1 pr-4">{a.action}</td>
-                  <td className="py-1 text-fg-subtle">{a.figure_id?.slice(0, 8) ?? "—"}</td>
+                  <td className="py-1 text-fg-subtle">{a.subject_id?.slice(0, 8) ?? "—"}</td>
                 </tr>
               ))}
             </tbody>
@@ -87,24 +88,22 @@ export default async function AuditPage({
 }
 
 function buildQuery(supabase: SupabaseClient, filters: Filters, page: number) {
-  let q = supabase.from("agent_actions").select("id, agent, action, figure_id, created_at");
+  let q = supabase.from("agent_actions").select("id, agent, action, subject_id, ts");
   if (filters.agent !== undefined) {
     q = q.eq("agent", filters.agent);
   }
   if (filters.action !== undefined) {
     q = q.eq("action", filters.action);
   }
-  if (filters.figure !== undefined) {
-    q = q.eq("figure_id", filters.figure);
+  if (filters.subject !== undefined) {
+    q = q.eq("subject_id", filters.subject);
   }
-  return q
-    .order("created_at", { ascending: false })
-    .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
+  return q.order("ts", { ascending: false }).range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
 }
 
 function FilterBar({ filters }: Readonly<{ filters: Filters }>) {
   const hasFilter =
-    filters.agent !== undefined || filters.action !== undefined || filters.figure !== undefined;
+    filters.agent !== undefined || filters.action !== undefined || filters.subject !== undefined;
   return (
     <form method="get" className="flex flex-wrap gap-2 font-mono text-xs">
       <input
@@ -120,9 +119,9 @@ function FilterBar({ filters }: Readonly<{ filters: Filters }>) {
         className="rounded border border-border bg-surface-2 px-2 py-1 placeholder-fg-subtle focus:outline-none"
       />
       <input
-        name="figure"
-        defaultValue={filters.figure ?? ""}
-        placeholder="figure id"
+        name="subject"
+        defaultValue={filters.subject ?? ""}
+        placeholder="subject id"
         className="rounded border border-border bg-surface-2 px-2 py-1 placeholder-fg-subtle focus:outline-none"
       />
       <button type="submit" className="rounded bg-surface-2 px-2 py-1 text-fg hover:bg-surface-3">

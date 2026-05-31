@@ -1,0 +1,55 @@
+{
+  "content": [
+    {
+      "type": "tool_use",
+      "id": "toolu_fixture_mpox_cod_01",
+      "name": "extract_case_counts",
+      "input": {
+        "extractions": [
+          {
+            "pathogen_icd11": "1E71",
+            "country_iso3": "COD",
+            "metric": "suspected",
+            "value": 14626,
+            "as_of": "2023-12-31",
+            "source_quote": {
+              "char_start": 144,
+              "char_end": 171,
+              "quote_text": "14,626 suspected mpox cases"
+            }
+          },
+          {
+            "pathogen_icd11": "1E71",
+            "country_iso3": "COD",
+            "metric": "confirmed",
+            "value": 1002,
+            "as_of": "2023-12-31",
+            "source_quote": {
+              "char_start": 183,
+              "char_end": 198,
+              "quote_text": "1,002 confirmed"
+            }
+          },
+          {
+            "pathogen_icd11": "1E71",
+            "country_iso3": "COD",
+            "metric": "deaths",
+            "value": 654,
+            "as_of": "2023-12-31",
+            "source_quote": {
+              "char_start": 203,
+              "char_end": 213,
+              "quote_text": "654 deaths"
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "usage": {
+    "input_tokens": 1320,
+    "output_tokens": 190,
+    "cache_read_input_tokens": 2048,
+    "cache_creation_input_tokens": 0
+  }
+}

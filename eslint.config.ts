@@ -494,6 +494,8 @@ export default defineConfig(
       "apps/web/app/**/route.ts",
       "apps/web/app/**/template.tsx",
       "apps/web/app/**/opengraph-image.{ts,tsx}",
+      "apps/web/app/robots.ts",
+      "apps/web/app/sitemap.ts",
       "apps/web/middleware.ts",
       "apps/web/instrumentation.ts",
       "apps/web/next.config.{ts,js,mjs}",

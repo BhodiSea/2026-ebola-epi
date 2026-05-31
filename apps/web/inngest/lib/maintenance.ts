@@ -92,6 +92,7 @@ export async function checkAndFixLinkRot(): Promise<string[]> {
 export async function checkDocDrift(): Promise<{ changed: string[] } | { skipped: true }> {
   let content = "";
   try {
+    // eslint-disable-next-line security/detect-non-literal-fs-filename -- static URL constructed from literal string + import.meta.url
     content = await readFile(new URL("../../../../CLAUDE.md", import.meta.url), "utf8");
   } catch {
     return { skipped: true };

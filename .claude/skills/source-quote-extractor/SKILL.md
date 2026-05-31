@@ -1,6 +1,6 @@
 ---
 name: source-quote-extractor
-description: Extract source_quotes rows with verified (char_start, char_end, text, sha256) offsets from WHO/AFRO/Africa CDC/ECDC sitrep PDFs and HTML. Use whenever the user mentions ingesting a sitrep, extracting quotes, building provenance, or backfilling source_quotes.
+description: Extract source_quotes rows with verified (char_start, char_end, text) offsets from WHO/AFRO/Africa CDC/ECDC sitrep PDFs and HTML. Use whenever the user mentions ingesting a sitrep, extracting quotes, building provenance, or backfilling source_quotes.
 allowed-tools: Read, Write, Glob, Grep, Bash(pnpm exec tsx:*), Bash(npx tsx:*)
 ---
 
@@ -18,7 +18,9 @@ offsets being correct.
    - PDF: `unpdf`'s `extractText(buf, { mergePages: true })`.
    - HTML: `linkedom` + a sanitizer that strips nav/footer; keep `<p>`
      boundaries as `\n\n`.
-   - Compute `sha256` of the resulting canonical text. Store it.
+   - Compute `sha256` of the resulting canonical text. Store it on the
+     **`public.documents`** row (`sha256 bytea not null`), not on
+     `source_quotes`. `source_quotes` has no sha256 column.
    - Two-column PDF layouts may reorder text; verify each substring before
      trusting offsets.
 
@@ -34,9 +36,9 @@ offsets being correct.
 
 3. **Insert `source_quotes`.**
    ```sql
-   insert into public.source_quotes (sitrep_id, char_start, char_end, text, sha256)
-   values ($1, $2, $3, $4, $5)
-   on conflict (sitrep_id, char_start, char_end) do update set text = excluded.text
+   insert into public.source_quotes (document_id, char_start, char_end, text)
+   values ($1, $2, $3, $4)
+   on conflict (document_id, char_start, char_end) do update set text = excluded.text
    returning id;
    ```
 
@@ -59,9 +61,10 @@ offsets being correct.
 ## Forbidden
 
 - Inserting a `source_quotes` row with offsets that don't substring-match.
-- Re-using the same `(sitrep_id, char_start, char_end)` for two different
+- Re-using the same `(document_id, char_start, char_end)` for two different
   texts — enforce uniqueness in the schema.
-- Mutating canonical text after the `sha256` is computed.
+- Mutating canonical text after the `sha256` is computed (sha256 lives on
+  `public.documents`, not on `source_quotes`).
 
 ## References
 

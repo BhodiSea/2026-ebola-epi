@@ -1,0 +1,55 @@
+{
+  "content": [
+    {
+      "type": "tool_use",
+      "id": "toolu_fixture_cholera_cod_01",
+      "name": "extract_case_counts",
+      "input": {
+        "extractions": [
+          {
+            "pathogen_icd11": "1A00",
+            "country_iso3": "COD",
+            "metric": "suspected",
+            "value": 35278,
+            "as_of": "2024-09-01",
+            "source_quote": {
+              "char_start": 137,
+              "char_end": 167,
+              "quote_text": "35,278 suspected cholera cases"
+            }
+          },
+          {
+            "pathogen_icd11": "1A00",
+            "country_iso3": "COD",
+            "metric": "confirmed",
+            "value": 6842,
+            "as_of": "2024-09-01",
+            "source_quote": {
+              "char_start": 179,
+              "char_end": 194,
+              "quote_text": "6,842 confirmed"
+            }
+          },
+          {
+            "pathogen_icd11": "1A00",
+            "country_iso3": "COD",
+            "metric": "deaths",
+            "value": 614,
+            "as_of": "2024-09-01",
+            "source_quote": {
+              "char_start": 199,
+              "char_end": 209,
+              "quote_text": "614 deaths"
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "usage": {
+    "input_tokens": 1300,
+    "output_tokens": 180,
+    "cache_read_input_tokens": 2048,
+    "cache_creation_input_tokens": 0
+  }
+}

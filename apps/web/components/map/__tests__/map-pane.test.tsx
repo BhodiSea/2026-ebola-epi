@@ -4,24 +4,26 @@ import { describe, expect, it, vi } from "vitest";
 import { MapPane } from "../map-pane";
 import { createMapKeyboard } from "@/lib/map/keyboard";
 
-vi.mock("maplibre-gl", () => ({
-  default: {
-    Map: vi.fn().mockImplementation(() => ({
-      on: vi.fn(),
-      off: vi.fn(),
-      addControl: vi.fn(),
-      addSource: vi.fn(),
-      addLayer: vi.fn(),
-      getLayer: vi.fn().mockReturnValue(null),
-      getSource: vi.fn().mockReturnValue(null),
-      setTerrain: vi.fn(),
-      remove: vi.fn(),
-      isStyleLoaded: vi.fn().mockReturnValue(false),
-    })),
+vi.mock("maplibre-gl", () => {
+  const MockMap = vi.fn().mockImplementation(() => ({
+    on: vi.fn(),
+    off: vi.fn(),
+    addControl: vi.fn(),
+    addSource: vi.fn(),
+    addLayer: vi.fn(),
+    getLayer: vi.fn().mockReturnValue(null),
+    getSource: vi.fn().mockReturnValue(null),
+    setTerrain: vi.fn(),
+    remove: vi.fn(),
+    isStyleLoaded: vi.fn().mockReturnValue(false),
+  }));
+  return {
+    default: { Map: MockMap, NavigationControl: vi.fn(), ScaleControl: vi.fn() },
+    Map: MockMap,
     NavigationControl: vi.fn(),
     ScaleControl: vi.fn(),
-  },
-}));
+  };
+});
 
 vi.mock("@deck.gl/mapbox", () => ({
   MapboxOverlay: vi.fn().mockImplementation(() => ({

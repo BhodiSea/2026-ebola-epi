@@ -1,6 +1,7 @@
 "use client";
 
-import maplibregl from "maplibre-gl";
+import type { AnimationOptions } from "maplibre-gl";
+import { Map as MlMap, NavigationControl, ScaleControl } from "maplibre-gl";
 import type { RefObject } from "react";
 import { useEffect, useRef } from "react";
 import "maplibre-gl/dist/maplibre-gl.css";
@@ -32,7 +33,7 @@ interface InitOpts {
   containerRef: RefObject<HTMLDivElement | null>;
   live: RefObject<LiveProps>;
   loadedZonesRef: RefObject<LoadedZone[]>;
-  mapRef: RefObject<maplibregl.Map | null>;
+  mapRef: RefObject<MlMap | null>;
   outbreakId: string;
   overlayRef: RefObject<CaseOverlayHandle | null>;
   theme: string | undefined;
@@ -87,7 +88,7 @@ export function MapPane({
   ariaLabel,
 }: Readonly<MapPaneProps>) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<maplibregl.Map | null>(null);
+  const mapRef = useRef<MlMap | null>(null);
   const overlayRef = useRef<CaseOverlayHandle | null>(null);
   const loadedZonesRef = useRef<LoadedZone[]>([]);
   const live = useLiveRef<LiveProps>({
@@ -150,7 +151,7 @@ export function MapPane({
   );
 }
 
-function addSentinel(map: maplibregl.Map) {
+function addSentinel(map: MlMap) {
   if (map.getSource("sentinel-2") === undefined) {
     map.addSource("sentinel-2", {
       type: "raster",
@@ -164,7 +165,7 @@ function addSentinel(map: maplibregl.Map) {
   }
 }
 
-function addTerrain(map: maplibregl.Map) {
+function addTerrain(map: MlMap) {
   if (map.getSource("terrain-rgb") === undefined) {
     map.addSource("terrain-rgb", {
       type: "raster-dem",
@@ -177,7 +178,7 @@ function addTerrain(map: maplibregl.Map) {
   map.setTerrain({ source: "terrain-rgb", exaggeration: 1.5 });
 }
 
-function applyPan(map: maplibregl.Map, direction: MapKeyboardEvent["direction"]) {
+function applyPan(map: MlMap, direction: MapKeyboardEvent["direction"]) {
   const canvas = map.getCanvas();
   const cx = canvas.clientWidth / 2;
   const cy = canvas.clientHeight / 2;
@@ -187,7 +188,7 @@ function applyPan(map: maplibregl.Map, direction: MapKeyboardEvent["direction"])
 }
 
 async function attachOverlayAndRefresh(
-  map: maplibregl.Map,
+  map: MlMap,
   opts: InitOpts,
   refresh: () => void,
 ): Promise<void> {
@@ -213,7 +214,7 @@ function axisDelta(direction: MapKeyboardEvent["direction"], neg: string, pos: s
   return 0;
 }
 
-function dispatchMapKey(map: maplibregl.Map, ev: MapKeyboardEvent, ctx: KeyContext) {
+function dispatchMapKey(map: MlMap, ev: MapKeyboardEvent, ctx: KeyContext) {
   switch (ev.type) {
     case "cycleFeature": {
       const next = cycleZone(ctx.zones, ctx.currentCode, ev.direction === "prev" ? "prev" : "next");
@@ -246,15 +247,15 @@ function dispatchMapKey(map: maplibregl.Map, ev: MapKeyboardEvent, ctx: KeyConte
 function initMap(opts: InitOpts): () => void {
   const container = opts.containerRef.current;
   if (container !== null) {
-    const map = new maplibregl.Map({
+    const map = new MlMap({
       container,
       style: resolveStyle(opts.theme),
       center: [30.05, 1.55],
       zoom: 7,
     });
     opts.mapRef.current = map;
-    map.addControl(new maplibregl.NavigationControl(), "top-right");
-    map.addControl(new maplibregl.ScaleControl({ unit: "metric" }), "bottom-left");
+    map.addControl(new NavigationControl(), "top-right");
+    map.addControl(new ScaleControl({ unit: "metric" }), "bottom-left");
     const refresh = () => {
       refreshMap(map, {
         live: opts.live.current,
@@ -274,14 +275,14 @@ function initMap(opts: InitOpts): () => void {
   };
 }
 
-function motionOptions(): maplibregl.AnimationOptions {
+function motionOptions(): AnimationOptions {
   if (globalThis.matchMedia("(prefers-reduced-motion: reduce)").matches) {
     return { animate: false };
   }
   return { duration: 400, easing: (t) => (t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t) };
 }
 
-function onMapLoad(map: maplibregl.Map, opts: InitOpts, refresh: () => void) {
+function onMapLoad(map: MlMap, opts: InitOpts, refresh: () => void) {
   addZoneLayers(map, `/api/mvt/${TILE_VERSION}/{z}/{x}/{y}?outbreak_id=${opts.outbreakId}`);
   registerZoneInteractions(map, () => opts.live.current.onSelectZone);
   if (opts.live.current.terrain) {
@@ -302,7 +303,7 @@ function onMapLoad(map: maplibregl.Map, opts: InitOpts, refresh: () => void) {
   });
 }
 
-function refreshMap(map: maplibregl.Map, ctx: RefreshCtx) {
+function refreshMap(map: MlMap, ctx: RefreshCtx) {
   const { live, overlayRef, loadedZonesRef } = ctx;
   const zones = getLoadedZones(map);
   loadedZonesRef.current = zones;
@@ -323,7 +324,7 @@ function refreshMap(map: maplibregl.Map, ctx: RefreshCtx) {
 }
 
 function syncLayerVisibility(
-  map: maplibregl.Map | null,
+  map: MlMap | null,
   overlayRef: RefObject<CaseOverlayHandle | null>,
   activeLayers: Set<string> | undefined,
 ) {
@@ -338,7 +339,7 @@ function syncLayerVisibility(
   overlayRef.current?.update(points, activeLayers.has("deaths"));
 }
 
-function toggleSentinel(map: maplibregl.Map | null, sentinel: boolean) {
+function toggleSentinel(map: MlMap | null, sentinel: boolean) {
   if (map?.isStyleLoaded() !== true) {
     return;
   }
@@ -349,7 +350,7 @@ function toggleSentinel(map: maplibregl.Map | null, sentinel: boolean) {
   }
 }
 
-function toggleTerrain(map: maplibregl.Map | null, terrain: boolean) {
+function toggleTerrain(map: MlMap | null, terrain: boolean) {
   if (map?.isStyleLoaded() !== true) {
     return;
   }
@@ -376,7 +377,7 @@ function useMapKeyboard(opts: {
   keyboard: MapKeyboard;
   live: RefObject<LiveProps>;
   loadedZonesRef: RefObject<LoadedZone[]>;
-  mapRef: RefObject<maplibregl.Map | null>;
+  mapRef: RefObject<MlMap | null>;
 }) {
   const { keyboard, live, loadedZonesRef, mapRef } = opts;
   useEffect(

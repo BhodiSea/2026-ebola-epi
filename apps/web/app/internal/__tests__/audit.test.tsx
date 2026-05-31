@@ -57,15 +57,24 @@ describe("/internal/audit page", () => {
     expect(mockQuery.eq).toHaveBeenCalledWith("action", "extract_figures");
   });
 
-  it("applies figure filter when searchParams.figure is set", async () => {
+  it("applies subject filter when searchParams.subject is set", async () => {
     const { default: Page } = await import("../audit/page");
-    await Page({ searchParams: Promise.resolve({ figure: "abc123" }) });
-    expect(mockQuery.eq).toHaveBeenCalledWith("figure_id", "abc123");
+    await Page({ searchParams: Promise.resolve({ subject: "abc123" }) });
+    expect(mockQuery.eq).toHaveBeenCalledWith("subject_id", "abc123");
   });
 
   it("does not call eq when no filter params are set", async () => {
     const { default: Page } = await import("../audit/page");
     await Page({ searchParams: Promise.resolve({}) });
     expect(mockQuery.eq).not.toHaveBeenCalled();
+  });
+
+  it("falls back to page 0 when searchParams.page is a non-numeric string", async () => {
+    const { default: Page } = await import("../audit/page");
+    // Must not throw and must call .range() with finite numbers
+    await expect(Page({ searchParams: Promise.resolve({ page: "abc" }) })).resolves.toBeTruthy();
+    const rangeCall = mockQuery.range.mock.calls[0] as unknown as [unknown, unknown];
+    expect(Number.isFinite(rangeCall[0])).toBe(true);
+    expect(Number.isFinite(rangeCall[1])).toBe(true);
   });
 });

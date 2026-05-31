@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { InternalNav } from "@/components/layout/internal-nav";
+import { isInternalUser } from "@/lib/auth/internal-user";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function InternalLayout({
@@ -15,8 +16,7 @@ export default async function InternalLayout({
     return redirect("/auth/login");
   }
 
-  const role: unknown = user.app_metadata.role as unknown;
-  if (role !== "admin" && role !== "staff") {
+  if (!isInternalUser(user)) {
     return redirect("/today");
   }
 

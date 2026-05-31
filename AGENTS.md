@@ -84,10 +84,6 @@ substitute for the WHO DON or DRC MSP press release.
 | Observability| Sentry (OTel) + Axiom + Langfuse                                 |
 | Map          | MapLibre GL JS + deck.gl                                         |
 
-The repo is currently a single Next.js app from the `with-supabase` template.
-The monorepo migration (apps/web + packages/*) is planned but not done.
-Treat paths below as today's reality.
-
 ## Workflow loop (TDD-strict)
 
 1. `/spec <feature>` — write or read a product spec in `.claude/specs/`.
@@ -100,12 +96,13 @@ Architecture changes also require `/adr <title>` before code.
 
 ## Commands you'll use most
 
-- `npm run dev` — Next.js dev server on :3000.
-- `npm run lint` — ESLint (until Biome lands).
-- `npm run build` — Next.js production build.
-
-Once the monorepo migration lands, these become `pnpm dev`, `pnpm lint`,
-`pnpm typecheck`, `pnpm test`, `pnpm db:migrate`, `pnpm db:types`, `pnpm pgtap`.
+- `pnpm dev` — Next.js dev server on :3000 (alias for `turbo dev --filter=@ituri/web`).
+- `pnpm lint` — Biome check across the monorepo.
+- `pnpm build` — Next.js production build.
+- `pnpm typecheck` — TypeScript type check across all packages.
+- `pnpm test` — Vitest across all packages.
+- `pnpm db:types` — regenerate Drizzle types from the local Supabase stack.
+- `pnpm db:test` — run pgTAP suite (`supabase test db`).
 
 ## Code conventions
 
@@ -127,7 +124,7 @@ column types. Don't add a dependency without an ADR.
 
 ## See also
 
-- Per-area notes: `app/CLAUDE.md`
+- Per-area notes: `apps/web/app/CLAUDE.md`
 - Curated context: `.claude/references/*.md`
 - Slash commands: `.claude/commands/*.md`
 - Sub-agents: `.claude/agents/*.md`

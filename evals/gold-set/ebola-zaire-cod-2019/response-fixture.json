@@ -1,0 +1,67 @@
+{
+  "content": [
+    {
+      "type": "tool_use",
+      "id": "toolu_fixture_ebola_zaire_01",
+      "name": "extract_case_counts",
+      "input": {
+        "extractions": [
+          {
+            "pathogen_icd11": "1D60.1",
+            "country_iso3": "COD",
+            "metric": "confirmed",
+            "value": 2359,
+            "as_of": "2019-07-17",
+            "source_quote": {
+              "char_start": 215,
+              "char_end": 244,
+              "quote_text": "2,359 confirmed, 153 probable"
+            }
+          },
+          {
+            "pathogen_icd11": "1D60.1",
+            "country_iso3": "COD",
+            "metric": "probable",
+            "value": 153,
+            "as_of": "2019-07-17",
+            "source_quote": {
+              "char_start": 215,
+              "char_end": 244,
+              "quote_text": "2,359 confirmed, 153 probable"
+            }
+          },
+          {
+            "pathogen_icd11": "1D60.1",
+            "country_iso3": "COD",
+            "metric": "deaths",
+            "value": 1676,
+            "as_of": "2019-07-17",
+            "source_quote": {
+              "char_start": 257,
+              "char_end": 269,
+              "quote_text": "1,676 deaths"
+            }
+          },
+          {
+            "pathogen_icd11": "1D60.1",
+            "country_iso3": "COD",
+            "metric": "healthcare_workers",
+            "value": 131,
+            "as_of": "2019-07-17",
+            "source_quote": {
+              "char_start": 459,
+              "char_end": 481,
+              "quote_text": "131 healthcare workers"
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "usage": {
+    "input_tokens": 1400,
+    "output_tokens": 240,
+    "cache_read_input_tokens": 2048,
+    "cache_creation_input_tokens": 0
+  }
+}

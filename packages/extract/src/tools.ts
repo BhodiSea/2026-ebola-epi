@@ -18,6 +18,7 @@ export const ExtractionRowSchema = z.object({
     "probable",
     "vaccinated",
     "contacts",
+    "healthcare_workers",
   ]),
   value: z.number().int().nonnegative(),
   as_of: z.iso.date(),

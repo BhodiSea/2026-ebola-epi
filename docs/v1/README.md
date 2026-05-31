@@ -72,7 +72,13 @@ P8                                     ████     Mobile + internal + a11y
 | [ADR-0006](../adr/0006-hard-caps-lint.md) | Hard lint caps | All phases |
 | [ADR-0007](../adr/0007-pnpm-monorepo-staging.md) | pnpm monorepo | P0 |
 | [ADR-0008](../adr/0008-env-validation-t3-env.md) | @t3-oss/env-nextjs | P0, P2 |
-| ADR-0009 *(to be authored in P0)* | EpiNow2/Modal deferred to v2 | P0 |
+| [ADR-0009](../adr/0009-defer-modal-epinow2-to-v2.md) | EpiNow2/Modal deferred to v2 | P0 |
+
+---
+
+## Operations reference
+
+- [Admin access — provisioning and navigation](../admin.md) — how to grant `admin`/`staff` roles in Supabase and what each `/internal/*` dashboard does.
 
 ---
 

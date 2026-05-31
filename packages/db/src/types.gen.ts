@@ -1,39 +1,555 @@
-export type CompositeTypes<
-  PublicCompositeTypeNameOrOptions extends
-    | keyof DefaultSchema["CompositeTypes"]
-    | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals;
-  }
-    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
-> = PublicCompositeTypeNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals;
-}
-  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
-  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
-    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
-    : never;
+export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
-export interface Database {
+export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "14.5";
   };
   public: {
-    CompositeTypes: {
-      geometry_dump: {
-        geom: unknown;
-        path: null | number[];
+    Tables: {
+      case_counts: {
+        Row: {
+          admin2_code: string | null;
+          as_of: string;
+          created_at: string;
+          escalation_class: string | null;
+          extraction_run_id: string;
+          id: string;
+          metric: string;
+          model_id: string;
+          outbreak_id: string;
+          prompt_version_hash: string;
+          source_quote_id: string;
+          status: string;
+          superseded_by: string | null;
+          value: number;
+        };
+        Insert: {
+          admin2_code?: string | null;
+          as_of: string;
+          created_at?: string;
+          escalation_class?: string | null;
+          extraction_run_id: string;
+          id?: string;
+          metric: string;
+          model_id: string;
+          outbreak_id: string;
+          prompt_version_hash: string;
+          source_quote_id: string;
+          status?: string;
+          superseded_by?: string | null;
+          value: number;
+        };
+        Update: {
+          admin2_code?: string | null;
+          as_of?: string;
+          created_at?: string;
+          escalation_class?: string | null;
+          extraction_run_id?: string;
+          id?: string;
+          metric?: string;
+          model_id?: string;
+          outbreak_id?: string;
+          prompt_version_hash?: string;
+          source_quote_id?: string;
+          status?: string;
+          superseded_by?: string | null;
+          value?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "case_counts_extraction_run_id_fkey";
+            columns: ["extraction_run_id"];
+            isOneToOne: false;
+            referencedRelation: "extraction_runs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "case_counts_outbreak_id_fkey";
+            columns: ["outbreak_id"];
+            isOneToOne: false;
+            referencedRelation: "outbreaks";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "case_counts_source_quote_id_fkey";
+            columns: ["source_quote_id"];
+            isOneToOne: false;
+            referencedRelation: "source_quotes";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "case_counts_superseded_by_fkey";
+            columns: ["superseded_by"];
+            isOneToOne: false;
+            referencedRelation: "case_counts";
+            referencedColumns: ["id"];
+          },
+        ];
       };
-      valid_detail: {
-        location: unknown;
-        reason: null | string;
-        valid: boolean | null;
+      documents: {
+        Row: {
+          etag: string | null;
+          full_text: string;
+          full_text_tsv: unknown;
+          http_status: number | null;
+          id: string;
+          ingested_at: string;
+          last_modified: string | null;
+          license: string | null;
+          published_at: string | null;
+          sha256: string;
+          source_id: string;
+          title: string | null;
+          url: string;
+        };
+        Insert: {
+          etag?: string | null;
+          full_text: string;
+          full_text_tsv?: unknown;
+          http_status?: number | null;
+          id?: string;
+          ingested_at?: string;
+          last_modified?: string | null;
+          license?: string | null;
+          published_at?: string | null;
+          sha256: string;
+          source_id: string;
+          title?: string | null;
+          url: string;
+        };
+        Update: {
+          etag?: string | null;
+          full_text?: string;
+          full_text_tsv?: unknown;
+          http_status?: number | null;
+          id?: string;
+          ingested_at?: string;
+          last_modified?: string | null;
+          license?: string | null;
+          published_at?: string | null;
+          sha256?: string;
+          source_id?: string;
+          title?: string | null;
+          url?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "documents_source_id_fkey";
+            columns: ["source_id"];
+            isOneToOne: false;
+            referencedRelation: "sources";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      extraction_eval_scores: {
+        Row: {
+          evaluated_at: string;
+          metric: string;
+          run_id: string;
+          score: number;
+          source_slug: string | null;
+        };
+        Insert: {
+          evaluated_at?: string;
+          metric: string;
+          run_id: string;
+          score: number;
+          source_slug?: string | null;
+        };
+        Update: {
+          evaluated_at?: string;
+          metric?: string;
+          run_id?: string;
+          score?: number;
+          source_slug?: string | null;
+        };
+        Relationships: [];
+      };
+      incidents: {
+        Row: {
+          ack_at: string | null;
+          ack_by: string | null;
+          class: string;
+          created_at: string;
+          detail: Json;
+          document_id: string | null;
+          id: string;
+          outbreak_id: string | null;
+          snoozed_until: string | null;
+          status: string;
+          thread_id: string | null;
+        };
+        Insert: {
+          ack_at?: string | null;
+          ack_by?: string | null;
+          class: string;
+          created_at?: string;
+          detail?: Json;
+          document_id?: string | null;
+          id?: string;
+          outbreak_id?: string | null;
+          snoozed_until?: string | null;
+          status?: string;
+          thread_id?: string | null;
+        };
+        Update: {
+          ack_at?: string | null;
+          ack_by?: string | null;
+          class?: string;
+          created_at?: string;
+          detail?: Json;
+          document_id?: string | null;
+          id?: string;
+          outbreak_id?: string | null;
+          snoozed_until?: string | null;
+          status?: string;
+          thread_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "incidents_document_id_fkey";
+            columns: ["document_id"];
+            isOneToOne: false;
+            referencedRelation: "documents";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "incidents_outbreak_id_fkey";
+            columns: ["outbreak_id"];
+            isOneToOne: false;
+            referencedRelation: "outbreaks";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      outbreaks: {
+        Row: {
+          country_iso3: string;
+          created_at: string;
+          id: string;
+          name: string | null;
+          onset_date: string;
+          pathogen_icd11: string;
+          pathogen_slug: string | null;
+          severity_level: string | null;
+          status: string;
+        };
+        Insert: {
+          country_iso3: string;
+          created_at?: string;
+          id?: string;
+          name?: string | null;
+          onset_date: string;
+          pathogen_icd11: string;
+          pathogen_slug?: string | null;
+          severity_level?: string | null;
+          status?: string;
+        };
+        Update: {
+          country_iso3?: string;
+          created_at?: string;
+          id?: string;
+          name?: string | null;
+          onset_date?: string;
+          pathogen_icd11?: string;
+          pathogen_slug?: string | null;
+          severity_level?: string | null;
+          status?: string;
+        };
+        Relationships: [];
+      };
+      source_quotes: {
+        Row: {
+          char_end: number;
+          char_start: number;
+          created_at: string;
+          document_id: string;
+          embedding: string | null;
+          id: string;
+          quote_text: string;
+        };
+        Insert: {
+          char_end: number;
+          char_start: number;
+          created_at?: string;
+          document_id: string;
+          embedding?: string | null;
+          id?: string;
+          quote_text: string;
+        };
+        Update: {
+          char_end?: number;
+          char_start?: number;
+          created_at?: string;
+          document_id?: string;
+          embedding?: string | null;
+          id?: string;
+          quote_text?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "source_quotes_document_id_fkey";
+            columns: ["document_id"];
+            isOneToOne: false;
+            referencedRelation: "documents";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      sources: {
+        Row: {
+          attribution_required: boolean;
+          created_at: string;
+          extraction_paused: boolean;
+          id: string;
+          license_tier: string;
+          license_url: string | null;
+          metadata: Json;
+          name: string;
+          slug: string;
+          trust_score: number;
+          url: string;
+        };
+        Insert: {
+          attribution_required?: boolean;
+          created_at?: string;
+          extraction_paused?: boolean;
+          id?: string;
+          license_tier?: string;
+          license_url?: string | null;
+          metadata?: Json;
+          name: string;
+          slug: string;
+          trust_score?: number;
+          url: string;
+        };
+        Update: {
+          attribution_required?: boolean;
+          created_at?: string;
+          extraction_paused?: boolean;
+          id?: string;
+          license_tier?: string;
+          license_url?: string | null;
+          metadata?: Json;
+          name?: string;
+          slug?: string;
+          trust_score?: number;
+          url?: string;
+        };
+        Relationships: [];
+      };
+      spatial_ref_sys: {
+        Row: {
+          auth_name: string | null;
+          auth_srid: number | null;
+          proj4text: string | null;
+          srid: number;
+          srtext: string | null;
+        };
+        Insert: {
+          auth_name?: string | null;
+          auth_srid?: number | null;
+          proj4text?: string | null;
+          srid: number;
+          srtext?: string | null;
+        };
+        Update: {
+          auth_name?: string | null;
+          auth_srid?: number | null;
+          proj4text?: string | null;
+          srid?: number;
+          srtext?: string | null;
+        };
+        Relationships: [];
       };
     };
-    Enums: Record<never, never>;
+    Views: {
+      agent_actions: {
+        Row: {
+          action: string | null;
+          agent: string | null;
+          id: number | null;
+          payload: Json | null;
+          subject_id: string | null;
+          subject_table: string | null;
+          trace_id: string | null;
+          ts: string | null;
+        };
+        Insert: {
+          action?: string | null;
+          agent?: string | null;
+          id?: number | null;
+          payload?: Json | null;
+          subject_id?: string | null;
+          subject_table?: string | null;
+          trace_id?: string | null;
+          ts?: string | null;
+        };
+        Update: {
+          action?: string | null;
+          agent?: string | null;
+          id?: number | null;
+          payload?: Json | null;
+          subject_id?: string | null;
+          subject_table?: string | null;
+          trace_id?: string | null;
+          ts?: string | null;
+        };
+        Relationships: [];
+      };
+      anthropic_usage_daily: {
+        Row: {
+          day: string | null;
+          model_id: string | null;
+          total_cost: number | null;
+        };
+        Relationships: [];
+      };
+      anthropic_usage_log: {
+        Row: {
+          cache_creation_input_tokens: number | null;
+          cache_read_input_tokens: number | null;
+          cost_usd: number | null;
+          extraction_run_id: string | null;
+          id: number | null;
+          input_tokens: number | null;
+          logged_at: string | null;
+          model_id: string | null;
+          output_tokens: number | null;
+        };
+        Insert: {
+          cache_creation_input_tokens?: number | null;
+          cache_read_input_tokens?: number | null;
+          cost_usd?: number | null;
+          extraction_run_id?: string | null;
+          id?: number | null;
+          input_tokens?: number | null;
+          logged_at?: string | null;
+          model_id?: string | null;
+          output_tokens?: number | null;
+        };
+        Update: {
+          cache_creation_input_tokens?: number | null;
+          cache_read_input_tokens?: number | null;
+          cost_usd?: number | null;
+          extraction_run_id?: string | null;
+          id?: number | null;
+          input_tokens?: number | null;
+          logged_at?: string | null;
+          model_id?: string | null;
+          output_tokens?: number | null;
+        };
+        Relationships: [];
+      };
+      extraction_runs: {
+        Row: {
+          cache_creation_input_tokens: number | null;
+          cache_read_input_tokens: number | null;
+          created_at: string | null;
+          document_id: string | null;
+          ended_at: string | null;
+          id: string | null;
+          input_doc_sha256: string | null;
+          input_tokens: number | null;
+          model_id: string | null;
+          output_tokens: number | null;
+          prompt_version_hash: string | null;
+          rows_extracted: number | null;
+          rows_verified: number | null;
+          schema_version: string | null;
+          source_quote_ids: string[] | null;
+          started_at: string | null;
+          temperature: number | null;
+          tool_schema_hash: string | null;
+        };
+        Insert: {
+          cache_creation_input_tokens?: number | null;
+          cache_read_input_tokens?: number | null;
+          created_at?: string | null;
+          document_id?: string | null;
+          ended_at?: string | null;
+          id?: string | null;
+          input_doc_sha256?: string | null;
+          input_tokens?: number | null;
+          model_id?: string | null;
+          output_tokens?: number | null;
+          prompt_version_hash?: string | null;
+          rows_extracted?: number | null;
+          rows_verified?: number | null;
+          schema_version?: string | null;
+          source_quote_ids?: string[] | null;
+          started_at?: string | null;
+          temperature?: number | null;
+          tool_schema_hash?: string | null;
+        };
+        Update: {
+          cache_creation_input_tokens?: number | null;
+          cache_read_input_tokens?: number | null;
+          created_at?: string | null;
+          document_id?: string | null;
+          ended_at?: string | null;
+          id?: string | null;
+          input_doc_sha256?: string | null;
+          input_tokens?: number | null;
+          model_id?: string | null;
+          output_tokens?: number | null;
+          prompt_version_hash?: string | null;
+          rows_extracted?: number | null;
+          rows_verified?: number | null;
+          schema_version?: string | null;
+          source_quote_ids?: string[] | null;
+          started_at?: string | null;
+          temperature?: number | null;
+          tool_schema_hash?: string | null;
+        };
+        Relationships: [];
+      };
+      geography_columns: {
+        Row: {
+          coord_dimension: number | null;
+          f_geography_column: unknown;
+          f_table_catalog: unknown;
+          f_table_name: unknown;
+          f_table_schema: unknown;
+          srid: number | null;
+          type: string | null;
+        };
+        Relationships: [];
+      };
+      geometry_columns: {
+        Row: {
+          coord_dimension: number | null;
+          f_geometry_column: unknown;
+          f_table_catalog: string | null;
+          f_table_name: unknown;
+          f_table_schema: unknown;
+          srid: number | null;
+          type: string | null;
+        };
+        Insert: {
+          coord_dimension?: number | null;
+          f_geometry_column?: unknown;
+          f_table_catalog?: string | null;
+          f_table_name?: unknown;
+          f_table_schema?: unknown;
+          srid?: number | null;
+          type?: string | null;
+        };
+        Update: {
+          coord_dimension?: number | null;
+          f_geometry_column?: unknown;
+          f_table_catalog?: string | null;
+          f_table_name?: unknown;
+          f_table_schema?: unknown;
+          srid?: number | null;
+          type?: string | null;
+        };
+        Relationships: [];
+      };
+    };
     Functions: {
       __plpgsql_show_dependency_tb:
         | {
@@ -712,15 +1228,14 @@ export interface Database {
             Returns: number;
           };
       st_area:
-        | { Args: { "": string }; Returns: number }
-        | { Args: { geog: unknown; use_spheroid?: boolean }; Returns: number };
+        | { Args: { geog: unknown; use_spheroid?: boolean }; Returns: number }
+        | { Args: { "": string }; Returns: number };
       st_asencodedpolyline: {
         Args: { geom: unknown; nprecision?: number };
         Returns: string;
       };
       st_asewkt: { Args: { "": string }; Returns: string };
       st_asgeojson:
-        | { Args: { "": string }; Returns: string }
         | {
             Args: { geog: unknown; maxdecimaldigits?: number; options?: number };
             Returns: string;
@@ -737,8 +1252,23 @@ export interface Database {
               r: Record<string, unknown>;
             };
             Returns: string;
-          };
+          }
+        | { Args: { "": string }; Returns: string };
       st_asgml:
+        | {
+            Args: {
+              geog: unknown;
+              id?: string;
+              maxdecimaldigits?: number;
+              nprefix?: string;
+              options?: number;
+            };
+            Returns: string;
+          }
+        | {
+            Args: { geom: unknown; maxdecimaldigits?: number; options?: number };
+            Returns: string;
+          }
         | { Args: { "": string }; Returns: string }
         | {
             Args: {
@@ -748,16 +1278,6 @@ export interface Database {
               nprefix?: string;
               options?: number;
               version: number;
-            };
-            Returns: string;
-          }
-        | {
-            Args: {
-              geog: unknown;
-              id?: string;
-              maxdecimaldigits?: number;
-              nprefix?: string;
-              options?: number;
             };
             Returns: string;
           }
@@ -771,13 +1291,8 @@ export interface Database {
               version: number;
             };
             Returns: string;
-          }
-        | {
-            Args: { geom: unknown; maxdecimaldigits?: number; options?: number };
-            Returns: string;
           };
       st_askml:
-        | { Args: { "": string }; Returns: string }
         | {
             Args: { geog: unknown; maxdecimaldigits?: number; nprefix?: string };
             Returns: string;
@@ -785,7 +1300,8 @@ export interface Database {
         | {
             Args: { geom: unknown; maxdecimaldigits?: number; nprefix?: string };
             Returns: string;
-          };
+          }
+        | { Args: { "": string }; Returns: string };
       st_aslatlontext: {
         Args: { geom: unknown; tmpl?: string };
         Returns: string;
@@ -802,7 +1318,6 @@ export interface Database {
         Returns: unknown;
       };
       st_assvg:
-        | { Args: { "": string }; Returns: string }
         | {
             Args: { geog: unknown; maxdecimaldigits?: number; rel?: number };
             Returns: string;
@@ -810,7 +1325,8 @@ export interface Database {
         | {
             Args: { geom: unknown; maxdecimaldigits?: number; rel?: number };
             Returns: string;
-          };
+          }
+        | { Args: { "": string }; Returns: string };
       st_astext: { Args: { "": string }; Returns: string };
       st_astwkb:
         | {
@@ -913,11 +1429,11 @@ export interface Database {
           }
         | { Args: { geom1: unknown; geom2: unknown }; Returns: number };
       st_distancesphere:
+        | { Args: { geom1: unknown; geom2: unknown }; Returns: number }
         | {
             Args: { geom1: unknown; geom2: unknown; radius: number };
             Returns: number;
-          }
-        | { Args: { geom1: unknown; geom2: unknown }; Returns: number };
+          };
       st_distancespheroid: {
         Args: { geom1: unknown; geom2: unknown };
         Returns: number;
@@ -933,11 +1449,11 @@ export interface Database {
       };
       st_equals: { Args: { geom1: unknown; geom2: unknown }; Returns: boolean };
       st_expand:
+        | { Args: { box: unknown; dx: number; dy: number }; Returns: unknown }
         | {
             Args: { box: unknown; dx: number; dy: number; dz?: number };
             Returns: unknown;
           }
-        | { Args: { box: unknown; dx: number; dy: number }; Returns: unknown }
         | {
             Args: {
               dm?: number;
@@ -962,11 +1478,11 @@ export interface Database {
         Returns: unknown;
       };
       st_generatepoints:
+        | { Args: { area: unknown; npoints: number }; Returns: unknown }
         | {
             Args: { area: unknown; npoints: number; seed: number };
             Returns: unknown;
-          }
-        | { Args: { area: unknown; npoints: number }; Returns: unknown };
+          };
       st_geogfromtext: { Args: { "": string }; Returns: unknown };
       st_geographyfromtext: { Args: { "": string }; Returns: unknown };
       st_geohash:
@@ -985,6 +1501,7 @@ export interface Database {
       st_geometryfromtext: { Args: { "": string }; Returns: unknown };
       st_geomfromewkt: { Args: { "": string }; Returns: unknown };
       st_geomfromgeojson:
+        | { Args: { "": Json }; Returns: unknown }
         | { Args: { "": Json }; Returns: unknown }
         | { Args: { "": string }; Returns: unknown };
       st_geomfromgml: { Args: { "": string }; Returns: unknown };
@@ -1021,14 +1538,14 @@ export interface Database {
         Returns: Database["public"]["CompositeTypes"]["valid_detail"];
         SetofOptions: {
           from: "*";
+          to: "valid_detail";
           isOneToOne: true;
           isSetofReturn: false;
-          to: "valid_detail";
         };
       };
       st_length:
-        | { Args: { "": string }; Returns: number }
-        | { Args: { geog: unknown; use_spheroid?: boolean }; Returns: number };
+        | { Args: { geog: unknown; use_spheroid?: boolean }; Returns: number }
+        | { Args: { "": string }; Returns: number };
       st_letters: { Args: { font?: Json; letters: string }; Returns: unknown };
       st_linecrossingdirection: {
         Args: { line1: unknown; line2: unknown };
@@ -1233,11 +1750,11 @@ export interface Database {
         | { Args: { geom: unknown; to_proj: string }; Returns: unknown };
       st_triangulatepolygon: { Args: { g1: unknown }; Returns: unknown };
       st_union:
+        | { Args: { geom1: unknown; geom2: unknown }; Returns: unknown }
         | {
             Args: { geom1: unknown; geom2: unknown; gridsize: number };
             Returns: unknown;
-          }
-        | { Args: { geom1: unknown; geom2: unknown }; Returns: unknown };
+          };
       st_voronoilines: {
         Args: { extend_to?: unknown; g1: unknown; tolerance?: number };
         Returns: unknown;
@@ -1265,513 +1782,26 @@ export interface Database {
         Returns: string;
       };
     };
-    Tables: {
-      case_counts: {
-        Insert: {
-          admin2_code?: null | string;
-          as_of: string;
-          created_at?: string;
-          escalation_class?: null | string;
-          extraction_run_id: string;
-          id?: string;
-          metric: string;
-          model_id: string;
-          outbreak_id: string;
-          prompt_version_hash: string;
-          source_quote_id: string;
-          status?: string;
-          superseded_by?: null | string;
-          value: number;
-        };
-        Relationships: [
-          {
-            columns: ["extraction_run_id"];
-            foreignKeyName: "case_counts_extraction_run_id_fkey";
-            isOneToOne: false;
-            referencedColumns: ["id"];
-            referencedRelation: "extraction_runs";
-          },
-          {
-            columns: ["outbreak_id"];
-            foreignKeyName: "case_counts_outbreak_id_fkey";
-            isOneToOne: false;
-            referencedColumns: ["id"];
-            referencedRelation: "outbreaks";
-          },
-          {
-            columns: ["source_quote_id"];
-            foreignKeyName: "case_counts_source_quote_id_fkey";
-            isOneToOne: false;
-            referencedColumns: ["id"];
-            referencedRelation: "source_quotes";
-          },
-          {
-            columns: ["superseded_by"];
-            foreignKeyName: "case_counts_superseded_by_fkey";
-            isOneToOne: false;
-            referencedColumns: ["id"];
-            referencedRelation: "case_counts";
-          },
-        ];
-        Row: {
-          admin2_code: null | string;
-          as_of: string;
-          created_at: string;
-          escalation_class: null | string;
-          extraction_run_id: string;
-          id: string;
-          metric: string;
-          model_id: string;
-          outbreak_id: string;
-          prompt_version_hash: string;
-          source_quote_id: string;
-          status: string;
-          superseded_by: null | string;
-          value: number;
-        };
-        Update: {
-          admin2_code?: null | string;
-          as_of?: string;
-          created_at?: string;
-          escalation_class?: null | string;
-          extraction_run_id?: string;
-          id?: string;
-          metric?: string;
-          model_id?: string;
-          outbreak_id?: string;
-          prompt_version_hash?: string;
-          source_quote_id?: string;
-          status?: string;
-          superseded_by?: null | string;
-          value?: number;
-        };
-      };
-      documents: {
-        Insert: {
-          etag?: null | string;
-          full_text: string;
-          full_text_tsv?: unknown;
-          http_status?: null | number;
-          id?: string;
-          ingested_at?: string;
-          last_modified?: null | string;
-          license?: null | string;
-          published_at?: null | string;
-          sha256: string;
-          source_id: string;
-          title?: null | string;
-          url: string;
-        };
-        Relationships: [
-          {
-            columns: ["source_id"];
-            foreignKeyName: "documents_source_id_fkey";
-            isOneToOne: false;
-            referencedColumns: ["id"];
-            referencedRelation: "sources";
-          },
-        ];
-        Row: {
-          etag: null | string;
-          full_text: string;
-          full_text_tsv: unknown;
-          http_status: null | number;
-          id: string;
-          ingested_at: string;
-          last_modified: null | string;
-          license: null | string;
-          published_at: null | string;
-          sha256: string;
-          source_id: string;
-          title: null | string;
-          url: string;
-        };
-        Update: {
-          etag?: null | string;
-          full_text?: string;
-          full_text_tsv?: unknown;
-          http_status?: null | number;
-          id?: string;
-          ingested_at?: string;
-          last_modified?: null | string;
-          license?: null | string;
-          published_at?: null | string;
-          sha256?: string;
-          source_id?: string;
-          title?: null | string;
-          url?: string;
-        };
-      };
-      incidents: {
-        Insert: {
-          ack_at?: null | string;
-          ack_by?: null | string;
-          class: string;
-          created_at?: string;
-          detail?: Json;
-          document_id?: null | string;
-          id?: string;
-          outbreak_id?: null | string;
-          snoozed_until?: null | string;
-          status?: string;
-          thread_id?: null | string;
-        };
-        Relationships: [
-          {
-            columns: ["document_id"];
-            foreignKeyName: "incidents_document_id_fkey";
-            isOneToOne: false;
-            referencedColumns: ["id"];
-            referencedRelation: "documents";
-          },
-          {
-            columns: ["outbreak_id"];
-            foreignKeyName: "incidents_outbreak_id_fkey";
-            isOneToOne: false;
-            referencedColumns: ["id"];
-            referencedRelation: "outbreaks";
-          },
-        ];
-        Row: {
-          ack_at: null | string;
-          ack_by: null | string;
-          class: string;
-          created_at: string;
-          detail: Json;
-          document_id: null | string;
-          id: string;
-          outbreak_id: null | string;
-          snoozed_until: null | string;
-          status: string;
-          thread_id: null | string;
-        };
-        Update: {
-          ack_at?: null | string;
-          ack_by?: null | string;
-          class?: string;
-          created_at?: string;
-          detail?: Json;
-          document_id?: null | string;
-          id?: string;
-          outbreak_id?: null | string;
-          snoozed_until?: null | string;
-          status?: string;
-          thread_id?: null | string;
-        };
-      };
-      outbreaks: {
-        Insert: {
-          country_iso3: string;
-          created_at?: string;
-          id?: string;
-          name?: null | string;
-          onset_date: string;
-          pathogen_icd11: string;
-          pathogen_slug?: null | string;
-          severity_level?: null | string;
-          status?: string;
-        };
-        Relationships: [];
-        Row: {
-          country_iso3: string;
-          created_at: string;
-          id: string;
-          name: null | string;
-          onset_date: string;
-          pathogen_icd11: string;
-          pathogen_slug: null | string;
-          severity_level: null | string;
-          status: string;
-        };
-        Update: {
-          country_iso3?: string;
-          created_at?: string;
-          id?: string;
-          name?: null | string;
-          onset_date?: string;
-          pathogen_icd11?: string;
-          pathogen_slug?: null | string;
-          severity_level?: null | string;
-          status?: string;
-        };
-      };
-      source_quotes: {
-        Insert: {
-          char_end: number;
-          char_start: number;
-          created_at?: string;
-          document_id: string;
-          embedding?: null | string;
-          id?: string;
-          quote_text: string;
-        };
-        Relationships: [
-          {
-            columns: ["document_id"];
-            foreignKeyName: "source_quotes_document_id_fkey";
-            isOneToOne: false;
-            referencedColumns: ["id"];
-            referencedRelation: "documents";
-          },
-        ];
-        Row: {
-          char_end: number;
-          char_start: number;
-          created_at: string;
-          document_id: string;
-          embedding: null | string;
-          id: string;
-          quote_text: string;
-        };
-        Update: {
-          char_end?: number;
-          char_start?: number;
-          created_at?: string;
-          document_id?: string;
-          embedding?: null | string;
-          id?: string;
-          quote_text?: string;
-        };
-      };
-      sources: {
-        Insert: {
-          attribution_required?: boolean;
-          created_at?: string;
-          extraction_paused?: boolean;
-          id?: string;
-          license_tier?: string;
-          license_url?: null | string;
-          metadata?: Json;
-          name: string;
-          slug: string;
-          trust_score?: number;
-          url: string;
-        };
-        Relationships: [];
-        Row: {
-          attribution_required: boolean;
-          created_at: string;
-          extraction_paused: boolean;
-          id: string;
-          license_tier: string;
-          license_url: null | string;
-          metadata: Json;
-          name: string;
-          slug: string;
-          trust_score: number;
-          url: string;
-        };
-        Update: {
-          attribution_required?: boolean;
-          created_at?: string;
-          extraction_paused?: boolean;
-          id?: string;
-          license_tier?: string;
-          license_url?: null | string;
-          metadata?: Json;
-          name?: string;
-          slug?: string;
-          trust_score?: number;
-          url?: string;
-        };
-      };
-      spatial_ref_sys: {
-        Insert: {
-          auth_name?: null | string;
-          auth_srid?: null | number;
-          proj4text?: null | string;
-          srid: number;
-          srtext?: null | string;
-        };
-        Relationships: [];
-        Row: {
-          auth_name: null | string;
-          auth_srid: null | number;
-          proj4text: null | string;
-          srid: number;
-          srtext: null | string;
-        };
-        Update: {
-          auth_name?: null | string;
-          auth_srid?: null | number;
-          proj4text?: null | string;
-          srid?: number;
-          srtext?: null | string;
-        };
-      };
+    Enums: {
+      [_ in never]: never;
     };
-    Views: {
-      anthropic_usage_daily: {
-        Relationships: [];
-        Row: {
-          day: null | string;
-          model_id: null | string;
-          total_cost: null | number;
-        };
+    CompositeTypes: {
+      geometry_dump: {
+        path: number[] | null;
+        geom: unknown;
       };
-      anthropic_usage_log: {
-        Insert: {
-          cache_creation_input_tokens?: null | number;
-          cache_read_input_tokens?: null | number;
-          cost_usd?: null | number;
-          extraction_run_id?: null | string;
-          id?: null | number;
-          input_tokens?: null | number;
-          logged_at?: null | string;
-          model_id?: null | string;
-          output_tokens?: null | number;
-        };
-        Relationships: [];
-        Row: {
-          cache_creation_input_tokens: null | number;
-          cache_read_input_tokens: null | number;
-          cost_usd: null | number;
-          extraction_run_id: null | string;
-          id: null | number;
-          input_tokens: null | number;
-          logged_at: null | string;
-          model_id: null | string;
-          output_tokens: null | number;
-        };
-        Update: {
-          cache_creation_input_tokens?: null | number;
-          cache_read_input_tokens?: null | number;
-          cost_usd?: null | number;
-          extraction_run_id?: null | string;
-          id?: null | number;
-          input_tokens?: null | number;
-          logged_at?: null | string;
-          model_id?: null | string;
-          output_tokens?: null | number;
-        };
-      };
-      extraction_runs: {
-        Insert: {
-          cache_creation_input_tokens?: null | number;
-          cache_read_input_tokens?: null | number;
-          created_at?: null | string;
-          document_id?: null | string;
-          ended_at?: null | string;
-          id?: null | string;
-          input_doc_sha256?: null | string;
-          input_tokens?: null | number;
-          model_id?: null | string;
-          output_tokens?: null | number;
-          prompt_version_hash?: null | string;
-          rows_extracted?: null | number;
-          rows_verified?: null | number;
-          schema_version?: null | string;
-          source_quote_ids?: null | string[];
-          started_at?: null | string;
-          temperature?: null | number;
-          tool_schema_hash?: null | string;
-        };
-        Relationships: [];
-        Row: {
-          cache_creation_input_tokens: null | number;
-          cache_read_input_tokens: null | number;
-          created_at: null | string;
-          document_id: null | string;
-          ended_at: null | string;
-          id: null | string;
-          input_doc_sha256: null | string;
-          input_tokens: null | number;
-          model_id: null | string;
-          output_tokens: null | number;
-          prompt_version_hash: null | string;
-          rows_extracted: null | number;
-          rows_verified: null | number;
-          schema_version: null | string;
-          source_quote_ids: null | string[];
-          started_at: null | string;
-          temperature: null | number;
-          tool_schema_hash: null | string;
-        };
-        Update: {
-          cache_creation_input_tokens?: null | number;
-          cache_read_input_tokens?: null | number;
-          created_at?: null | string;
-          document_id?: null | string;
-          ended_at?: null | string;
-          id?: null | string;
-          input_doc_sha256?: null | string;
-          input_tokens?: null | number;
-          model_id?: null | string;
-          output_tokens?: null | number;
-          prompt_version_hash?: null | string;
-          rows_extracted?: null | number;
-          rows_verified?: null | number;
-          schema_version?: null | string;
-          source_quote_ids?: null | string[];
-          started_at?: null | string;
-          temperature?: null | number;
-          tool_schema_hash?: null | string;
-        };
-      };
-      geography_columns: {
-        Relationships: [];
-        Row: {
-          coord_dimension: null | number;
-          f_geography_column: unknown;
-          f_table_catalog: unknown;
-          f_table_name: unknown;
-          f_table_schema: unknown;
-          srid: null | number;
-          type: null | string;
-        };
-      };
-      geometry_columns: {
-        Insert: {
-          coord_dimension?: null | number;
-          f_geometry_column?: unknown;
-          f_table_catalog?: null | string;
-          f_table_name?: unknown;
-          f_table_schema?: unknown;
-          srid?: null | number;
-          type?: null | string;
-        };
-        Relationships: [];
-        Row: {
-          coord_dimension: null | number;
-          f_geometry_column: unknown;
-          f_table_catalog: null | string;
-          f_table_name: unknown;
-          f_table_schema: unknown;
-          srid: null | number;
-          type: null | string;
-        };
-        Update: {
-          coord_dimension?: null | number;
-          f_geometry_column?: unknown;
-          f_table_catalog?: null | string;
-          f_table_name?: unknown;
-          f_table_schema?: unknown;
-          srid?: null | number;
-          type?: null | string;
-        };
+      valid_detail: {
+        valid: boolean | null;
+        reason: string | null;
+        location: unknown;
       };
     };
   };
-}
+};
 
-export type Enums<
-  DefaultSchemaEnumNameOrOptions extends
-    | keyof DefaultSchema["Enums"]
-    | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals;
-  }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
-> = DefaultSchemaEnumNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals;
-}
-  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
-  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
-    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
-    : never;
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">;
 
-export type Json = boolean | Json[] | null | number | string | { [key: string]: Json | undefined };
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">];
 
 export type Tables<
   DefaultSchemaTableNameOrOptions extends
@@ -1850,9 +1880,39 @@ export type TablesUpdate<
       : never
     : never;
 
-type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">;
+export type Enums<
+  DefaultSchemaEnumNameOrOptions extends
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals;
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    : never = never,
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals;
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+    : never;
 
-type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">];
+export type CompositeTypes<
+  PublicCompositeTypeNameOrOptions extends
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
+  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals;
+  }
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never = never,
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals;
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    : never;
 
 export const Constants = {
   public: {
