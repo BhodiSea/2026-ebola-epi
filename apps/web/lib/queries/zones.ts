@@ -2,7 +2,7 @@ import "server-only";
 
 import { z } from "zod";
 
-import { createClient } from "@/lib/supabase/server";
+import { createStaticClient } from "@/lib/supabase/server";
 
 /* ─── schema ────────────────────────────────────────────────────────────────── */
 
@@ -20,7 +20,7 @@ export type ZoneCode = z.infer<typeof ZoneCodeRow>;
 
 /** All health zones exposed via the public.zone_codes view (geo.admin2 projection). */
 export async function listAdmin2Codes(): Promise<ZoneCode[]> {
-  const supabase = await createClient();
+  const supabase = createStaticClient();
 
   const { data, error } = await supabase
     .from("zone_codes")

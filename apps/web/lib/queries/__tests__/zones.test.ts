@@ -9,6 +9,7 @@ const mockSupabase = { from: mockFrom };
 
 vi.mock("@/lib/supabase/server", () => ({
   createClient: async () => mockSupabase,
+  createStaticClient: () => mockSupabase,
 }));
 
 const SEED_ZONES = [

@@ -2,7 +2,7 @@ import "server-only";
 
 import { z } from "zod";
 
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createStaticClient } from "@/lib/supabase/server";
 
 /* ─── schema ────────────────────────────────────────────────────────────────── */
 
@@ -42,15 +42,14 @@ export async function getDailyBriefByDate(date: string): Promise<DailyBrief | nu
 }
 
 export async function listPublishedBriefs(): Promise<{ date: string }[]> {
-  const supabase = await createClient();
+  const supabase = createStaticClient();
 
   const { data, error } = await supabase
     .from("daily_briefs")
     .select("date")
     .order("date", { ascending: false });
 
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition, sonarjs/different-types-comparison -- Supabase response types include null/error branches
-  if (error !== null || data === null) {
+  if (error !== null) {
     return [];
   }
 
