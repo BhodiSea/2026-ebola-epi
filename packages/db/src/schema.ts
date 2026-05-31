@@ -70,6 +70,8 @@ export const sources = pgTable("sources", {
   licenseUrl: text("license_url"),
   attributionRequired: boolean("attribution_required").notNull().default(false),
   extractionPaused: boolean("extraction_paused").notNull().default(false),
+  postureTerms: text("posture_terms").notNull(),
+  postureAttribution: text("posture_attribution").notNull(),
   metadata: jsonb("metadata").notNull().default(sql`'{}'::jsonb`),
   createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
 });

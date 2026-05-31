@@ -28,6 +28,8 @@ const MOCK_SOURCE = {
   licenseTier: "open" as const,
   licenseUrl: null,
   attributionRequired: true,
+  postureTerms: "WHO DON reports may be reproduced with attribution for non-commercial purposes.",
+  postureAttribution: "© World Health Organization",
   metadata: {},
   createdAt: "2026-01-01T00:00:00Z",
   lastFetch: "2026-05-28T00:00:00Z",

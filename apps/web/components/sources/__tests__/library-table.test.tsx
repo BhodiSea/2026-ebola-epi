@@ -13,6 +13,8 @@ const SOURCES = [
     licenseTier: "open" as const,
     licenseUrl: null,
     attributionRequired: true,
+    postureTerms: "WHO DON reports may be reproduced with attribution for non-commercial purposes.",
+    postureAttribution: "© World Health Organization",
     metadata: {},
     createdAt: "2026-01-01T00:00:00Z",
     lastFetch: "2026-05-28T00:00:00Z",
@@ -27,6 +29,9 @@ const SOURCES = [
     licenseTier: "open" as const,
     licenseUrl: null,
     attributionRequired: false,
+    postureTerms:
+      "ECDC publications are released under a custom open licence permitting reproduction with attribution.",
+    postureAttribution: "© European Centre for Disease Prevention and Control",
     metadata: {},
     createdAt: "2026-01-01T00:00:00Z",
     lastFetch: null,

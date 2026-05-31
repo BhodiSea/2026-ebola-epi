@@ -23,6 +23,8 @@ const SourceRow = z.object({
   license_tier: z.enum(LICENSE_TIERS),
   license_url: z.string().nullable(),
   attribution_required: z.boolean(),
+  posture_terms: z.string(),
+  posture_attribution: z.string(),
   metadata: z.record(z.string(), z.unknown()),
   created_at: z.string(),
   last_fetch: z.string().nullable(),
@@ -45,7 +47,7 @@ export async function getSourceBySlug(slug: string): Promise<null | Source> {
   const { data } = await supabase
     .from("sources")
     .select(
-      "id, slug, name, url, trust_score, license_tier, license_url, attribution_required, metadata, created_at",
+      "id, slug, name, url, trust_score, license_tier, license_url, attribution_required, posture_terms, posture_attribution, metadata, created_at",
     )
     .eq("slug", slug)
     .maybeSingle();
@@ -83,7 +85,7 @@ export async function listSources(): Promise<Source[]> {
   const { data } = await supabase
     .from("sources")
     .select(
-      "id, slug, name, url, trust_score, license_tier, license_url, attribution_required, metadata, created_at",
+      "id, slug, name, url, trust_score, license_tier, license_url, attribution_required, posture_terms, posture_attribution, metadata, created_at",
     )
     .order("name", { ascending: true });
 
@@ -131,6 +133,8 @@ function toSource(row: SourceRow) {
     licenseTier: row.license_tier,
     licenseUrl: row.license_url,
     attributionRequired: row.attribution_required,
+    postureTerms: row.posture_terms,
+    postureAttribution: row.posture_attribution,
     metadata: row.metadata,
     createdAt: row.created_at,
     lastFetch: row.last_fetch,

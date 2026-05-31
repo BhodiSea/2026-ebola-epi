@@ -3,7 +3,6 @@ import "server-only";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { getSourcePosture } from "@/lib/copy/data-sources";
 import { getSourceBySlug } from "@/lib/queries/sources";
 
 export default async function SourceDetailPage({
@@ -15,8 +14,6 @@ export default async function SourceDetailPage({
   if (source === null) {
     notFound();
   }
-
-  const posture = getSourcePosture(slug);
 
   return (
     <main className="mx-auto max-w-3xl space-y-8 px-4 py-8">
@@ -66,13 +63,11 @@ export default async function SourceDetailPage({
         </div>
       </dl>
 
-      {posture === null ? null : (
-        <section className="space-y-3 rounded-lg border bg-card p-5">
-          <h2 className="font-mono text-[13px] text-fg-muted uppercase">Licence posture</h2>
-          <p className="font-source-serif-4 text-[17px] leading-[1.55]">{posture.terms}</p>
-          <p className="font-mono text-[12px] text-fg-muted">{posture.attribution}</p>
-        </section>
-      )}
+      <section className="space-y-3 rounded-lg border bg-card p-5">
+        <h2 className="font-mono text-[13px] text-fg-muted uppercase">Licence posture</h2>
+        <p className="font-source-serif-4 text-[17px] leading-[1.55]">{source.postureTerms}</p>
+        <p className="font-mono text-[12px] text-fg-muted">{source.postureAttribution}</p>
+      </section>
 
       {source.licenseUrl === null ? null : (
         <a

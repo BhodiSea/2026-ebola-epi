@@ -1,6 +1,5 @@
 import "server-only";
 
-import { DATA_SOURCE_POSTURES } from "@/lib/copy/data-sources";
 import type { Source } from "@/lib/queries/sources";
 import { listSources } from "@/lib/queries/sources";
 
@@ -63,39 +62,28 @@ function TierSection({ tier, sources }: Readonly<{ sources: Source[]; tier: stri
     <section className="space-y-4">
       <h2 className="font-mono text-[14px] text-fg-muted uppercase">{TIER_LABEL[tier] ?? tier}</h2>
       <div className="space-y-6">
-        {sources.map((source) => {
-          const posture = DATA_SOURCE_POSTURES[source.slug];
-          return (
-            <div key={source.id} className="space-y-2" data-source-posture={source.slug}>
-              <div className="flex items-baseline gap-3">
-                <a
-                  href={`/sources/${source.slug}`}
-                  className="font-semibold underline-offset-2 hover:underline"
-                >
-                  {source.name}
-                </a>
-                <a
-                  href={source.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="font-mono text-[12px] text-accent hover:underline"
-                >
-                  {source.url}
-                </a>
-              </div>
-              {posture === undefined ? (
-                <p className="font-mono text-[13px] text-fg-muted">
-                  Licence posture not yet documented.
-                </p>
-              ) : (
-                <>
-                  <p className="font-source-serif-4 text-[16px] leading-[1.55]">{posture.terms}</p>
-                  <p className="font-mono text-[12px] text-fg-muted">{posture.attribution}</p>
-                </>
-              )}
+        {sources.map((source) => (
+          <div key={source.id} className="space-y-2" data-source-posture={source.slug}>
+            <div className="flex items-baseline gap-3">
+              <a
+                href={`/sources/${source.slug}`}
+                className="font-semibold underline-offset-2 hover:underline"
+              >
+                {source.name}
+              </a>
+              <a
+                href={source.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-mono text-[12px] text-accent hover:underline"
+              >
+                {source.url}
+              </a>
             </div>
-          );
-        })}
+            <p className="font-source-serif-4 text-[16px] leading-[1.55]">{source.postureTerms}</p>
+            <p className="font-mono text-[12px] text-fg-muted">{source.postureAttribution}</p>
+          </div>
+        ))}
       </div>
     </section>
   );
