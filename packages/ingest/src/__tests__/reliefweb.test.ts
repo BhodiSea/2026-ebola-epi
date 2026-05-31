@@ -138,7 +138,7 @@ describe("reliefwebAdapter.fetch()", () => {
     if (result.skipped) {
       return;
     }
-    const parsed = JSON.parse(result.rawContent);
+    const parsed: unknown = JSON.parse(result.rawContent);
     expect(parsed).toHaveProperty("body-html");
   });
 });
@@ -146,7 +146,10 @@ describe("reliefwebAdapter.fetch()", () => {
 describe("reliefwebAdapter.parse()", () => {
   it("strips HTML tags and returns fullText with language:en for eng code", async () => {
     const { reliefwebAdapter } = await import("../sources/reliefweb.js");
-    const result = await reliefwebAdapter.parse(JSON.stringify(RW_FIELDS));
+    const result = await reliefwebAdapter.parse({
+      rawContent: JSON.stringify(RW_FIELDS),
+      mimeType: "application/json",
+    });
     expect(result.skipped).toBe(false);
     if (result.skipped) {
       return;
@@ -159,7 +162,7 @@ describe("reliefwebAdapter.parse()", () => {
   it("maps language code fra to fr", async () => {
     const { reliefwebAdapter } = await import("../sources/reliefweb.js");
     const raw = JSON.stringify({ ...RW_FIELDS, language: [{ code: "fra", name: "French" }] });
-    const result = await reliefwebAdapter.parse(raw);
+    const result = await reliefwebAdapter.parse({ rawContent: raw, mimeType: "application/json" });
     if (result.skipped) {
       return;
     }
@@ -169,7 +172,7 @@ describe("reliefwebAdapter.parse()", () => {
   it("returns skipped:true with empty_body when body-html is empty string", async () => {
     const { reliefwebAdapter } = await import("../sources/reliefweb.js");
     const raw = JSON.stringify({ title: "Empty", "body-html": "", language: [{ code: "eng" }] });
-    const result = await reliefwebAdapter.parse(raw);
+    const result = await reliefwebAdapter.parse({ rawContent: raw, mimeType: "application/json" });
     expect(result.skipped).toBe(true);
     if (!result.skipped) {
       return;
@@ -184,7 +187,7 @@ describe("reliefwebAdapter.parse()", () => {
       "body-html": "<p>Brief note.</p>",
       language: [{ code: "eng" }],
     });
-    const result = await reliefwebAdapter.parse(raw);
+    const result = await reliefwebAdapter.parse({ rawContent: raw, mimeType: "application/json" });
     expect(result.skipped).toBe(true);
     if (!result.skipped) {
       return;

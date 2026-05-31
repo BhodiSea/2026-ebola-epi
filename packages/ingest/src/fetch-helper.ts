@@ -54,10 +54,14 @@ export async function fetchWithConditionalGet(
     throw new Error(`HTTP ${res.status}: ${url}`);
   }
 
-  const rawContent = await res.text();
-  const sha256 = createHash("sha256").update(rawContent).digest();
   const mimeType = res.headers.get("content-type") ?? "text/html";
 
+  if (mimeType.includes("application/pdf")) {
+    return fetchPdfResult(res);
+  }
+
+  const rawContent = await res.text();
+  const sha256 = createHash("sha256").update(rawContent).digest();
   return { skipped: false, rawContent, sha256, mimeType };
 }
 
@@ -84,4 +88,11 @@ function buildRequestHeaders(ua: string, opts: ConditionalGetOpts): Record<strin
     headers["If-Modified-Since"] = opts.lastModified.toUTCString();
   }
   return headers;
+}
+
+async function fetchPdfResult(res: Response): Promise<FetchResult> {
+  const arrayBuffer = await res.arrayBuffer();
+  const rawBytes = new Uint8Array(arrayBuffer);
+  const sha256 = createHash("sha256").update(rawBytes).digest();
+  return { skipped: false, rawContent: "", rawBytes, sha256, mimeType: "application/pdf" };
 }

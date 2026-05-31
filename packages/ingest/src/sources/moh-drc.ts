@@ -1,8 +1,9 @@
 import { Readability } from "@mozilla/readability";
 import { JSDOM } from "jsdom";
 
-import type { FetchResult, ParseResult, RegisteredAdapter } from "../adapter.js";
+import type { FetchResult, ParseInput, ParseResult, RegisteredAdapter } from "../adapter.js";
 import { fetchWithConditionalGet } from "../fetch-helper.js";
+import { parsePdf } from "../parse-pdf.js";
 
 // sante.gouv.cd lists epidemics at /epidemie; bulletin links contain /epidemie/<slug>.
 // Link selector: a[href*="/epidemie/"] — fragile against site redesigns; documented here.
@@ -25,7 +26,7 @@ export const mohDRCAdapter: RegisteredAdapter = {
       dom.window.document.querySelectorAll<HTMLAnchorElement>('a[href*="/epidemie/"]');
 
     if (anchors.length === 0) {
-      return [];
+      throw new Error("moh_drc_selector_empty — site structure may have changed");
     }
 
     const seen = new Set<string>();
@@ -55,9 +56,12 @@ export const mohDRCAdapter: RegisteredAdapter = {
     return fetchWithConditionalGet(url);
   },
 
-  // eslint-disable-next-line @typescript-eslint/require-await
-  async parse(raw: string): Promise<ParseResult> {
-    const dom = new JSDOM(raw, { url: BASE_URL });
+  async parse(input: ParseInput): Promise<ParseResult> {
+    if (input.rawBytes !== undefined) {
+      return parsePdf(input.rawBytes);
+    }
+
+    const dom = new JSDOM(input.rawContent, { url: BASE_URL });
     const reader = new Readability(dom.window.document);
     const article = reader.parse();
 

@@ -2,7 +2,7 @@ import { Readability } from "@mozilla/readability";
 import { JSDOM } from "jsdom";
 import RSSParser from "rss-parser";
 
-import type { FetchResult, ParseResult, RegisteredAdapter } from "../adapter.js";
+import type { FetchResult, ParseInput, ParseResult, RegisteredAdapter } from "../adapter.js";
 import { fetchWithConditionalGet } from "../fetch-helper.js";
 
 // Africa CDC does not provide a dedicated outbreak RSS; we use the general news feed
@@ -68,8 +68,8 @@ export const africaCDCAdapter: RegisteredAdapter = {
   },
 
   // eslint-disable-next-line @typescript-eslint/require-await
-  async parse(raw: string): Promise<ParseResult> {
-    const dom = new JSDOM(raw, { url: "https://africacdc.org/" });
+  async parse(input: ParseInput): Promise<ParseResult> {
+    const dom = new JSDOM(input.rawContent, { url: "https://africacdc.org/" });
     const reader = new Readability(dom.window.document);
     const article = reader.parse();
 

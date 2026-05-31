@@ -12,6 +12,7 @@ import { ingestWHODON } from "./ingest-who-don";
 import { maintenanceAgent } from "./maintenance";
 import { reconcileCounts } from "./reconcile-counts";
 import { shadowExtraction } from "./shadow-extraction";
+import { syntheticMohDrcSelector } from "./synthetic-moh-drc-selector";
 import { syntheticMonitor } from "./synthetic-monitor";
 import { triageDocument } from "./triage-document";
 
@@ -28,6 +29,7 @@ export const functions = [
   awaitEscalation,
   extractDocument,
   reconcileCounts,
+  syntheticMohDrcSelector,
   syntheticMonitor,
   maintenanceAgent,
   backFillExtraction,

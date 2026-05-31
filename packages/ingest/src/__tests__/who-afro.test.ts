@@ -38,7 +38,10 @@ describe("whoAFROAdapter.fetch + parse", () => {
     if (fetchResult.skipped) {
       throw new Error("expected not skipped");
     }
-    const parseResult = await whoAFROAdapter.parse(fetchResult.rawContent);
+    const parseResult = await whoAFROAdapter.parse({
+      rawContent: fetchResult.rawContent,
+      mimeType: fetchResult.mimeType,
+    });
     if (parseResult.skipped) {
       throw new Error("expected not skipped");
     }

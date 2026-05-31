@@ -20,7 +20,7 @@ describe("ecdcCDTRAdapter", () => {
   });
 
   it("parse() extracts English text containing case count", async () => {
-    const result = await ecdcCDTRAdapter.parse(FIXTURE);
+    const result = await ecdcCDTRAdapter.parse({ rawContent: FIXTURE, mimeType: "text/html" });
     expect(result.skipped).toBe(false);
     if (result.skipped) {
       return;
@@ -30,7 +30,7 @@ describe("ecdcCDTRAdapter", () => {
   });
 
   it("parse() sets language to en", async () => {
-    const result = await ecdcCDTRAdapter.parse(FIXTURE);
+    const result = await ecdcCDTRAdapter.parse({ rawContent: FIXTURE, mimeType: "text/html" });
     expect(result.skipped).toBe(false);
     if (result.skipped) {
       return;
@@ -39,7 +39,7 @@ describe("ecdcCDTRAdapter", () => {
   });
 
   it("parse() sets title from article heading", async () => {
-    const result = await ecdcCDTRAdapter.parse(FIXTURE);
+    const result = await ecdcCDTRAdapter.parse({ rawContent: FIXTURE, mimeType: "text/html" });
     expect(result.skipped).toBe(false);
     if (result.skipped) {
       return;

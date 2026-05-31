@@ -22,6 +22,17 @@ export async function assertExtractionEnabled(): Promise<void> {
 }
 
 /**
+ * Returns true when the operator has enabled the Chromium fallback via Edge Config.
+ * Safe default is false (disabled) when EDGE_CONFIG env is unset.
+ */
+export async function chromiumFallbackEnabled(): Promise<boolean> {
+  if (!edgeConfigReady()) {
+    return false;
+  }
+  return (await get<boolean>("chromium_fallback_enabled")) === true;
+}
+
+/**
  * Returns the current extraction capacity tier based on Edge Config values.
  *
  * Tiers (based on extraction_spend_ratio):

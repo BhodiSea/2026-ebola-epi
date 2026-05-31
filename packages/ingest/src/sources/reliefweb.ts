@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 
 import { JSDOM } from "jsdom";
 
-import type { FetchResult, ParseResult, RegisteredAdapter } from "../adapter.js";
+import type { FetchResult, ParseInput, ParseResult, RegisteredAdapter } from "../adapter.js";
 
 const API_BASE = "https://api.reliefweb.int/v1/reports";
 
@@ -108,9 +108,9 @@ export const reliefwebAdapter: RegisteredAdapter = {
   },
 
   // eslint-disable-next-line @typescript-eslint/require-await
-  async parse(raw: string): Promise<ParseResult> {
+  async parse(input: ParseInput): Promise<ParseResult> {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- JSON.parse returns any; as unknown as T is the accepted safe-assertion idiom
-    const fields = JSON.parse(raw) as unknown as RWFields;
+    const fields = JSON.parse(input.rawContent) as unknown as RWFields;
     const bodyHtml = fields["body-html"];
 
     if (bodyHtml == null || bodyHtml === "") {

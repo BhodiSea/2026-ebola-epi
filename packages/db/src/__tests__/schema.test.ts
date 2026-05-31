@@ -177,6 +177,14 @@ describe("schema type inference", () => {
     expectTypeOf<Row["isNewInPeriod"]>().toEqualTypeOf<boolean | null>();
   });
 
+  // ── WS2 ingest pipeline additions ─────────────────────────────────────────
+
+  it("documents.$inferSelect has mimeType and language as nullable strings (WS2)", () => {
+    type Row = typeof documents.$inferSelect;
+    expectTypeOf<Row["mimeType"]>().toEqualTypeOf<null | string>();
+    expectTypeOf<Row["language"]>().toEqualTypeOf<null | string>();
+  });
+
   it("MetricLiteral is exported from @ituri/db (WS1 — used by AnomalyParams)", () => {
     type Row = typeof caseCounts.$inferSelect;
     // If MetricLiteral is exported and applied to metric column, the column type is the union.

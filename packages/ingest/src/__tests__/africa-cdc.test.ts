@@ -43,6 +43,7 @@ function makeFetchMock(opts: { return304?: boolean } = {}) {
     }
     if (opts.return304 === true) {
       // new Response(body, {status: 304}) is invalid per spec; return a plain mock object.
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- partial mock; 304 Response can't be constructed via `new Response(body, {status:304})` per Fetch spec
       return {
         status: 304,
         ok: false,
@@ -150,7 +151,10 @@ describe("africaCDCAdapter.fetch()", () => {
 describe("africaCDCAdapter.parse()", () => {
   it("returns fullText and language:en for full article HTML", async () => {
     const { africaCDCAdapter } = await import("../sources/africa-cdc.js");
-    const result = await africaCDCAdapter.parse(FIXTURE_HTML);
+    const result = await africaCDCAdapter.parse({
+      rawContent: FIXTURE_HTML,
+      mimeType: "text/html",
+    });
     expect(result.skipped).toBe(false);
     if (result.skipped) {
       return;
@@ -162,7 +166,7 @@ describe("africaCDCAdapter.parse()", () => {
 
   it("returns skipped:true with reason chromium_required for JS-rendered stub", async () => {
     const { africaCDCAdapter } = await import("../sources/africa-cdc.js");
-    const result = await africaCDCAdapter.parse(STUB_HTML);
+    const result = await africaCDCAdapter.parse({ rawContent: STUB_HTML, mimeType: "text/html" });
     expect(result.skipped).toBe(true);
     if (!result.skipped) {
       return;

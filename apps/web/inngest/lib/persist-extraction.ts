@@ -38,6 +38,8 @@ export interface DivergedPair {
 
 export interface DocumentParams {
   readonly fullText: string;
+  readonly language?: string;
+  readonly mimeType?: string;
   readonly publishedAt: Date;
   readonly sha256: Buffer;
   readonly sourceId: string;
@@ -392,6 +394,8 @@ export async function upsertDocument(params: DocumentParams): Promise<string> {
       url: params.url,
       fullText: params.fullText,
       publishedAt: params.publishedAt,
+      ...(params.mimeType !== undefined && { mimeType: params.mimeType }),
+      ...(params.language !== undefined && { language: params.language }),
     })
     .onConflictDoNothing()
     .returning({ id: documents.id });

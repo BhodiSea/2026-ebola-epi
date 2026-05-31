@@ -148,6 +148,7 @@ describe("ugandaMOHAdapter.fetch()", () => {
       if (u.pathname === "/robots.txt") {
         return new Response(ALLOW_ALL_ROBOTS, { status: 200 });
       }
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- partial mock; 304 Response can't be constructed via `new Response(body, {status:304})` per Fetch spec
       return {
         status: 304,
         ok: false,
@@ -170,7 +171,10 @@ describe("ugandaMOHAdapter.fetch()", () => {
 describe("ugandaMOHAdapter.parse()", () => {
   it("returns fullText with English content and language:en", async () => {
     const { ugandaMOHAdapter } = await import("../sources/uganda-moh.js");
-    const result = await ugandaMOHAdapter.parse(PRESS_RELEASE_HTML);
+    const result = await ugandaMOHAdapter.parse({
+      rawContent: PRESS_RELEASE_HTML,
+      mimeType: "text/html",
+    });
     expect(result.skipped).toBe(false);
     if (result.skipped) {
       return;
@@ -181,9 +185,10 @@ describe("ugandaMOHAdapter.parse()", () => {
 
   it("returns skipped:true with readability_parse_failed for minimal HTML", async () => {
     const { ugandaMOHAdapter } = await import("../sources/uganda-moh.js");
-    const result = await ugandaMOHAdapter.parse(
-      "<!DOCTYPE html><html><head></head><body></body></html>",
-    );
+    const result = await ugandaMOHAdapter.parse({
+      rawContent: "<!DOCTYPE html><html><head></head><body></body></html>",
+      mimeType: "text/html",
+    });
     expect(result.skipped).toBe(true);
     if (!result.skipped) {
       return;

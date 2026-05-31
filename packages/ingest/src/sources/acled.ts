@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 
-import type { FetchResult, ParseResult, RegisteredAdapter } from "../adapter.js";
+import type { FetchResult, ParseInput, ParseResult, RegisteredAdapter } from "../adapter.js";
 
 const API_BASE = "https://api.acleddata.com/acled/read";
 
@@ -97,9 +97,9 @@ export const acledAdapter: RegisteredAdapter = {
   },
 
   // eslint-disable-next-line @typescript-eslint/require-await
-  async parse(raw: string): Promise<ParseResult> {
+  async parse(input: ParseInput): Promise<ParseResult> {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- JSON.parse returns any; as unknown as T is the accepted safe-assertion idiom
-    const json = JSON.parse(raw) as unknown as AcledResponse;
+    const json = JSON.parse(input.rawContent) as unknown as AcledResponse;
     const events = json.data ?? [];
 
     if (events.length === 0) {

@@ -1,7 +1,7 @@
 import { Readability } from "@mozilla/readability";
 import { JSDOM } from "jsdom";
 
-import type { FetchResult, ParseResult, RegisteredAdapter } from "../adapter.js";
+import type { FetchResult, ParseInput, ParseResult, RegisteredAdapter } from "../adapter.js";
 import { fetchWithConditionalGet } from "../fetch-helper.js";
 
 // health.go.ug lists press releases at /press-releases/; entry URLs are relative paths.
@@ -74,8 +74,8 @@ export const ugandaMOHAdapter: RegisteredAdapter = {
   },
 
   // eslint-disable-next-line @typescript-eslint/require-await
-  async parse(raw: string): Promise<ParseResult> {
-    const dom = new JSDOM(raw, { url: BASE_URL });
+  async parse(input: ParseInput): Promise<ParseResult> {
+    const dom = new JSDOM(input.rawContent, { url: BASE_URL });
     const reader = new Readability(dom.window.document);
     const article = reader.parse();
 

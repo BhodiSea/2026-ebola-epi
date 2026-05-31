@@ -2,8 +2,9 @@ import { Readability } from "@mozilla/readability";
 import { JSDOM } from "jsdom";
 import RSSParser from "rss-parser";
 
-import type { FetchResult, ParseResult, RegisteredAdapter } from "../adapter.js";
+import type { FetchResult, ParseInput, ParseResult, RegisteredAdapter } from "../adapter.js";
 import { fetchWithConditionalGet } from "../fetch-helper.js";
+import { parsePdf } from "../parse-pdf.js";
 
 const WHO_AFRO_RSS_URL = "https://www.afro.who.int/rss.xml";
 
@@ -62,9 +63,12 @@ export const whoAFROAdapter: RegisteredAdapter = {
     return fetchWithConditionalGet(url);
   },
 
-  // eslint-disable-next-line @typescript-eslint/require-await
-  async parse(raw: string): Promise<ParseResult> {
-    const dom = new JSDOM(raw, { url: "https://www.afro.who.int/" });
+  async parse(input: ParseInput): Promise<ParseResult> {
+    if (input.rawBytes !== undefined) {
+      return parsePdf(input.rawBytes);
+    }
+
+    const dom = new JSDOM(input.rawContent, { url: "https://www.afro.who.int/" });
     // Detect language from <html lang="fr"> / <html lang="en"> attribute.
     const htmlLang = dom.window.document.documentElement.lang.toLowerCase();
     const language = htmlLang.startsWith("fr") ? "fr" : "en";

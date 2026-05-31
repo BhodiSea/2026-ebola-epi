@@ -133,7 +133,10 @@ describe("acledAdapter.fetch()", () => {
 describe("acledAdapter.parse()", () => {
   it("formats events as text lines with correct fields", async () => {
     const { acledAdapter } = await import("../sources/acled.js");
-    const result = await acledAdapter.parse(JSON.stringify(ACLED_RESPONSE));
+    const result = await acledAdapter.parse({
+      rawContent: JSON.stringify(ACLED_RESPONSE),
+      mimeType: "application/json",
+    });
     expect(result.skipped).toBe(false);
     if (result.skipped) {
       return;
@@ -146,7 +149,10 @@ describe("acledAdapter.parse()", () => {
 
   it("returns skipped:true with no_events_in_window for empty data array", async () => {
     const { acledAdapter } = await import("../sources/acled.js");
-    const result = await acledAdapter.parse(JSON.stringify(ACLED_EMPTY_RESPONSE));
+    const result = await acledAdapter.parse({
+      rawContent: JSON.stringify(ACLED_EMPTY_RESPONSE),
+      mimeType: "application/json",
+    });
     expect(result.skipped).toBe(true);
     if (!result.skipped) {
       return;

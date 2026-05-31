@@ -5,7 +5,7 @@ import { JSDOM } from "jsdom";
 import robotsParser from "robots-parser";
 import RSSParser from "rss-parser";
 
-import type { FetchResult, ParseResult, RegisteredAdapter } from "../adapter.js";
+import type { FetchResult, ParseInput, ParseResult, RegisteredAdapter } from "../adapter.js";
 
 const USER_AGENT = "ituri-sitrep/1.0 (+https://ituri-sitrep.org/about/bot)";
 
@@ -141,8 +141,8 @@ export const whoDONAdapter: RegisteredAdapter = {
   },
 
   // eslint-disable-next-line @typescript-eslint/require-await
-  async parse(raw: string): Promise<ParseResult> {
-    const dom = new JSDOM(raw, { url: "https://www.who.int/" });
+  async parse(input: ParseInput): Promise<ParseResult> {
+    const dom = new JSDOM(input.rawContent, { url: "https://www.who.int/" });
     const reader = new Readability(dom.window.document);
     const article = reader.parse();
     if (article === null) {

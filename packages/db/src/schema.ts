@@ -95,6 +95,9 @@ export const documents = pgTable("documents", {
   etag: text("etag"),
   lastModified: timestamp("last_modified", { withTimezone: true, mode: "date" }),
   httpStatus: integer("http_status"),
+  // WS2: populated by PDF and Chromium-fallback parse paths.
+  mimeType: text("mime_type"),
+  language: text("language"),
 });
 
 export const sourceQuotes = pgTable("source_quotes", {

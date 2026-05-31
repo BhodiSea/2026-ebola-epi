@@ -110,3 +110,39 @@ describe("getExtractionCapacity", () => {
     expect(mockGet).not.toHaveBeenCalled();
   });
 });
+
+describe("chromiumFallbackEnabled", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockEnv.EDGE_CONFIG = "https://edge-config.vercel.com/ecfg_test?token=tok";
+  });
+
+  afterEach(() => {
+    vi.resetModules();
+  });
+
+  it("returns true when chromium_fallback_enabled is true in Edge Config", async () => {
+    mockGet.mockResolvedValue(true);
+    const { chromiumFallbackEnabled } = await import("@/lib/kill-switch");
+    expect(await chromiumFallbackEnabled()).toBe(true);
+  });
+
+  it("returns false when chromium_fallback_enabled is false in Edge Config", async () => {
+    mockGet.mockResolvedValue(false);
+    const { chromiumFallbackEnabled } = await import("@/lib/kill-switch");
+    expect(await chromiumFallbackEnabled()).toBe(false);
+  });
+
+  it("returns false (safe default) when EDGE_CONFIG is not set", async () => {
+    mockEnv.EDGE_CONFIG = undefined;
+    const { chromiumFallbackEnabled } = await import("@/lib/kill-switch");
+    expect(await chromiumFallbackEnabled()).toBe(false);
+    expect(mockGet).not.toHaveBeenCalled();
+  });
+
+  it("returns false when chromium_fallback_enabled is null (unset key)", async () => {
+    mockGet.mockResolvedValue(null);
+    const { chromiumFallbackEnabled } = await import("@/lib/kill-switch");
+    expect(await chromiumFallbackEnabled()).toBe(false);
+  });
+});

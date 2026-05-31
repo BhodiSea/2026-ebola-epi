@@ -2,7 +2,7 @@ import { Readability } from "@mozilla/readability";
 import { JSDOM } from "jsdom";
 import RSSParser from "rss-parser";
 
-import type { FetchResult, ParseResult, RegisteredAdapter } from "../adapter.js";
+import type { FetchResult, ParseInput, ParseResult, RegisteredAdapter } from "../adapter.js";
 import { fetchWithConditionalGet } from "../fetch-helper.js";
 
 const ECDC_CDTR_RSS_URL =
@@ -61,8 +61,8 @@ export const ecdcCDTRAdapter: RegisteredAdapter = {
   },
 
   // eslint-disable-next-line @typescript-eslint/require-await
-  async parse(raw: string): Promise<ParseResult> {
-    const dom = new JSDOM(raw, { url: "https://www.ecdc.europa.eu/" });
+  async parse(input: ParseInput): Promise<ParseResult> {
+    const dom = new JSDOM(input.rawContent, { url: "https://www.ecdc.europa.eu/" });
     const htmlLang = dom.window.document.documentElement.lang.toLowerCase();
     const language = htmlLang.startsWith("fr") ? "fr" : "en";
 

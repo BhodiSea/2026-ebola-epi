@@ -91,7 +91,7 @@ describe("mohDRCAdapter.poll()", () => {
     expect(hasNonEpidemie).toBe(false);
   });
 
-  it("returns [] when listing page yields no /epidemie/ links", async () => {
+  it("throws moh_drc_selector_empty when listing page yields no /epidemie/ links", async () => {
     vi.stubGlobal(
       "fetch",
       makeHtmlFetchMock(
@@ -99,8 +99,7 @@ describe("mohDRCAdapter.poll()", () => {
       ),
     );
     const { mohDRCAdapter } = await import("../sources/moh-drc.js");
-    const items = await mohDRCAdapter.poll();
-    expect(items).toEqual([]);
+    await expect(mohDRCAdapter.poll()).rejects.toThrow("moh_drc_selector_empty");
   });
 
   it("deduplicates when the same URL appears multiple times in the listing", async () => {
@@ -144,6 +143,7 @@ describe("mohDRCAdapter.fetch()", () => {
       if (u.pathname === "/robots.txt") {
         return new Response(ALLOW_ALL_ROBOTS, { status: 200 });
       }
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- partial mock; 304 Response can't be constructed via `new Response(body, {status:304})` per Fetch spec
       return {
         status: 304,
         ok: false,
@@ -164,7 +164,7 @@ describe("mohDRCAdapter.fetch()", () => {
 describe("mohDRCAdapter.parse()", () => {
   it("returns fullText with French content and language:fr", async () => {
     const { mohDRCAdapter } = await import("../sources/moh-drc.js");
-    const result = await mohDRCAdapter.parse(BULLETIN_HTML);
+    const result = await mohDRCAdapter.parse({ rawContent: BULLETIN_HTML, mimeType: "text/html" });
     expect(result.skipped).toBe(false);
     if (result.skipped) {
       return;
@@ -176,7 +176,7 @@ describe("mohDRCAdapter.parse()", () => {
   it("hard-codes language:fr regardless of html lang attribute", async () => {
     const { mohDRCAdapter } = await import("../sources/moh-drc.js");
     const enHtml = BULLETIN_HTML.replace('lang="fr"', 'lang="en"');
-    const result = await mohDRCAdapter.parse(enHtml);
+    const result = await mohDRCAdapter.parse({ rawContent: enHtml, mimeType: "text/html" });
     if (result.skipped) {
       return;
     }
@@ -185,9 +185,10 @@ describe("mohDRCAdapter.parse()", () => {
 
   it("returns skipped:true with readability_parse_failed for minimal HTML", async () => {
     const { mohDRCAdapter } = await import("../sources/moh-drc.js");
-    const result = await mohDRCAdapter.parse(
-      "<!DOCTYPE html><html><head></head><body></body></html>",
-    );
+    const result = await mohDRCAdapter.parse({
+      rawContent: "<!DOCTYPE html><html><head></head><body></body></html>",
+      mimeType: "text/html",
+    });
     expect(result.skipped).toBe(true);
     if (!result.skipped) {
       return;
