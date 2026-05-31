@@ -1,5 +1,10 @@
 # ituri-sitrep — Operational Readiness Roadmap
 
+> **Superseded.** This document was written 2026-05-30. Several gap items (G1 gold-set
+> fixtures, G4 exit-gate-evidence directory) are now stale. The authoritative roadmap
+> is [docs/v1/functional_roadmap.md](v1/functional_roadmap.md) — read that instead.
+> This file is retained as an archive.
+
 **Scope:** Close the remaining Phase 0–8 exit-gate gaps and bring all cross-repo documentation into internal consistency. When every item below is done, the project is **fully operational**: all non-deferred data flows work end-to-end, the F1 ≥ 0.95 gate is measurable, deployment infra is pinned, and a developer cloning for the first time has accurate instructions.
 
 **Not in scope:** Phase 9 (computed geospatial layers — see [docs/v1/phase-9-computed-geospatial-layers.md](v1/phase-9-computed-geospatial-layers.md)), [ADR-0009](adr/0009-defer-modal-epinow2-to-v2.md) (EpiNow2 Rt → v2), [ADR-0020](adr/0020-defer-priority-adapters-to-post-phase-9.md) (five Priority-tier adapters → post-Phase 9).

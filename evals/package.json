@@ -6,6 +6,7 @@
   "scripts": {
     "test": "vitest run",
     "eval": "promptfoo eval --config promptfoo.config.yaml --batch",
+    "regen": "node regen-fixture.mjs",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

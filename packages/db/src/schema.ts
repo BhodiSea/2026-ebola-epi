@@ -218,6 +218,20 @@ export const batchResults = auditSchema.table("batch_results", {
 // ─── public.case_counts ───────────────────────────────────────────────────────
 // Declared after audit.extraction_runs to satisfy the forward reference.
 
+export type MetricLiteral =
+  | "cases"
+  | "confirmed"
+  | "contacts"
+  | "deaths"
+  | "hcw_deaths"
+  | "healthcare_workers"
+  | "in_treatment"
+  | "lab_positive"
+  | "nosocomial"
+  | "probable"
+  | "suspected"
+  | "vaccinated";
+
 export const caseCounts = pgTable("case_counts", {
   id: uuid("id").primaryKey().defaultRandom(),
   outbreakId: uuid("outbreak_id")
@@ -226,8 +240,10 @@ export const caseCounts = pgTable("case_counts", {
     .references(() => outbreaks.id),
   asOf: date("as_of", { mode: "date" }).notNull(),
   admin2Code: text("admin2_code").references(() => admin2.code),
-  metric: text("metric").notNull(),
+  adminName: text("admin_name"),
+  metric: text("metric").notNull().$type<MetricLiteral>(),
   value: integer("value").notNull(),
+  isNewInPeriod: boolean("is_new_in_period"),
   sourceQuoteId: uuid("source_quote_id")
     .notNull()
     .$type<SourceQuoteId>()

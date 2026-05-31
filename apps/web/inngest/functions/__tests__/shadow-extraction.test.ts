@@ -40,7 +40,7 @@ describe("computeFieldVariances", () => {
       metric: "confirmed" as const,
       as_of: "2026-04-20",
       value: 142,
-      admin1_name: undefined,
+      admin_name: undefined,
       source_quote: { char_start: 0, char_end: 10, quote_text: "142 cases", sha256: "abc" },
     },
     {
@@ -49,7 +49,7 @@ describe("computeFieldVariances", () => {
       metric: "deaths" as const,
       as_of: "2026-04-20",
       value: 12,
-      admin1_name: undefined,
+      admin_name: undefined,
       source_quote: { char_start: 11, char_end: 20, quote_text: "12 deaths", sha256: "def" },
     },
   ];

@@ -12,5 +12,54 @@
     "metric": "deaths",
     "value": 12,
     "as_of": "2026-04-20"
+  },
+  {
+    "pathogen_icd11": "1D60.2",
+    "country_iso3": "COD",
+    "metric": "confirmed",
+    "value": 28,
+    "as_of": "2026-04-20"
+  },
+  {
+    "pathogen_icd11": "1D60.2",
+    "country_iso3": "COD",
+    "metric": "confirmed",
+    "value": 16,
+    "as_of": "2026-04-20"
+  },
+  {
+    "pathogen_icd11": "1D60.2",
+    "country_iso3": "COD",
+    "metric": "confirmed",
+    "value": 3,
+    "as_of": "2026-04-20"
+  },
+  {
+    "pathogen_icd11": "1D60.2",
+    "country_iso3": "COD",
+    "metric": "hcw_deaths",
+    "value": 4,
+    "as_of": "2026-04-20"
+  },
+  {
+    "pathogen_icd11": "1D60.2",
+    "country_iso3": "COD",
+    "metric": "in_treatment",
+    "value": 3,
+    "as_of": "2026-04-20"
+  },
+  {
+    "pathogen_icd11": "1D60.2",
+    "country_iso3": "COD",
+    "metric": "lab_positive",
+    "value": 11,
+    "as_of": "2026-04-20"
+  },
+  {
+    "pathogen_icd11": "1D60.2",
+    "country_iso3": "COD",
+    "metric": "confirmed",
+    "value": 5,
+    "as_of": "2026-04-20"
   }
 ]

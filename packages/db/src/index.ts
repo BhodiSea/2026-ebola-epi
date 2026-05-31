@@ -10,6 +10,7 @@ export {
   documents,
   extractionRuns,
   incidents,
+  type MetricLiteral,
   outbreaks,
   shadowResults,
   sourceQuotes,

@@ -2,42 +2,153 @@
   "content": [
     {
       "type": "tool_use",
-      "id": "toolu_fixture_bdbv_01",
+      "id": "toolu_01B5NW3YYtbJJ55mpYsdyanC",
       "name": "extract_case_counts",
       "input": {
         "extractions": [
           {
             "pathogen_icd11": "1D60.2",
             "country_iso3": "COD",
+            "admin_name": "Ituri",
             "metric": "confirmed",
             "value": 47,
             "as_of": "2026-04-20",
+            "is_new_in_period": false,
             "source_quote": {
-              "char_start": 242,
-              "char_end": 260,
-              "quote_text": "47 confirmed cases"
+              "char_start": 227,
+              "char_end": 305,
+              "quote_text": "47 confirmed cases and 12 deaths have been reported across three health zones in Ituri"
             }
           },
           {
             "pathogen_icd11": "1D60.2",
             "country_iso3": "COD",
+            "admin_name": "Ituri",
             "metric": "deaths",
             "value": 12,
             "as_of": "2026-04-20",
+            "is_new_in_period": false,
             "source_quote": {
-              "char_start": 265,
-              "char_end": 274,
-              "quote_text": "12 deaths"
+              "char_start": 227,
+              "char_end": 305,
+              "quote_text": "47 confirmed cases and 12 deaths have been reported across three health zones in Ituri"
+            }
+          },
+          {
+            "pathogen_icd11": "1D60.2",
+            "country_iso3": "COD",
+            "admin_name": "Rwampara",
+            "metric": "confirmed",
+            "value": 28,
+            "as_of": "2026-04-20",
+            "is_new_in_period": false,
+            "source_quote": {
+              "char_start": 314,
+              "char_end": 369,
+              "quote_text": "Rwampara Health Zone reports 28 of the 47 confirmed cases"
+            }
+          },
+          {
+            "pathogen_icd11": "1D60.2",
+            "country_iso3": "COD",
+            "admin_name": "Mongbwalu",
+            "metric": "confirmed",
+            "value": 16,
+            "as_of": "2026-04-20",
+            "is_new_in_period": false,
+            "source_quote": {
+              "char_start": 483,
+              "char_end": 528,
+              "quote_text": "Mongbwalu Health Zone accounts for 16 confirmed cases"
+            }
+          },
+          {
+            "pathogen_icd11": "1D60.2",
+            "country_iso3": "COD",
+            "admin_name": "Mongbwalu",
+            "metric": "hcw_deaths",
+            "value": 4,
+            "as_of": "2026-04-20",
+            "is_new_in_period": false,
+            "source_quote": {
+              "char_start": 530,
+              "char_end": 630,
+              "quote_text": "Four of the 12 deaths occurred among healthcare workers at Mongbwalu General Referral Hospital"
+            }
+          },
+          {
+            "pathogen_icd11": "1D60.2",
+            "country_iso3": "COD",
+            "admin_name": "Mongbwalu",
+            "metric": "in_treatment",
+            "value": 3,
+            "as_of": "2026-04-20",
+            "is_new_in_period": false,
+            "source_quote": {
+              "char_start": 699,
+              "char_end": 758,
+              "quote_text": "Three patients remain in active treatment at the Ebola Treatment Unit"
+            }
+          },
+          {
+            "pathogen_icd11": "1D60.2",
+            "country_iso3": "COD",
+            "admin_name": "Bunia",
+            "metric": "confirmed",
+            "value": 3,
+            "as_of": "2026-04-20",
+            "is_new_in_period": false,
+            "source_quote": {
+              "char_start": 761,
+              "char_end": 805,
+              "quote_text": "Bunia Health Zone has reported 3 confirmed cases"
+            }
+          },
+          {
+            "pathogen_icd11": "1D60.2",
+            "country_iso3": "COD",
+            "admin_name": "Ituri",
+            "metric": "lab_positive",
+            "value": 11,
+            "as_of": "2026-04-20",
+            "is_new_in_period": false,
+            "source_quote": {
+              "char_start": 820,
+              "char_end": 920,
+              "quote_text": "laboratory analysis confirms 11 positive results from rapid diagnostic testing conducted across the three zones"
+            }
+          },
+          {
+            "pathogen_icd11": "1D60.2",
+            "country_iso3": "COD",
+            "admin_name": "Ituri",
+            "metric": "confirmed",
+            "value": 5,
+            "as_of": "2026-04-20",
+            "is_new_in_period": true,
+            "source_quote": {
+              "char_start": 1012,
+              "char_end": 1097,
+              "quote_text": "Five new cases have been confirmed since the previous situation report issued on 17 April 2026"
             }
           }
         ]
+      },
+      "caller": {
+        "type": "direct"
       }
     }
   ],
   "usage": {
-    "input_tokens": 1200,
-    "output_tokens": 120,
+    "input_tokens": 313,
+    "cache_creation_input_tokens": 2132,
     "cache_read_input_tokens": 0,
-    "cache_creation_input_tokens": 0
+    "cache_creation": {
+      "ephemeral_5m_input_tokens": 2132,
+      "ephemeral_1h_input_tokens": 0
+    },
+    "output_tokens": 1387,
+    "service_tier": "standard",
+    "inference_geo": "global"
   }
 }

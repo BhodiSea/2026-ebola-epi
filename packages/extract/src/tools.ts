@@ -9,7 +9,9 @@ export const ExtractionRowSchema = z.object({
     .min(4)
     .max(12),
   country_iso3: z.string().length(3),
-  admin1_name: z.string().min(1).optional(),
+  // Most specific geographic name the document provides: zone de santé preferred,
+  // province/region as fallback when zone is not named.
+  admin_name: z.string().min(1).optional(),
   metric: z.enum([
     "cases",
     "deaths",
@@ -19,9 +21,15 @@ export const ExtractionRowSchema = z.object({
     "vaccinated",
     "contacts",
     "healthcare_workers",
+    "hcw_deaths",
+    "nosocomial",
+    "lab_positive",
+    "in_treatment",
   ]),
   value: z.number().int().nonnegative(),
   as_of: z.iso.date(),
+  // true = value is new since previous sitrep; false/absent = cumulative
+  is_new_in_period: z.boolean().optional(),
   source_quote: z.object({
     char_start: z.number().int().nonnegative(),
     char_end: z.number().int().positive(),

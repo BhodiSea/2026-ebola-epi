@@ -2,6 +2,8 @@
 // Offline gold-set evaluation — no API calls, no DB. Uses pre-recorded
 // tool_use response fixtures to deterministically assert F1 ≥ 0.90.
 // Set PERSIST_EVAL_SCORES=1 to write scores to public.extraction_eval_scores.
+// WS1: schema now uses admin_name (renamed from admin1_name); F1 scoring is admin-blind.
+// Regen fixtures: pnpm --filter=@ituri/evals regen (uses runExtraction — same code path as extract-document.ts).
 import { readFileSync } from "node:fs";
 import path from "node:path";
 
@@ -45,10 +47,12 @@ function loadFixture(name: string) {
   const dir = path.join(FIXTURES_DIR, name);
   // eslint-disable-next-line security/detect-non-literal-fs-filename -- path built from trusted fixture dir constant
   const sourceText = readFileSync(path.join(dir, "source.txt"), "utf8");
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- JSON.parse returns any; shape validated by F1 scorer at runtime
   const groundTruth = JSON.parse(
     // eslint-disable-next-line security/detect-non-literal-fs-filename -- path built from trusted fixture dir constant
     readFileSync(path.join(dir, "ground-truth.json"), "utf8"),
   ) as ExtractionTuple[];
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- JSON.parse returns any; shape validated by parseExtractionResponse before assertions
   const responseFixture = JSON.parse(
     // eslint-disable-next-line security/detect-non-literal-fs-filename -- path built from trusted fixture dir constant
     readFileSync(path.join(dir, "response-fixture.json"), "utf8"),

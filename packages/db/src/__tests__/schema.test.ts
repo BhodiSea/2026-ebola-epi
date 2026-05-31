@@ -164,6 +164,37 @@ describe("schema type inference", () => {
     // status has a default so it should be optional in insert
     expectTypeOf<Insert["status"]>().toEqualTypeOf<string | undefined>();
   });
+
+  // ── WS1 schema widening ───────────────────────────────────────────────────
+
+  it("caseCounts.$inferSelect has adminName nullable string (WS1)", () => {
+    type Row = typeof caseCounts.$inferSelect;
+    expectTypeOf<Row["adminName"]>().toEqualTypeOf<null | string>();
+  });
+
+  it("caseCounts.$inferSelect has isNewInPeriod nullable boolean (WS1)", () => {
+    type Row = typeof caseCounts.$inferSelect;
+    expectTypeOf<Row["isNewInPeriod"]>().toEqualTypeOf<boolean | null>();
+  });
+
+  it("MetricLiteral is exported from @ituri/db (WS1 — used by AnomalyParams)", () => {
+    type Row = typeof caseCounts.$inferSelect;
+    // If MetricLiteral is exported and applied to metric column, the column type is the union.
+    expectTypeOf<Row["metric"]>().toEqualTypeOf<
+      | "cases"
+      | "confirmed"
+      | "contacts"
+      | "deaths"
+      | "hcw_deaths"
+      | "healthcare_workers"
+      | "in_treatment"
+      | "lab_positive"
+      | "nosocomial"
+      | "probable"
+      | "suspected"
+      | "vaccinated"
+    >();
+  });
 });
 
 // ── types.gen.ts smoke tests ───────────────────────────────────────────────

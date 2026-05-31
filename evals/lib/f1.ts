@@ -3,7 +3,7 @@
  *
  * Compares expected vs actual extraction tuples on the five identity fields:
  * (pathogen_icd11, country_iso3, metric, value, as_of).
- * admin1_name and source_quote are intentionally excluded — they are verified
+ * admin_name and source_quote are intentionally excluded — they are verified
  * separately by the substring-verify step in the extraction runner.
  */
 

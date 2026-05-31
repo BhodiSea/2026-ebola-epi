@@ -1,5 +1,6 @@
 import "server-only";
 
+import type { MetricLiteral } from "@ituri/db";
 import { caseCounts } from "@ituri/db";
 import type { OutbreakId } from "@ituri/shared";
 import { and, desc, eq, isNull, lt, lte, sql } from "drizzle-orm";
@@ -20,7 +21,7 @@ export type AnomalyKind = "cfr" | "cluster_100km" | "zscore";
 export interface AnomalyParams {
   admin2Code: null | string;
   asOf: Date;
-  metric: string;
+  metric: MetricLiteral;
   outbreakId: string;
   value: number;
 }

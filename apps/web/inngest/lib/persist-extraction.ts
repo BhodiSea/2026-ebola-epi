@@ -247,8 +247,10 @@ export async function insertExtractionInTransaction(
         outbreakId,
         asOf,
         admin2Code,
+        adminName: row.admin_name ?? null,
         metric: row.metric,
         value: row.value,
+        isNewInPeriod: row.is_new_in_period ?? null,
         sourceQuoteId: sqId,
         extractionRunId: params.extractionRunId,
         modelId: params.modelId,
@@ -326,20 +328,38 @@ export async function persistExtraction(
   return { extractionRunId, escalations };
 }
 
-export async function resolveAdmin2Code(
+export async function resolveAdminCode(
   tx: Tx,
   countryIso3: string,
-  name: string,
-): Promise<null | string> {
-  const rows: { code: string }[] = await tx
-    .select({ code: admin2.code })
+  adminName: string,
+): Promise<{ admin1Code: null | string; admin2Code: null | string }> {
+  // Priority: exact zone-de-santé match (admin2) → province match (admin1) → null
+  const zone: { admin1Code: string; code: string }[] = await tx
+    .select({ code: admin2.code, admin1Code: admin2.admin1Code })
     .from(admin2)
     .innerJoin(admin1, eq(admin2.admin1Code, admin1.code))
     .where(
-      and(eq(admin1.countryIso3, countryIso3), eq(sql`lower(${admin2.name})`, name.toLowerCase())),
+      and(
+        eq(admin1.countryIso3, countryIso3),
+        eq(sql`lower(${admin2.name})`, adminName.toLowerCase()),
+      ),
     )
     .limit(1);
-  return rows[0]?.code ?? null;
+  if (zone[0]) {
+    return { admin2Code: zone[0].code, admin1Code: zone[0].admin1Code };
+  }
+
+  const province: { code: string }[] = await tx
+    .select({ code: admin1.code })
+    .from(admin1)
+    .where(
+      and(
+        eq(admin1.countryIso3, countryIso3),
+        eq(sql`lower(${admin1.name})`, adminName.toLowerCase()),
+      ),
+    )
+    .limit(1);
+  return { admin2Code: null, admin1Code: province[0]?.code ?? null };
 }
 
 export async function resolveSourceId(slug: string): Promise<string> {
@@ -460,16 +480,16 @@ async function resolveAndLogAdmin2(
   row: ExtractionRow,
   sourceSlug: string,
 ): Promise<null | string> {
-  if (row.admin1_name === undefined) {
+  if (row.admin_name === undefined) {
     return null;
   }
-  const code = await resolveAdmin2Code(tx, row.country_iso3, row.admin1_name);
-  if (code === null) {
+  const { admin2Code, admin1Code } = await resolveAdminCode(tx, row.country_iso3, row.admin_name);
+  if (admin2Code === null && admin1Code === null) {
     await tx.insert(agentActions).values({
       agent: `ingest-${sourceSlug}`,
       action: "admin2_unmatched",
-      payload: { adminName: row.admin1_name, countryIso3: row.country_iso3 },
+      payload: { adminName: row.admin_name, countryIso3: row.country_iso3 },
     });
   }
-  return code;
+  return admin2Code;
 }

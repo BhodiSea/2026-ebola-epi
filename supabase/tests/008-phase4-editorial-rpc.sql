@@ -33,15 +33,17 @@ select ok(
 );
 reset role;
 
--- (f) function returns exactly 5 zone rows for the seeded bundibugyo outbreak
-select is(
+-- (f) function returns at least 36 zone rows for the seeded bundibugyo outbreak
+-- (WS1 Ituri zone seed added 36 zones to COD-IT; prior seed had 7)
+select cmp_ok(
   (select count(*)::int
    from public.outbreak_zone_svg(
      (select id from public.outbreaks where pathogen_slug = 'bundibugyo' limit 1)
    )
   ),
-  7,
-  'outbreak_zone_svg returns 7 admin2 zones for bundibugyo outbreak'
+  '>=',
+  36,
+  'outbreak_zone_svg returns >= 36 admin2 zones after WS1 Ituri zone seed'
 );
 
 -- (g) all total_value are non-negative (coalesce ensures no nulls)

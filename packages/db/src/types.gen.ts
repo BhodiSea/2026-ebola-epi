@@ -368,6 +368,8 @@ export type Database = {
           metadata: Json;
           name: string;
           parser_version: string | null;
+          posture_attribution: string;
+          posture_terms: string;
           slug: string;
           trust_score: number;
           url: string;
@@ -383,6 +385,8 @@ export type Database = {
           metadata?: Json;
           name: string;
           parser_version?: string | null;
+          posture_attribution: string;
+          posture_terms: string;
           slug: string;
           trust_score?: number;
           url: string;
@@ -398,6 +402,8 @@ export type Database = {
           metadata?: Json;
           name?: string;
           parser_version?: string | null;
+          posture_attribution?: string;
+          posture_terms?: string;
           slug?: string;
           trust_score?: number;
           url?: string;
