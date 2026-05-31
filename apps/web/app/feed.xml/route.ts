@@ -1,8 +1,7 @@
 import "server-only";
 
+import { siteUrl } from "@/lib/env";
 import { createClient } from "@/lib/supabase/server";
-
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://ituri-epi.com";
 
 /* eslint-disable @typescript-eslint/naming-convention */
 interface FeedDoc {
@@ -35,11 +34,11 @@ export async function GET(): Promise<Response> {
 
   const feed = `<?xml version="1.0" encoding="utf-8"?>
 <feed xmlns="http://www.w3.org/2005/Atom">
-  <id>${SITE_URL}/feed.xml</id>
+  <id>${siteUrl()}/feed.xml</id>
   <title>ituri-sitrep — Bundibugyo virus outbreak</title>
   <subtitle>Publicly released sitrep signals for the 2026 Ituri outbreak</subtitle>
-  <link href="${SITE_URL}/feed.xml" rel="self" />
-  <link href="${SITE_URL}/" />
+  <link href="${siteUrl()}/feed.xml" rel="self" />
+  <link href="${siteUrl()}/" />
   <updated>${updated}</updated>
 ${entries}
 </feed>`;
@@ -55,7 +54,7 @@ ${entries}
 function entryXml(doc: FeedDoc): string {
   const title = escapeXml(doc.title ?? doc.url);
   const updated = doc.published_at ?? doc.ingested_at;
-  const link = `${SITE_URL}/document/${doc.id}`;
+  const link = `${siteUrl()}/document/${doc.id}`;
   const sourceName = escapeXml(
     Array.isArray(doc.source) ? (doc.source[0]?.name ?? "Unknown") : "Unknown",
   );

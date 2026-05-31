@@ -9,12 +9,11 @@ import { NavRail } from "@/components/layout/nav-rail";
 import { TopBar } from "@/components/layout/top-bar";
 import { JsonLd } from "@/components/seo/json-ld";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { env } from "@/lib/env";
+import { siteUrl } from "@/lib/env";
 
 import "./globals.css";
 
-const defaultUrl =
-  env.VERCEL_URL === undefined ? "http://localhost:3000" : `https://${env.VERCEL_URL}`;
+const defaultUrl = siteUrl();
 
 export const metadata: Metadata = {
   metadataBase: new URL(defaultUrl),

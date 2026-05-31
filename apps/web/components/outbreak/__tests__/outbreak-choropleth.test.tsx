@@ -1,7 +1,7 @@
 import { render } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
-import { OutbreakChoropleth } from "../choropleth-stub";
+import { OutbreakChoropleth } from "../outbreak-choropleth";
 import type { ChoroplethData } from "@/lib/queries/choropleth";
 import { getOutbreakZoneSvg } from "@/lib/queries/choropleth";
 

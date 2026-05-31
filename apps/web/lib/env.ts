@@ -34,10 +34,12 @@ export const env = createEnv({
   client: {
     NEXT_PUBLIC_SUPABASE_URL: z.url().optional(),
     NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: z.string().min(1).optional(),
+    NEXT_PUBLIC_SITE_URL: z.url(),
   },
   runtimeEnv: {
     NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
     NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
+    NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL,
     VERCEL_URL: process.env.VERCEL_URL,
     VERCEL_ENV: process.env.VERCEL_ENV,
     VERCEL_PROJECT_PRODUCTION_URL: process.env.VERCEL_PROJECT_PRODUCTION_URL,
@@ -68,3 +70,7 @@ export const env = createEnv({
 export const hasEnvVars =
   env.NEXT_PUBLIC_SUPABASE_URL !== undefined &&
   env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY !== undefined;
+
+export function siteUrl(): string {
+  return env.NEXT_PUBLIC_SITE_URL;
+}

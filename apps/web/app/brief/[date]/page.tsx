@@ -2,10 +2,9 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { JsonLd } from "@/components/seo/json-ld";
+import { siteUrl } from "@/lib/env";
 import { getDailyBriefByDate, listPublishedBriefs } from "@/lib/queries/daily-briefs";
 import { buildBreadcrumbs } from "@/lib/seo/breadcrumbs";
-
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://ituri-epi.com";
 
 export default async function BriefPage({
   params,
@@ -23,7 +22,7 @@ export default async function BriefPage({
     headline: `Bundibugyo Outbreak — What Changed (${date})`,
     datePublished: date,
     dateModified: date,
-    url: `${SITE_URL}/brief/${date}`,
+    url: `${siteUrl()}/brief/${date}`,
     author: { "@type": "Person", name: data.modelId, description: "AI summarisation" },
     publisher: { "@type": "Person", name: "Thomas Nicklin" },
     about: {

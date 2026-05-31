@@ -3,14 +3,14 @@
 import { useEffect } from "react";
 import { z } from "zod";
 
+import { siteUrl } from "@/lib/env";
+
 const SET_THEME_SCHEMA = z.object({
   type: z.literal("set-theme"),
   theme: z.enum(["light", "dark"]),
 });
 
-const SITE_DOMAIN = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://ituri-epi.com")
-  .replace("https://", "")
-  .replace("http://", "");
+const SITE_DOMAIN = siteUrl().replace("https://", "").replace("http://", "");
 
 interface EmbedShellProps {
   chartId: string;

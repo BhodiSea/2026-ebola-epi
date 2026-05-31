@@ -1,7 +1,6 @@
 import type { ExtractionCapacity } from "@/lib/kill-switch";
 
 export interface CapacityGuardResult {
-  concurrencyHalved: boolean;
   proceed: boolean;
   skipReason?: string;
 }
@@ -18,13 +17,10 @@ export function evaluateCapacity(
   kind: "high" | "low",
 ): CapacityGuardResult {
   if (capacity === "paused") {
-    return { proceed: false, concurrencyHalved: false, skipReason: "kill_switch_paused" };
+    return { proceed: false, skipReason: "kill_switch_paused" };
   }
   if (capacity === "low_priority_only" && kind === "low") {
-    return { proceed: false, concurrencyHalved: false, skipReason: "low_priority_deferred" };
+    return { proceed: false, skipReason: "low_priority_deferred" };
   }
-  if (capacity === "reduced") {
-    return { proceed: true, concurrencyHalved: true };
-  }
-  return { proceed: true, concurrencyHalved: false };
+  return { proceed: true };
 }

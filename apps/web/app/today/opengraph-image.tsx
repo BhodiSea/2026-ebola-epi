@@ -1,5 +1,6 @@
 import { ImageResponse } from "@vercel/og";
 
+import { siteUrl } from "@/lib/env";
 import { OG_SIZE } from "@/lib/og/config";
 import { getOgFonts } from "@/lib/og/fonts";
 import { Wordmark } from "@/lib/og/wordmark";
@@ -16,7 +17,7 @@ export default async function TodayOgImage() {
   const totals = outbreak === null ? null : await getStatTotals(outbreak.id);
   const confirmed = totals?.confirmed.value ?? 0;
   const deaths = totals?.deaths.value ?? 0;
-  const fonts = await getOgFonts(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000");
+  const fonts = await getOgFonts(siteUrl());
 
   return new ImageResponse(
     <div

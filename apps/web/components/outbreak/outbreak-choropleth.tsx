@@ -121,4 +121,4 @@ function zoneColor(value: number, breaks: number[]): string {
   return REDS[idx] ?? REDS[0];
 }
 
-export { OutbreakChoropleth as ChoroplethStub, OutbreakChoropleth };
+export { OutbreakChoropleth };

@@ -51,7 +51,7 @@ vi.mock("@/components/outbreak/outbreak-tabs", () => ({
 vi.mock("@/components/outbreak/outbreak-header", () => ({
   OutbreakHeader: () => <div data-outbreak-header />,
 }));
-vi.mock("@/components/outbreak/choropleth-stub", () => ({
+vi.mock("@/components/outbreak/outbreak-choropleth", () => ({
   OutbreakChoropleth: () => <div data-choropleth />,
 }));
 vi.mock("@/components/seo/json-ld", () => ({ JsonLd: () => null }));

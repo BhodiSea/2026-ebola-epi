@@ -2,11 +2,10 @@ import "server-only";
 
 import type { MetadataRoute } from "next";
 
+import { siteUrl } from "@/lib/env";
 import { listPublishedBriefs } from "@/lib/queries/daily-briefs";
 import { listRecentDocuments } from "@/lib/queries/documents";
 import { listAdmin2Codes } from "@/lib/queries/zones";
-
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://ituri-epi.com";
 
 const STATIC_ROUTES = [
   "/",
@@ -29,25 +28,25 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const briefDates: string[] = briefs.map((b) => b.date);
 
   const staticEntries: MetadataRoute.Sitemap = STATIC_ROUTES.map((path) => ({
-    url: `${SITE_URL}${path}`,
+    url: `${siteUrl()}${path}`,
     changeFrequency: "daily" as const,
     priority: staticRoutePriority(path),
   }));
 
   const zoneEntries: MetadataRoute.Sitemap = zoneCodes.map((code) => ({
-    url: `${SITE_URL}/zone/${code}`,
+    url: `${siteUrl()}/zone/${code}`,
     changeFrequency: "daily",
     priority: 0.7,
   }));
 
   const briefEntries: MetadataRoute.Sitemap = briefDates.map((date) => ({
-    url: `${SITE_URL}/brief/${date}`,
+    url: `${siteUrl()}/brief/${date}`,
     changeFrequency: "never",
     priority: 0.6,
   }));
 
   const documentEntries: MetadataRoute.Sitemap = recentDocs.map((doc) => ({
-    url: `${SITE_URL}/document/${doc.id}`,
+    url: `${siteUrl()}/document/${doc.id}`,
     lastModified: doc.ingestedAt,
     changeFrequency: "never",
     priority: 0.6,

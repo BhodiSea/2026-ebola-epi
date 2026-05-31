@@ -4,7 +4,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 
 import { ActiveOutbreakBanner } from "@/components/outbreak/active-outbreak-banner";
-import { OutbreakChoropleth } from "@/components/outbreak/choropleth-stub";
+import { OutbreakChoropleth } from "@/components/outbreak/outbreak-choropleth";
 import { StatCard } from "@/components/outbreak/stat-card";
 import { AiGeneratedLabel } from "@/components/provenance/ai-generated-label";
 import type { DisagreementEntry, DisagreementsMap } from "@/lib/queries/case-counts";

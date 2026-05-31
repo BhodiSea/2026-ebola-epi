@@ -3,12 +3,11 @@ import "server-only";
 import { notFound } from "next/navigation";
 
 import { Figure } from "@/components/provenance/figure";
+import { siteUrl } from "@/lib/env";
 import type { Document } from "@/lib/queries/documents";
 import { getDocumentById } from "@/lib/queries/documents";
 import type { DocumentFigure } from "@/lib/queries/figures";
 import { getFiguresForDocument } from "@/lib/queries/figures";
-
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://ituri-epi.com";
 
 export default async function DocumentPage({
   params,
@@ -53,7 +52,7 @@ export async function generateMetadata({ params }: Readonly<{ params: Promise<{ 
     },
     description: `Source-linked extracted figures from: ${label}`,
     openGraph: {
-      url: `${SITE_URL}/document/${id}`,
+      url: `${siteUrl()}/document/${id}`,
       title: label,
     },
   };

@@ -85,14 +85,14 @@ describe("getExtractionCapacity", () => {
     expect(await getExtractionCapacity()).toBe("low_priority_only");
   });
 
-  it('returns "reduced" when ratio >= 0.80 and < 0.95', async () => {
-    mockGet.mockImplementation(makeEdgeConfigMock(true, "0.85"));
+  it('returns "full" when ratio < 0.95 (below low_priority_only threshold)', async () => {
+    mockGet.mockImplementation(makeEdgeConfigMock(true, "0.5"));
     const { getExtractionCapacity } = await import("@/lib/kill-switch");
-    expect(await getExtractionCapacity()).toBe("reduced");
+    expect(await getExtractionCapacity()).toBe("full");
   });
 
-  it('returns "full" when ratio < 0.80', async () => {
-    mockGet.mockImplementation(makeEdgeConfigMock(true, "0.5"));
+  it('returns "full" when ratio is 0.85 (mid-range, below low_priority_only threshold)', async () => {
+    mockGet.mockImplementation(makeEdgeConfigMock(true, "0.85"));
     const { getExtractionCapacity } = await import("@/lib/kill-switch");
     expect(await getExtractionCapacity()).toBe("full");
   });
@@ -108,11 +108,5 @@ describe("getExtractionCapacity", () => {
     const { getExtractionCapacity } = await import("@/lib/kill-switch");
     expect(await getExtractionCapacity()).toBe("full");
     expect(mockGet).not.toHaveBeenCalled();
-  });
-
-  it('returns "reduced" when ratio is exactly 0.80 boundary', async () => {
-    mockGet.mockImplementation(makeEdgeConfigMock(true, "0.80"));
-    const { getExtractionCapacity } = await import("@/lib/kill-switch");
-    expect(await getExtractionCapacity()).toBe("reduced");
   });
 });

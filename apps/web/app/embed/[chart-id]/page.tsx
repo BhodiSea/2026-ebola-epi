@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 
 import { EmbedShell } from "./embed-shell";
-import { OutbreakChoropleth } from "@/components/outbreak/choropleth-stub";
+import { OutbreakChoropleth } from "@/components/outbreak/outbreak-choropleth";
 import { TimelineMulti } from "@/components/outbreak/timeline-multi";
 import { getEpiCurveSeries } from "@/lib/queries/case-counts";
 import { getActiveOutbreak, getOutbreakById } from "@/lib/queries/outbreaks";

@@ -6,7 +6,7 @@ import { env } from "@/lib/env";
 
 export const KILL_SWITCH_ERROR = "KILL_SWITCH_ACTIVE: extraction disabled by daily cost cap";
 
-export type ExtractionCapacity = "full" | "low_priority_only" | "paused" | "reduced";
+export type ExtractionCapacity = "full" | "low_priority_only" | "paused";
 
 /**
  * Throws KILL_SWITCH_ACTIVE when extraction_enabled is false in Edge Config.
@@ -26,8 +26,7 @@ export async function assertExtractionEnabled(): Promise<void> {
  *
  * Tiers (based on extraction_spend_ratio):
  *  ≥ 0.95 → low_priority_only (back-fills and re-extracts deferred)
- *  ≥ 0.80 → reduced           (informational; concurrency not yet auto-throttled)
- *  < 0.80 → full
+ *  < 0.95 → full
  *  disabled → paused           (hard circuit breaker)
  *
  * Safe default is "full" when EDGE_CONFIG is unset.
@@ -52,9 +51,6 @@ export async function getExtractionCapacity(): Promise<ExtractionCapacity> {
   }
   if (ratio >= 0.95) {
     return "low_priority_only";
-  }
-  if (ratio >= 0.8) {
-    return "reduced";
   }
   return "full";
 }

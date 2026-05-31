@@ -5,7 +5,7 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
 import { ActiveOutbreakBanner } from "@/components/outbreak/active-outbreak-banner";
-import { OutbreakChoropleth } from "@/components/outbreak/choropleth-stub";
+import { OutbreakChoropleth } from "@/components/outbreak/outbreak-choropleth";
 import { OutbreakHeader } from "@/components/outbreak/outbreak-header";
 import { OutbreakTabs } from "@/components/outbreak/outbreak-tabs";
 import { StatCard } from "@/components/outbreak/stat-card";

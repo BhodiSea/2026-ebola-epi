@@ -1,5 +1,6 @@
 import { ImageResponse } from "@vercel/og";
 
+import { siteUrl } from "@/lib/env";
 import { OG_SIZE } from "@/lib/og/config";
 import { getOgFonts } from "@/lib/og/fonts";
 import { SeverityBadge } from "@/lib/og/severity-badge";
@@ -20,7 +21,7 @@ export default async function BriefOgImage({
   const headline: string = data?.headline ?? "Daily Brief";
   const severity: string = data?.severity ?? "info";
   const firstBullet = (data?.body ?? "").split("\n\n")[0] ?? "";
-  const fonts = await getOgFonts(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000");
+  const fonts = await getOgFonts(siteUrl());
 
   return new ImageResponse(
     <div

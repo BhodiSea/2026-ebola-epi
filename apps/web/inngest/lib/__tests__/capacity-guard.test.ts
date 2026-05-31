@@ -9,7 +9,6 @@ describe("evaluateCapacity", () => {
     const result: CapacityGuardResult = evaluateCapacity("paused", "high");
     expect(result.proceed).toBe(false);
     expect(result.skipReason).toBe("kill_switch_paused");
-    expect(result.concurrencyHalved).toBe(false);
   });
 
   it('returns proceed:false + skipReason "low_priority_deferred" when capacity is "low_priority_only" and kind is "low"', () => {
@@ -23,22 +22,9 @@ describe("evaluateCapacity", () => {
     expect(result.proceed).toBe(true);
   });
 
-  it('returns proceed:true + concurrencyHalved:true when capacity is "reduced"', () => {
-    const result = evaluateCapacity("reduced", "high");
-    expect(result.proceed).toBe(true);
-    expect(result.concurrencyHalved).toBe(true);
-  });
-
-  it('returns proceed:true + concurrencyHalved:true when capacity is "reduced" for low-priority too', () => {
-    const result = evaluateCapacity("reduced", "low");
-    expect(result.proceed).toBe(true);
-    expect(result.concurrencyHalved).toBe(true);
-  });
-
-  it('returns proceed:true + concurrencyHalved:false when capacity is "full"', () => {
+  it('returns proceed:true + no skipReason when capacity is "full"', () => {
     const result = evaluateCapacity("full", "high");
     expect(result.proceed).toBe(true);
-    expect(result.concurrencyHalved).toBe(false);
     expect(result.skipReason).toBeUndefined();
   });
 });

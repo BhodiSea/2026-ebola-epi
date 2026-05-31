@@ -1,5 +1,6 @@
 import { ImageResponse } from "@vercel/og";
 
+import { siteUrl } from "@/lib/env";
 import { OG_SIZE } from "@/lib/og/config";
 import { getOgFonts } from "@/lib/og/fonts";
 import { SeverityBadge } from "@/lib/og/severity-badge";
@@ -13,8 +14,6 @@ export const alt = "Outbreak situation report";
 export const size = OG_SIZE;
 export const contentType = "image/png";
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
-
 export default async function OutbreakOgImage({
   params,
 }: Readonly<{ params: Promise<{ country: string; onset: string; pathogen: string }> }>) {
@@ -27,7 +26,7 @@ export default async function OutbreakOgImage({
   const confirmed = totals?.confirmed.value ?? 0;
   const deaths = totals?.deaths.value ?? 0;
   const sourceLabel = outbreak === null ? "" : await fetchSourceLabel(outbreak.id);
-  const fonts = await getOgFonts(SITE_URL);
+  const fonts = await getOgFonts(siteUrl());
 
   return new ImageResponse(
     <div

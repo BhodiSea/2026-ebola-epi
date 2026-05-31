@@ -57,7 +57,7 @@ vi.mock("@/components/outbreak/active-outbreak-banner", () => ({
     </div>
   ),
 }));
-vi.mock("@/components/outbreak/choropleth-stub", () => ({
+vi.mock("@/components/outbreak/outbreak-choropleth", () => ({
   OutbreakChoropleth: () => <div data-outbreak-choropleth="">OutbreakChoropleth</div>,
 }));
 vi.mock("@/components/provenance/ai-generated-label", () => ({
@@ -119,7 +119,7 @@ describe("TodayPage", () => {
     expect(container.querySelector("[data-banner]")).not.toBeNull();
   });
 
-  it("renders ChoroplethStub", async () => {
+  it("renders OutbreakChoropleth", async () => {
     setupMocks();
     const jsx = await TodayPage({ searchParams: Promise.resolve({}) });
     const { container } = render(jsx);

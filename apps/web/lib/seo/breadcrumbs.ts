@@ -1,4 +1,4 @@
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://ituri-epi.com";
+import { siteUrl } from "@/lib/env";
 
 export interface BreadcrumbSegment {
   label: string;
@@ -13,7 +13,7 @@ export function buildBreadcrumbs(segments: BreadcrumbSegment[]) {
       "@type": "ListItem",
       position: i + 1,
       name: seg.label,
-      item: `${SITE_URL}${seg.path}`,
+      item: `${siteUrl()}${seg.path}`,
     })),
   };
 }
