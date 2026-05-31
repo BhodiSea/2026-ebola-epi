@@ -53,7 +53,7 @@ function seedQueries() {
         id: "s1",
         slug: "who-don",
         name: "WHO DON",
-        trustScore: "0.99",
+        trustScore: 0.99,
         licenseTier: "open",
       },
     },

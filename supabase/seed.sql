@@ -1,4 +1,4 @@
-insert into public.sources (id, slug, name, url, trust_score, license_tier, license_url, attribution_required)
+insert into public.sources (id, slug, name, url, trust_score, license_tier, license_url, attribution_required, posture_terms, posture_attribution)
 values (
   'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a01',
   'who-don',
@@ -7,7 +7,9 @@ values (
   1.00,
   'open',
   'https://www.who.int/about/policies/publishing/copyright',
-  true
+  true,
+  'WHO DON reports are published under the WHO Copyright Policy, which allows free reproduction with attribution for non-commercial purposes. Full text, case counts, and derived aggregates may be displayed.',
+  '© World Health Organization'
 ) on conflict (slug) do nothing;
 
 -- ─── Phase 4 seed data ────────────────────────────────────────────────────────
@@ -16,7 +18,7 @@ values (
 -- scenario described in research/copy.md.
 
 -- Additional sources
-insert into public.sources (id, slug, name, url, trust_score, license_tier, license_url, attribution_required)
+insert into public.sources (id, slug, name, url, trust_score, license_tier, license_url, attribution_required, posture_terms, posture_attribution)
 values
   ('b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a01',
    'who-afro',
@@ -25,7 +27,9 @@ values
    1.00,
    'open',
    'https://www.who.int/about/policies/publishing/copyright',
-   true),
+   true,
+   'WHO AFRO situation reports are released as public documents. Reproduction with attribution is permitted for educational and public-health purposes.',
+   '© WHO Regional Office for Africa'),
   ('c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a01',
    'ecdc-cdtr',
    'ECDC Communicable Disease Threats Report',
@@ -33,7 +37,9 @@ values
    0.90,
    'open',
    'https://www.ecdc.europa.eu/en/legal-notice',
-   true)
+   true,
+   'ECDC publications are released under a custom open licence permitting reproduction with attribution. Derived statistics and quoted figures may be displayed.',
+   '© European Centre for Disease Prevention and Control')
 on conflict (slug) do nothing;
 
 -- geo.admin1 — Ituri Province, DRC (simplified bbox polygon)

@@ -30,7 +30,7 @@ const MOCK_DOC = {
     id: "22222222-2222-2222-2222-222222222222",
     slug: "who-don",
     name: "WHO DON",
-    trustScore: "0.95",
+    trustScore: 0.95,
     licenseTier: "open",
   },
 };

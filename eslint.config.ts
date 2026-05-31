@@ -617,6 +617,8 @@ export default defineConfig(
       "**/*.config.{ts,js,mjs}",
       "**/.*rc.{ts,js,mjs}",
       "**/vitest.setup.{ts,js}",
+      "**/vitest.*.setup.{ts,js}",
+      "**/vitest.*.globalSetup.{ts,js}",
       "tooling/**/*.ts",
     ],
     rules: {

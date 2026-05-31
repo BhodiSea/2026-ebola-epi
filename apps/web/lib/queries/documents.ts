@@ -17,7 +17,7 @@ const DocumentRow = z.object({
     id: z.uuid(),
     slug: z.string(),
     name: z.string(),
-    trust_score: z.string(),
+    trust_score: z.coerce.number(),
     license_tier: z.string(),
   }),
 });

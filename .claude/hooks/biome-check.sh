@@ -75,6 +75,11 @@ case "$file_path" in
         fi
       fi
 
+      # Integration tests need a live Supabase stack — skip per-edit vitest.
+      if [[ "$test_file" == */__tests__/integration/* ]]; then
+        test_file=""
+      fi
+
       if [ -n "$test_file" ]; then
         if ! pnpm exec vitest run "$test_file" >/dev/null 2>&1; then
           echo "vitest related failed for $file_path:" >&2

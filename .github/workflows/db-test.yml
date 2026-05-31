@@ -1,4 +1,4 @@
-name: DB Test
+name: DB + integration tests
 
 on:
   push:
@@ -8,9 +8,9 @@ on:
 
 jobs:
   db-test:
-    name: DB Test
+    name: DB + integration tests
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
 
@@ -45,6 +45,25 @@ jobs:
 
       - name: Run pgTAP tests
         run: supabase test db
+
+      - name: Export local stack env
+        run: |
+          # db reset applies any migrations not yet in the running stack and re-seeds.
+          # In CI the stack is always fresh, so this is a fast no-op equivalent.
+          supabase db reset
+          eval "$(supabase status --output env)"
+          echo "NEXT_PUBLIC_SUPABASE_URL=$API_URL" >> $GITHUB_ENV
+          echo "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=$ANON_KEY" >> $GITHUB_ENV
+          echo "SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY" >> $GITHUB_ENV
+          echo "POSTGRES_URL_NON_POOLING=$DB_URL" >> $GITHUB_ENV
+
+      - name: Integration tests
+        run: pnpm test:integration
+        env:
+          ANTHROPIC_API_KEY: sk-ant-ci-placeholder
+          INNGEST_EVENT_KEY: ci-placeholder
+          INNGEST_SIGNING_KEY: signkey-ci-placeholder
+          NEXT_PUBLIC_SITE_URL: http://localhost:3000
 
       - name: Stop Supabase
         if: always()

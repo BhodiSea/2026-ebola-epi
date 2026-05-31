@@ -11,6 +11,7 @@
     "format": "biome format --write .",
     "typecheck": "turbo typecheck",
     "test": "turbo test",
+    "test:integration": "turbo test:integration",
     "knip": "knip",
     "db:lint": "find supabase/migrations -name '*.sql' -print0 2>/dev/null | xargs -0 -I{} pglast --parse '{}'",
     "db:validate": "find supabase/migrations -name '*.sql' -print0 2>/dev/null | xargs -0 -I{} pglast --check '{}'",

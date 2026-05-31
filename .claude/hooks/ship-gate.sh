@@ -70,6 +70,17 @@ elif has npm && have_script test; then
   run_gate "test" npm test
 fi
 
+# Integration tests — only run when the local Supabase stack is up.
+# The WP6 PR will add a --with-db flag for explicit gating; this is the
+# soft guard that skips gracefully when no stack is running.
+if has supabase && have_script test:integration; then
+  if supabase status >/dev/null 2>&1; then
+    run_gate "integration" pnpm run test:integration
+  else
+    printf '[ship-gate] SKIP integration (supabase stack not running)\n' >&2
+  fi
+fi
+
 if [ "$ran_any" -eq 0 ]; then
   # Nothing wired yet. Allow the session to end so we don't block work
   # in the template phase of the project.

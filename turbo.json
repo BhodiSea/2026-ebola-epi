@@ -51,6 +51,17 @@
       "dependsOn": ["^build"],
       "outputs": []
     },
+    "test:integration": {
+      "cache": false,
+      "outputs": [],
+      "dependsOn": ["^build"],
+      "env": [
+        "NEXT_PUBLIC_SUPABASE_URL",
+        "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY",
+        "SUPABASE_SERVICE_ROLE_KEY",
+        "POSTGRES_URL_NON_POOLING"
+      ]
+    },
     "e2e": {
       "cache": false,
       "dependsOn": ["build"]

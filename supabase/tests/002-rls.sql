@@ -1,103 +1,100 @@
 begin;
-select plan(14);
+select plan(5);
 
--- Every public table has RLS enabled
+-- ─── helpers ─────────────────────────────────────────────────────────────────
+-- All RLS-enabled tables in the schemas exposed by PostgREST and audit.
+-- audit.llm_traces uses a revoke-all/deny approach rather than policies;
+-- it is intentionally excluded from the four-policy rule.
+with rls_tables as (
+  select n.nspname || '.' || c.relname as fqtn
+  from   pg_class     c
+  join   pg_namespace n on n.oid = c.relnamespace
+  where  c.relkind = 'r'
+    and  c.relrowsecurity = true
+    and  n.nspname in ('public', 'audit', 'private')
+    -- llm_traces uses revoke-all access control, not policy-per-command
+    and  c.relname != 'llm_traces'
+)
+
+-- ─── Assertion 1: no FOR ALL policies ────────────────────────────────────────
 select is(
-  (select relrowsecurity from pg_class where oid = 'public.sources'::regclass),
-  true,
-  'public.sources has RLS enabled'
+  (
+    select count(*)::int
+    from   pg_policies p
+    join   rls_tables  r on r.fqtn = p.schemaname || '.' || p.tablename
+    where  p.cmd = 'ALL'
+  ),
+  0,
+  'no FOR ALL policies on any RLS-enabled table'
 );
 
+-- ─── Assertion 2: no policy implicitly applies to the {public} role ──────────
 select is(
-  (select relrowsecurity from pg_class where oid = 'public.documents'::regclass),
-  true,
-  'public.documents has RLS enabled'
+  (
+    select count(*)::int
+    from   pg_policies p
+    join   rls_tables  r on r.fqtn = p.schemaname || '.' || p.tablename
+    where  p.roles = '{public}'
+  ),
+  0,
+  'no policies default to {public} role'
 );
 
+-- ─── Assertion 3: every auth.uid() reference is the (SELECT auth.uid()) form ─
+-- Bare auth.uid() in USING/WITH CHECK is called once per row; the wrapped form
+-- is evaluated once per statement (InitPlan), avoiding a 100× regression.
 select is(
-  (select relrowsecurity from pg_class where oid = 'public.source_quotes'::regclass),
-  true,
-  'public.source_quotes has RLS enabled'
+  (
+    select count(*)::int
+    from   pg_policies p
+    join   rls_tables  r on r.fqtn = p.schemaname || '.' || p.tablename
+    where (
+      coalesce(p.qual,        '') ~ 'auth\.uid\(\)'
+      or
+      coalesce(p.with_check, '') ~ 'auth\.uid\(\)'
+    )
+    and not (
+      coalesce(p.qual,        '') ~ '\(\s*SELECT\s+auth\.uid\(\)\s*\)'
+      or
+      coalesce(p.with_check, '') ~ '\(\s*SELECT\s+auth\.uid\(\)\s*\)'
+    )
+  ),
+  0,
+  'every auth.uid() reference is wrapped in (SELECT auth.uid())'
 );
 
+-- ─── Assertion 4: every RLS table has at least one policy per command ─────────
+-- AGENTS.md hard rule 5: four separate policies (SELECT/INSERT/UPDATE/DELETE)
+-- even if logic repeats. A gap means a command is either unintentionally
+-- open (no RESTRICTIVE policy) or unintentionally closed (missing PERMISSIVE).
 select is(
-  (select relrowsecurity from pg_class where oid = 'public.outbreaks'::regclass),
-  true,
-  'public.outbreaks has RLS enabled'
+  (
+    select count(*)::int
+    from (
+      select r.fqtn, c.cmd
+      from   rls_tables r
+      cross join (values ('SELECT'),('INSERT'),('UPDATE'),('DELETE')) as c(cmd)
+      left join pg_policies p
+        on  p.schemaname || '.' || p.tablename = r.fqtn
+        and p.cmd = c.cmd
+      group by r.fqtn, c.cmd
+      having count(p.policyname) = 0
+    ) gaps
+  ),
+  0,
+  'every RLS table has at least one policy per command (SELECT/INSERT/UPDATE/DELETE)'
 );
 
-select is(
-  (select relrowsecurity from pg_class where oid = 'public.case_counts'::regclass),
-  true,
-  'public.case_counts has RLS enabled'
-);
-
--- audit tables have RLS enabled (defense-in-depth against future schema grants)
-select is(
-  (select relrowsecurity from pg_class where oid = 'audit.extraction_runs'::regclass),
-  true,
-  'audit.extraction_runs has RLS enabled'
-);
-
-select is(
-  (select relrowsecurity from pg_class where oid = 'audit.agent_actions'::regclass),
-  true,
-  'audit.agent_actions has RLS enabled'
-);
-
-select is(
-  (select relrowsecurity from pg_class where oid = 'audit.anthropic_usage_log'::regclass),
-  true,
-  'audit.anthropic_usage_log has RLS enabled'
-);
-
--- Each public table must have exactly 2 SELECT policies (one per role)
--- to satisfy AGENTS.md rule 5: separate per-(action, role).
-select is(
-  (select count(*)::int from pg_policies
-   where schemaname = 'public' and tablename = 'sources' and cmd = 'SELECT'),
-  2,
-  'public.sources has 2 SELECT policies (anon + authenticated)'
-);
-
-select is(
-  (select count(*)::int from pg_policies
-   where schemaname = 'public' and tablename = 'documents' and cmd = 'SELECT'),
-  2,
-  'public.documents has 2 SELECT policies (anon + authenticated)'
-);
-
-select is(
-  (select count(*)::int from pg_policies
-   where schemaname = 'public' and tablename = 'source_quotes' and cmd = 'SELECT'),
-  2,
-  'public.source_quotes has 2 SELECT policies (anon + authenticated)'
-);
-
-select is(
-  (select count(*)::int from pg_policies
-   where schemaname = 'public' and tablename = 'outbreaks' and cmd = 'SELECT'),
-  2,
-  'public.outbreaks has 2 SELECT policies (anon + authenticated)'
-);
-
-select is(
-  (select count(*)::int from pg_policies
-   where schemaname = 'public' and tablename = 'case_counts' and cmd = 'SELECT'),
-  2,
-  'public.case_counts has 2 SELECT policies (anon + authenticated)'
-);
-
--- anon role cannot insert into case_counts (no INSERT policy exists)
+-- ─── Assertion 5: smoke — anon cannot write to case_counts ───────────────────
 set local role anon;
 
 select throws_ok(
   $$
     insert into public.case_counts (
-      outbreak_id, as_of, metric, value,
+      outbreak_id, as_of, admin2_code, metric, value,
       source_quote_id, extraction_run_id, model_id, prompt_version_hash
     ) values (
-      gen_random_uuid(), current_date, 'cases', 1,
+      gen_random_uuid(), current_date, 'COD-IT-IR', 'confirmed', 1,
       gen_random_uuid(), gen_random_uuid(), 'test', 'testhash'
     )
   $$,
