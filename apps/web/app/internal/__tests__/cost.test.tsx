@@ -43,6 +43,7 @@ function findReactElement(
     }
     const el = node as { props?: { children?: unknown }; type?: unknown };
     if (el.type === target) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- BFS helper narrows unknown node to typed React element shape
       return el as { props: Record<string, unknown> };
     }
     const kids = el.props?.children;
@@ -70,6 +71,7 @@ describe("/internal/cost page", () => {
     mockRunsQuery.limit.mockResolvedValue({ count: 0, data: null, error: null });
 
     const { createClient } = await import("@/lib/supabase/server");
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- Supabase SupabaseClient<Database> generics too deep for vitest mock literal
     vi.mocked(createClient).mockResolvedValue({
       from: vi.fn((table: string) => {
         if (table === "anthropic_usage_daily") {

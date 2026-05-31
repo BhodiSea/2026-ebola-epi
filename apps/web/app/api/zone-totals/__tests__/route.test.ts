@@ -34,6 +34,7 @@ describe("GET /api/zone-totals", () => {
     vi.mocked(getZoneTotalsAsOf).mockResolvedValue({ "COD-IT-BU": 50, "COD-IT-DJ": 12 });
     const res = await GET(req(`?outbreak_id=${OUTBREAK}&as_of=2026-05-08`));
     expect(res.status).toBe(200);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- res.json() returns any in test environment
     const body = await res.json();
     expect(body).toEqual({ "COD-IT-BU": 50, "COD-IT-DJ": 12 });
     expect(getZoneTotalsAsOf).toHaveBeenCalledWith(OUTBREAK, "2026-05-08");

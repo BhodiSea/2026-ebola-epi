@@ -1,3 +1,4 @@
+// WP8: lint guard tightening — no-unsafe-* re-enabled
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
@@ -29,6 +30,7 @@ describe("/internal/audit page", () => {
     mockQuery.range.mockResolvedValue({ data: [], error: null });
 
     const { createClient } = await import("@/lib/supabase/server");
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- Supabase SupabaseClient<Database> generics too deep for vitest mock literal
     vi.mocked(createClient).mockResolvedValue({
       from: vi.fn().mockReturnValue(mockQuery),
     } as never);
@@ -73,6 +75,7 @@ describe("/internal/audit page", () => {
     const { default: Page } = await import("../audit/page");
     // Must not throw and must call .range() with finite numbers
     await expect(Page({ searchParams: Promise.resolve({ page: "abc" }) })).resolves.toBeTruthy();
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- vitest mock.calls typed as any[]; cast to inspect call arguments for numeric validation
     const rangeCall = mockQuery.range.mock.calls[0] as unknown as [unknown, unknown];
     expect(Number.isFinite(rangeCall[0])).toBe(true);
     expect(Number.isFinite(rangeCall[1])).toBe(true);

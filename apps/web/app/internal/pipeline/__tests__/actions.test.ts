@@ -49,6 +49,7 @@ describe("retryInngestRunAction", () => {
   it("POSTs to the Inngest retry endpoint with the run id", async () => {
     mockFetch.mockResolvedValue({ ok: true });
     const { retryInngestRunAction } = await import("../actions");
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- next-safe-action bindArgsServerAction return is opaque; cast required to call handler in tests
     await (retryInngestRunAction as unknown as RawAction)({ runId: TEST_RUN_ID });
     expect(mockFetch).toHaveBeenCalledWith(
       `https://api.inngest.com/v1/runs/${TEST_RUN_ID}/retry`,
@@ -59,8 +60,11 @@ describe("retryInngestRunAction", () => {
   it("uses INNGEST_API_KEY as the Bearer token, not INNGEST_SIGNING_KEY", async () => {
     mockFetch.mockResolvedValue({ ok: true });
     const { retryInngestRunAction } = await import("../actions");
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- next-safe-action bindArgsServerAction return is opaque; cast required to call handler in tests
     await (retryInngestRunAction as unknown as RawAction)({ runId: TEST_RUN_ID });
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- vitest mock.calls typed as any[]; cast to inspect fetch call arguments
     const [, options] = mockFetch.mock.calls[0] as [string, RequestInit];
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- fetch RequestInit.headers narrowed for header inspection
     const headers = options.headers as Record<string, string>;
     expect(headers.Authorization).toBe("Bearer test-api-key");
     expect(headers.Authorization).not.toContain("signing");
@@ -70,6 +74,7 @@ describe("retryInngestRunAction", () => {
     mockFetch.mockResolvedValue({ ok: false, status: 404 });
     const { retryInngestRunAction } = await import("../actions");
     await expect(
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- next-safe-action bindArgsServerAction return is opaque; cast required to call handler in tests
       (retryInngestRunAction as unknown as RawAction)({ runId: TEST_RUN_ID }),
     ).rejects.toThrow();
   });
@@ -77,6 +82,7 @@ describe("retryInngestRunAction", () => {
   it("rejects runId containing path-traversal characters", async () => {
     const { retryInngestRunAction } = await import("../actions");
     await expect(
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- next-safe-action bindArgsServerAction return is opaque; cast required to call handler in tests
       (retryInngestRunAction as unknown as RawAction)({ runId: "../../admin/delete" }),
     ).rejects.toThrow();
     expect(mockFetch).not.toHaveBeenCalled();
@@ -85,6 +91,7 @@ describe("retryInngestRunAction", () => {
   it("revalidates /internal/pipeline after success", async () => {
     mockFetch.mockResolvedValue({ ok: true });
     const { retryInngestRunAction } = await import("../actions");
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- next-safe-action bindArgsServerAction return is opaque; cast required to call handler in tests
     await (retryInngestRunAction as unknown as RawAction)({ runId: TEST_RUN_ID });
     expect(mockRevalidatePath).toHaveBeenCalledWith("/internal/pipeline");
   });

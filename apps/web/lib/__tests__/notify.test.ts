@@ -55,12 +55,14 @@ describe("notifyTwilio", () => {
     await notifyTwilio("anomaly alert");
 
     expect(mockFetch).toHaveBeenCalledOnce();
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- vitest mock.calls typed as any[]; cast to inspect fetch call arguments
     const [url, init] = mockFetch.mock.calls[0] as [string, RequestInit];
     expect(url).toContain("ACtest");
     expect(url).toContain("Messages");
     expect(init.method).toBe("POST");
     // Basic auth: base64("ACtest:token123")
     expect(init.headers).toBeDefined();
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- fetch RequestInit.headers narrowed for header inspection
     const headers = init.headers as Record<string, string>;
     expect(headers.Authorization).toMatch(BASIC_AUTH_RE);
   });
@@ -103,9 +105,11 @@ describe("openGithubIssue", () => {
 
     expect(url).toBe("https://github.com/org/repo/issues/42");
     expect(mockFetch).toHaveBeenCalledOnce();
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- vitest mock.calls typed as any[]; cast to inspect fetch call arguments
     const [fetchUrl, init] = mockFetch.mock.calls[0] as [string, RequestInit];
     expect(fetchUrl).toContain("org/repo");
     expect(fetchUrl).toContain("issues");
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- fetch RequestInit.headers narrowed for header inspection
     const headers = init.headers as Record<string, string>;
     expect(headers.Authorization).toBe("Bearer ghp_test");
   });
@@ -146,6 +150,7 @@ describe("notifyAnomaly", () => {
     expect(mockSend).toHaveBeenCalledOnce();
     const firstCall = mockSend.mock.calls[0];
     expect(firstCall).toBeDefined();
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- vitest mock.calls typed as any[]; cast to inspect Slack message payload in assertion
     const callArg = firstCall?.[0] as { text: string };
     expect(callArg.text).toContain("<!channel>");
     expect(callArg.text).toContain("outbreak-abc");

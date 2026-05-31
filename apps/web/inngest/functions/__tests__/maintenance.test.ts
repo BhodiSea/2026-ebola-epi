@@ -77,9 +77,11 @@ describe("openGithubPR", () => {
     expect(mockFetch).toHaveBeenCalledTimes(4);
 
     // Branch name must contain today's date to prevent weekly collisions when the prior PR is still open.
+    /* eslint-disable @typescript-eslint/no-unsafe-type-assertion -- vitest mock.calls typed as any[]; chained casts required to extract RequestInit body and parse JSON in test assertion */
     const branchCallBody = JSON.parse(
       (mockFetch.mock.calls[1]?.[1] as RequestInit).body as string,
     ) as { ref: string };
+    /* eslint-enable @typescript-eslint/no-unsafe-type-assertion */
     const today = new Date().toISOString().slice(0, 10);
     expect(branchCallBody.ref).toContain(today);
 

@@ -18,7 +18,8 @@ describe("translateRateLimitError", () => {
       caught = error;
     }
     expect(caught).toBeInstanceOf(RetryAfterError);
-    // RetryAfterError stores the value as a string (ms → serialised form)
+    // RetryAfterError stores the value as a string (ms → serialised form); toBeInstanceOf above guards the cast
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- caught narrowed by toBeInstanceOf(); cast avoids vitest/no-conditional-expect violation
     expect((caught as RetryAfterError).retryAfter).toBeDefined();
   });
 

@@ -10,6 +10,7 @@ describe("GET /feed.xml", () => {
   beforeEach(async () => {
     vi.clearAllMocks();
     const { createClient } = await import("@/lib/supabase/server");
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- Supabase SupabaseClient<Database> generics too deep for vitest mock literal
     vi.mocked(createClient).mockResolvedValue({
       from: vi.fn().mockReturnValue({
         select: vi.fn().mockReturnValue({
@@ -42,6 +43,7 @@ describe("GET /feed.xml", () => {
 
   it("includes a summary element in entries when documents have full_text", async () => {
     const { createClient } = await import("@/lib/supabase/server");
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- Supabase SupabaseClient<Database> generics too deep for vitest mock literal
     vi.mocked(createClient).mockResolvedValue({
       from: vi.fn().mockReturnValue({
         select: vi.fn().mockReturnValue({
@@ -73,6 +75,7 @@ describe("GET /feed.xml", () => {
 
   it("parses as valid XML with a feed root and entries that each have a link", async () => {
     const { createClient } = await import("@/lib/supabase/server");
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- Supabase SupabaseClient<Database> generics too deep for vitest mock literal
     vi.mocked(createClient).mockResolvedValue({
       from: vi.fn().mockReturnValue({
         select: vi.fn().mockReturnValue({

@@ -90,6 +90,7 @@ describe("EscalationsPage", () => {
 
   it("renders all four kanban column headers", async () => {
     const { createClient } = await import("@/lib/supabase/server");
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- Supabase SupabaseClient<Database> generics too deep for vitest mock literal
     vi.mocked(createClient).mockResolvedValue({
       from: vi.fn().mockReturnValue({
         select: vi.fn().mockReturnValue({
@@ -112,6 +113,7 @@ describe("EscalationsPage", () => {
 
   it("routes incidents to the correct column by class value", async () => {
     const { createClient } = await import("@/lib/supabase/server");
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- Supabase SupabaseClient<Database> generics too deep for vitest mock literal
     vi.mocked(createClient).mockResolvedValue({
       from: vi.fn().mockReturnValue({
         select: vi.fn().mockReturnValue({
@@ -134,6 +136,7 @@ describe("EscalationsPage", () => {
 
   it("does not render acked incidents", async () => {
     const { createClient } = await import("@/lib/supabase/server");
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- Supabase SupabaseClient<Database> generics too deep for vitest mock literal
     vi.mocked(createClient).mockResolvedValue({
       from: vi.fn().mockReturnValue({
         select: vi.fn().mockReturnValue({
@@ -153,6 +156,7 @@ describe("EscalationsPage", () => {
 
   it("renders an Ack button for each open incident", async () => {
     const { createClient } = await import("@/lib/supabase/server");
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- Supabase SupabaseClient<Database> generics too deep for vitest mock literal
     vi.mocked(createClient).mockResolvedValue({
       from: vi.fn().mockReturnValue({
         select: vi.fn().mockReturnValue({

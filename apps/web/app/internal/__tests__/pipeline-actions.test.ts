@@ -39,8 +39,10 @@ describe("retryInngestRunAction", () => {
     expect(handler).toBeDefined();
     mockFetch.mockResolvedValue({ ok: true });
     await handler!({ parsedInput: { runId: "run-abc123" } });
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- vitest mock.calls typed as any[]; cast to inspect fetch call arguments
     const [url, opts] = mockFetch.mock.calls[0] as [string, RequestInit];
     expect(url).toContain("run-abc123/retry");
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- fetch RequestInit.headers narrowed for header inspection
     const auth = (opts.headers as Record<string, string>).Authorization;
     expect(auth).toBe("Bearer apikey-test-00000000");
     expect(auth).not.toContain("signkey");

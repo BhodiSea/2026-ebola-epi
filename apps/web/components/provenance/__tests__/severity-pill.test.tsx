@@ -16,24 +16,28 @@ describe("SeverityPill", () => {
 
   it("applies info color classes", () => {
     const { container } = render(<SeverityPill level="info" label="INFO" />);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- RTL container.firstChild typed as ChildNode; cast required for className assertion
     const pill = container.firstChild as HTMLElement;
     expect(pill.className).toMatch(RE_BG_INFO);
   });
 
   it("applies warn color classes", () => {
     const { container } = render(<SeverityPill level="warn" label="WARN" />);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- RTL container.firstChild typed as ChildNode; cast required for className assertion
     const pill = container.firstChild as HTMLElement;
     expect(pill.className).toMatch(RE_BG_WARN);
   });
 
   it("applies alert color classes", () => {
     const { container } = render(<SeverityPill level="alert" label="ALERT" />);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- RTL container.firstChild typed as ChildNode; cast required for className assertion
     const pill = container.firstChild as HTMLElement;
     expect(pill.className).toMatch(RE_BG_ALERT);
   });
 
   it("applies emergency color classes", () => {
     const { container } = render(<SeverityPill level="emergency" label="EMERGENCY" />);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- RTL container.firstChild typed as ChildNode; cast required for className assertion
     const pill = container.firstChild as HTMLElement;
     expect(pill.className).toMatch(RE_BG_EMERGENCY);
   });

@@ -58,6 +58,7 @@ function seedQueries() {
       },
     },
   ]);
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- SourceQuote return type has deep generics; cast required for vitest mock literal
   vi.mocked(getSourceQuoteById).mockResolvedValue({
     id: QID,
     quote_text: "50 confirmed cases",
@@ -99,6 +100,7 @@ describe("GET /api/zone/[code]", () => {
       ctx("COD-IT-BU"),
     );
     expect(res.status).toBe(200);
+    /* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access -- res.json() returns any; member accesses within expect() assertions on JSON response body */
     const body = await res.json();
     expect(body.totals.confirmed.value).toBe(50);
     expect(body.totals.confirmed.quote).not.toBeNull();
@@ -112,5 +114,6 @@ describe("GET /api/zone/[code]", () => {
     expect(body.documents).toHaveLength(1);
     expect(body.sourceCount).toBe(1);
     expect(body.rawRows[0].sourceQuoteId).toBe(QID);
+    /* eslint-enable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access */
   });
 });

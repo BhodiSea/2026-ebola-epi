@@ -34,6 +34,7 @@ describe("/internal/sources page", () => {
     };
     mockFrom = vi.fn().mockReturnValue(chainObj);
     const { createClient } = await import("@/lib/supabase/server");
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- Supabase SupabaseClient<Database> generics too deep for vitest mock literal
     vi.mocked(createClient).mockResolvedValue({ from: mockFrom } as never);
   });
 

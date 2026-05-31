@@ -8,6 +8,7 @@ vi.mock("@/lib/supabase/server", () => ({
 }));
 
 function makeClientMock(data: unknown[]) {
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- Supabase SupabaseClient<Database> generics too deep for vitest mock literal
   return {
     from: vi.fn().mockReturnValue({
       select: vi.fn().mockReturnValue({

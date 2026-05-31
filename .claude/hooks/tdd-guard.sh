@@ -1,10 +1,15 @@
 #!/usr/bin/env bash
 # PreToolUse hook: block Write|Edit|MultiEdit on source files without a
-# sibling test edit within the last 10 minutes of this session.
+# sibling test edit in the same package within the last 2 minutes of this session.
 #
 # Project rule (root CLAUDE.md / AGENTS.md): tests are written BEFORE
 # implementation. Edit a *.test.ts file to register intent before editing
 # the implementation it tests.
+#
+# Package isolation: a test edit in apps/web does NOT satisfy the guard for
+# a source edit in packages/extract, and vice versa.
+# Root-level config files (eslint.config.ts etc.) use slug "root"; any test
+# edit in any package also registers "root".
 #
 # Exit 0 = allow. Exit 2 = block (stderr is shown to Claude).
 
@@ -27,14 +32,62 @@ ts="$(date +%s)"
 state_dir="${CLAUDE_PROJECT_DIR:-$(pwd)}/.claude/.tdd-state/${session_id}"
 mkdir -p "$state_dir"
 
+# Derive a package slug from a file path.
+#   apps/web/lib/foo.ts      -> apps/web
+#   packages/extract/src/... -> packages/extract
+#   evals/gold-set/...       -> evals
+#   supabase/migrations/...  -> supabase
+#   eslint.config.ts (root)  -> root
+#
+# Handles both absolute paths (strips CLAUDE_PROJECT_DIR prefix first) and
+# relative paths. Uses only POSIX parameter expansion.
+pkg_slug() {
+  local path="$1"
+  local project_root="${CLAUDE_PROJECT_DIR:-$(pwd)}"
+
+  # Convert absolute path to project-relative.
+  local rel="${path#"$project_root/"}"
+  # If still absolute (not under project root), strip leading slash.
+  [ "${rel:0:1}" = "/" ] && rel="${rel#/}"
+
+  case "$rel" in
+    apps/*)
+      local after="${rel#apps/}"
+      printf 'apps/%s' "${after%%/*}"
+      ;;
+    packages/*)
+      local after="${rel#packages/}"
+      printf 'packages/%s' "${after%%/*}"
+      ;;
+    evals/*|supabase/*|scripts/*|tooling/*|tools/*)
+      printf '%s' "${rel%%/*}"
+      ;;
+    *)
+      # Root-level file (no recognised top-level dir) or unrecognised layout.
+      printf 'root'
+      ;;
+  esac
+}
+
+marker_name() {
+  local slug="$1"
+  # Replace / with _ so the slug is a valid filename component.
+  printf 'last-test-edit-%s' "${slug//\//_}"
+}
+
 # Always-allowed paths: tests, configs, docs, migrations, Claude scaffolding.
 case "$file_path" in
   *.test.ts|*.test.tsx|*.spec.ts|*.spec.tsx)
-    touch "$state_dir/last-test-edit"
+    slug="$(pkg_slug "$file_path")"
+    touch "$state_dir/$(marker_name "$slug")"
+    # Also register "root" so root-level config files can be edited after any test touch.
+    touch "$state_dir/$(marker_name "root")"
     exit 0
     ;;
   */tests/pgtap/*|*.pgtap.sql)
-    touch "$state_dir/last-test-edit"
+    slug="$(pkg_slug "$file_path")"
+    touch "$state_dir/$(marker_name "$slug")"
+    touch "$state_dir/$(marker_name "root")"
     exit 0
     ;;
   *.md|*.json|*.jsonc|*.yaml|*.yml|*.toml|*.lock)
@@ -51,30 +104,32 @@ case "$file_path" in
     ;;
 esac
 
-# Source-code edits require a recent test-file edit in this session.
+# Source-code edits require a recent test-file edit in the SAME package.
 case "$file_path" in
   *.ts|*.tsx|*.js|*.jsx|*.mjs|*.cjs)
-    if [ -f "$state_dir/last-test-edit" ]; then
+    slug="$(pkg_slug "$file_path")"
+    marker="$state_dir/$(marker_name "$slug")"
+    if [ -f "$marker" ]; then
       # macOS uses `stat -f %m`; Linux uses `stat -c %Y`.
-      last="$(stat -f %m "$state_dir/last-test-edit" 2>/dev/null \
-            || stat -c %Y "$state_dir/last-test-edit" 2>/dev/null \
+      last="$(stat -f %m "$marker" 2>/dev/null \
+            || stat -c %Y "$marker" 2>/dev/null \
             || echo 0)"
-      if [ $(( ts - last )) -lt 600 ]; then
+      if [ $(( ts - last )) -lt 120 ]; then
         exit 0
       fi
     fi
     cat >&2 <<EOF
 TDD-GUARD: refusing to edit "$file_path".
 
-No test file (*.test.ts, *.spec.ts, tests/pgtap/*) was edited in the last
-10 minutes of this session.
+No test file (*.test.ts, *.spec.ts, tests/pgtap/*) in package "$slug"
+was edited in the last 2 minutes of this session.
 
 Project rule (root CLAUDE.md / AGENTS.md):
   Write a failing test BEFORE the implementation.
 
 Next steps:
   1. Identify the smallest behavior you need to implement.
-  2. Write or edit a *.test.ts that exercises it (it should fail).
+  2. Write or edit a *.test.ts inside "$slug" that exercises it (it should fail).
   3. Then edit the implementation.
 
 If this is a legitimate refactor with existing coverage, edit the relevant

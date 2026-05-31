@@ -68,7 +68,9 @@ describe("assertGroundTruth logic", () => {
       }
     }
     expect(diff).toHaveLength(1);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- diff typed as unknown[]; cast to inspect diff entry shape in assertion
     expect((diff[0] as { type: string }).type).toBe("value_mismatch");
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- diff typed as unknown[]; cast to inspect diff entry shape in assertion
     expect((diff[0] as { metric: string }).metric).toBe("confirmed");
   });
 
@@ -82,12 +84,14 @@ describe("assertGroundTruth logic", () => {
       }
     }
     expect(diff).toHaveLength(1);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- diff typed as unknown[]; cast to inspect diff entry shape in assertion
     expect((diff[0] as { type: string }).type).toBe("missing_metric");
   });
 
   it("returns no_rows diff when observed is null", () => {
     const diff: unknown[] = [{ type: "no_rows" }];
     expect(diff).toHaveLength(1);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- diff typed as unknown[]; cast to inspect diff entry shape in assertion
     expect((diff[0] as { type: string }).type).toBe("no_rows");
   });
 });

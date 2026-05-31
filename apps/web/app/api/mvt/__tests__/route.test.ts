@@ -22,6 +22,7 @@ function makeRequest(path: string): Request {
 describe("GET /api/mvt/[v]/[z]/[x]/[y]", () => {
   it("returns application/x-protobuf content-type on success", async () => {
     const mockBytes = new Uint8Array([26, 43]).buffer;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- Supabase SupabaseClient<Database> generics too deep for vitest mock literal
     vi.mocked(createClient).mockResolvedValue({
       rpc: vi.fn().mockResolvedValue({ data: mockBytes, error: null }),
     } as unknown as Awaited<ReturnType<typeof createClient>>);
@@ -34,6 +35,7 @@ describe("GET /api/mvt/[v]/[z]/[x]/[y]", () => {
 
   it("returns immutable Cache-Control header", async () => {
     const mockBytes = new Uint8Array([0x00]).buffer;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- Supabase SupabaseClient<Database> generics too deep for vitest mock literal
     vi.mocked(createClient).mockResolvedValue({
       rpc: vi.fn().mockResolvedValue({ data: mockBytes, error: null }),
     } as unknown as Awaited<ReturnType<typeof createClient>>);
@@ -46,6 +48,7 @@ describe("GET /api/mvt/[v]/[z]/[x]/[y]", () => {
 
   it("forwards outbreak_id query param to rpc", async () => {
     const rpcMock = vi.fn().mockResolvedValue({ data: new Uint8Array().buffer, error: null });
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- Supabase SupabaseClient<Database> generics too deep for vitest mock literal
     vi.mocked(createClient).mockResolvedValue({
       rpc: rpcMock,
     } as unknown as Awaited<ReturnType<typeof createClient>>);
@@ -63,6 +66,7 @@ describe("GET /api/mvt/[v]/[z]/[x]/[y]", () => {
   });
 
   it("returns 500 with a generic message (no DB internals) on Supabase RPC failure", async () => {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- Supabase SupabaseClient<Database> generics too deep for vitest mock literal
     vi.mocked(createClient).mockResolvedValue({
       rpc: vi
         .fn()
@@ -77,6 +81,7 @@ describe("GET /api/mvt/[v]/[z]/[x]/[y]", () => {
   });
 
   it("returns 400 for non-numeric tile coordinates", async () => {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- Supabase SupabaseClient<Database> generics too deep for vitest mock literal
     vi.mocked(createClient).mockResolvedValue({
       rpc: vi.fn(),
     } as unknown as Awaited<ReturnType<typeof createClient>>);
@@ -90,6 +95,7 @@ describe("GET /api/mvt/[v]/[z]/[x]/[y]", () => {
 
   it("returns 400 for tile coordinates out of range for the zoom level", async () => {
     const rpc = vi.fn();
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- Supabase SupabaseClient<Database> generics too deep for vitest mock literal
     vi.mocked(createClient).mockResolvedValue({
       rpc,
     } as unknown as Awaited<ReturnType<typeof createClient>>);
@@ -105,6 +111,7 @@ describe("GET /api/mvt/[v]/[z]/[x]/[y]", () => {
 
   it("returns 400 for an unknown tile version (never serves live data under a stale version)", async () => {
     const rpc = vi.fn();
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- Supabase SupabaseClient<Database> generics too deep for vitest mock literal
     vi.mocked(createClient).mockResolvedValue({
       rpc,
     } as unknown as Awaited<ReturnType<typeof createClient>>);

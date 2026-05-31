@@ -90,6 +90,7 @@ describe("InspectorTabs", () => {
     expect(screen.getByTestId("severity-pill")).toBeInTheDocument();
     expect(fetch).toHaveBeenCalledWith(
       expect.stringContaining("/api/zone/COD-IT-BU"),
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- vitest expect.anything() returns an any-typed internal matcher
       expect.objectContaining({ signal: expect.anything() }),
     );
   });

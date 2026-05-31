@@ -57,19 +57,23 @@ describe("GET /api/search", () => {
 
     const res = await GET(req("?q=ituri"));
     expect(res.status).toBe(200);
+    /* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access -- res.json() returns any; member accesses within expect() assertions on JSON response body */
     const body = await res.json();
     expect(body.groups).toHaveLength(1);
     expect(body.groups[0].heading).toBe("Outbreaks");
     expect(body.groups[0].items[0].label).toBe("Ituri BVD 2026");
     expect(body.groups[0].items[0].href).toBe("/outbreaks/bundibugyo-virus/cod/2026-04-20");
+    /* eslint-enable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access */
   });
 
   it("omits empty groups from the response", async () => {
     mockFrom.mockImplementation(() => makeChain([]));
     const res = await GET(req("?q=who"));
     expect(res.status).toBe(200);
+    /* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access -- res.json() returns any; member access within expect() assertion */
     const body = await res.json();
     expect(body.groups).toHaveLength(0);
+    /* eslint-enable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access */
   });
 
   it("sets public Cache-Control header", async () => {

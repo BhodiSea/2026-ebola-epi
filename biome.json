@@ -175,10 +175,10 @@
       "linter": { "rules": { "style": { "noDefaultExport": "off" } } }
     },
     {
-      "includes": ["**/*.{test,spec}.{ts,tsx}", "**/tests/**"],
+      "includes": ["**/*.{test,spec}.{ts,tsx}", "**/tests/**", "**/__tests__/**/*.{ts,tsx}"],
       "linter": {
         "rules": {
-          "suspicious": { "noConsole": "off", "noExplicitAny": "off" },
+          "suspicious": { "noConsole": "off" },
           "style": { "noNonNullAssertion": "off" }
         }
       }

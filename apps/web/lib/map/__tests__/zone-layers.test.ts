@@ -41,11 +41,16 @@ describe("addZoneLayers", () => {
       addImage: vi.fn(),
       hasImage: vi.fn().mockReturnValue(false),
     };
-    addZoneLayers(map as never, "/api/mvt/zones_v1/{z}/{x}/{y}?outbreak_id=o1");
+    addZoneLayers(
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- MapLibre Map generic depth too deep for vitest mock object; cast required
+      map as never,
+      "/api/mvt/zones_v1/{z}/{x}/{y}?outbreak_id=o1",
+    );
     expect(addSource).toHaveBeenCalledWith(
       "mvt-zones",
       expect.objectContaining({ promoteId: { zones: "code" } }),
     );
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- vitest mock.calls typed as any[]; cast to inspect layer id shape in assertion
     const layerIds = addLayer.mock.calls.map((c) => (c[0] as { id: string }).id);
     expect(layerIds).toEqual([
       "zones-hatch",
@@ -69,7 +74,11 @@ describe("registerZoneInteractions", () => {
       getCanvas: () => ({ style: {} }),
     };
     const onSelect = vi.fn();
-    registerZoneInteractions(map as never, () => onSelect);
+    registerZoneInteractions(
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- MapLibre Map generic depth too deep for vitest mock object; cast required
+      map as never,
+      () => onSelect,
+    );
     clickHandler?.({ features: [{ properties: { code: "COD-IT-BU", name: "Bunia" } }] });
     expect(onSelect).toHaveBeenCalledWith({ code: "COD-IT-BU", name: "Bunia" });
   });
@@ -85,7 +94,11 @@ describe("registerZoneInteractions", () => {
       getCanvas: () => ({ style: {} }),
     };
     const onSelect = vi.fn();
-    registerZoneInteractions(map as never, () => onSelect);
+    registerZoneInteractions(
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- MapLibre Map generic depth too deep for vitest mock object; cast required
+      map as never,
+      () => onSelect,
+    );
     clickHandler?.({ features: [{ properties: { code: "COD-IT-DJ" } }] });
     expect(onSelect).toHaveBeenCalledWith({ code: "COD-IT-DJ", name: "COD-IT-DJ" });
     clickHandler?.({ features: [{ properties: { code: 42 } }] });
@@ -96,7 +109,12 @@ describe("registerZoneInteractions", () => {
 describe("applyZoneFeatureStates", () => {
   it("sets caseCount + hasData keyed by zone code (feature id)", () => {
     const map = mockMap();
-    applyZoneFeatureStates(map as never, { "COD-IT-BU": 50, "COD-IT-DJ": 0 }, []);
+    applyZoneFeatureStates(
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- MapLibre Map generic depth too deep for vitest mock object; cast required
+      map as never,
+      { "COD-IT-BU": 50, "COD-IT-DJ": 0 },
+      [],
+    );
     expect(map.setFeatureState).toHaveBeenCalledWith(
       { source: "mvt-zones", sourceLayer: "zones", id: "COD-IT-BU" },
       { caseCount: 50, hasData: true },
@@ -111,11 +129,12 @@ describe("applyZoneFeatureStates", () => {
     const map = mockMap();
     // COD-IT-MB was coloured before; the scrubbed-back counts no longer include it → must reset
     // so the no-data hatch shows instead of a stale (future) colour. A genuine 0 is NOT cleared.
-    applyZoneFeatureStates(map as never, { "COD-IT-BU": 50, "COD-IT-DJ": 0 }, [
-      "COD-IT-BU",
-      "COD-IT-DJ",
-      "COD-IT-MB",
-    ]);
+    applyZoneFeatureStates(
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- MapLibre Map generic depth too deep for vitest mock object; cast required
+      map as never,
+      { "COD-IT-BU": 50, "COD-IT-DJ": 0 },
+      ["COD-IT-BU", "COD-IT-DJ", "COD-IT-MB"],
+    );
     expect(map.removeFeatureState).toHaveBeenCalledWith({
       source: "mvt-zones",
       sourceLayer: "zones",
@@ -128,7 +147,11 @@ describe("applyZoneFeatureStates", () => {
 describe("setSelectedZone", () => {
   it("filters the focus-ring layer to the selected code", () => {
     const map = mockMap();
-    setSelectedZone(map as never, "COD-IT-BU");
+    setSelectedZone(
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- MapLibre Map generic depth too deep for vitest mock object; cast required
+      map as never,
+      "COD-IT-BU",
+    );
     expect(map.setFilter).toHaveBeenCalledWith("selected-zone", [
       "==",
       ["get", "code"],
@@ -138,7 +161,11 @@ describe("setSelectedZone", () => {
 
   it("filters to a sentinel non-match when nothing is selected", () => {
     const map = mockMap();
-    setSelectedZone(map as never, null);
+    setSelectedZone(
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- MapLibre Map generic depth too deep for vitest mock object; cast required
+      map as never,
+      null,
+    );
     expect(map.setFilter).toHaveBeenCalledWith("selected-zone", [
       "==",
       ["get", "code"],
@@ -150,7 +177,11 @@ describe("setSelectedZone", () => {
 describe("setZoneVisibility", () => {
   it("hides the choropleth when 'confirmed' is not active", () => {
     const map = mockMap();
-    setZoneVisibility(map as never, new Set(["admin2"]));
+    setZoneVisibility(
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- MapLibre Map generic depth too deep for vitest mock object; cast required
+      map as never,
+      new Set(["admin2"]),
+    );
     expect(map.setLayoutProperty).toHaveBeenCalledWith("zones-fill", "visibility", "none");
     expect(map.setLayoutProperty).toHaveBeenCalledWith("zones-line", "visibility", "visible");
   });
@@ -164,6 +195,7 @@ describe("getLoadedZones", () => {
       { properties: { code: "COD-IT-BU", name: "Bunia" } },
       { properties: { code: "COD-IT-BU", name: "Bunia" } },
     ]);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- MapLibre Map generic depth too deep for vitest mock object; cast required
     const zones = getLoadedZones(map as never);
     expect(zones).toEqual([
       { code: "COD-IT-BU", name: "Bunia" },

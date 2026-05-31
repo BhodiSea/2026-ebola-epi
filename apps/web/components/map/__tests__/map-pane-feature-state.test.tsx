@@ -29,6 +29,7 @@ const h = vi.hoisted(() => {
       const cb = typeof a === "function" ? a : b;
       if (typeof cb === "function") {
         const list = handlers[event] ?? [];
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- ternary result typed as unknown despite typeof guard; cast required for event handler list
         list.push(cb as (arg?: unknown) => void);
         handlers[event] = list;
       }

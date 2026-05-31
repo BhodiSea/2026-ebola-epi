@@ -48,6 +48,7 @@ describe("ZonePage (integration)", () => {
 describe("ZonePage generateMetadata (integration)", () => {
   it("includes the zone code in the page title", async () => {
     const meta = await generateMetadata({ params: Promise.resolve({ code: ZONE_CODE }) });
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- vitest expect.stringMatching() returns an any-typed internal matcher
     expect(meta).toMatchObject({ title: expect.stringMatching(ZONE_RE) });
   });
 });

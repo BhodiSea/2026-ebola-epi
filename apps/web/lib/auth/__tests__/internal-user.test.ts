@@ -4,6 +4,7 @@ import { beforeAll, describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
 
 function makeUser(role: unknown): null | User {
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- Supabase User type has deep auth generics; partial mock literal requires as never
   return { app_metadata: { role } } as never;
 }
 

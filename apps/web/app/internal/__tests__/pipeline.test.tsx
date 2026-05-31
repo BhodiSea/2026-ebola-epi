@@ -35,7 +35,9 @@ describe("/internal/pipeline page", () => {
     });
     const { default: PipelinePage } = await import("../pipeline/page");
     await PipelinePage();
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- vitest mock.calls typed as any[]; cast to inspect fetch call arguments
     const [, opts] = mockFetch.mock.calls[0] as [string, RequestInit];
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- fetch RequestInit.headers narrowed for header inspection
     const headers = opts.headers as Record<string, string>;
     expect(headers.Authorization).toBe("Bearer apikey-test-00000000");
     expect(headers.Authorization).not.toContain("signkey");

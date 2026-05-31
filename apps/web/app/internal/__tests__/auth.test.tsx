@@ -18,6 +18,7 @@ describe("internal layout auth gate", () => {
   it("redirects to /auth/login when getUser returns null user", async () => {
     const { createClient } = await import("@/lib/supabase/server");
 
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- Supabase SupabaseClient<Database> generics too deep for vitest mock literal
     vi.mocked(createClient).mockResolvedValue({
       auth: {
         getUser: vi.fn().mockResolvedValue({ data: { user: null }, error: null }),
@@ -34,6 +35,7 @@ describe("internal layout auth gate", () => {
   it("renders children when user is admin", async () => {
     const { createClient } = await import("@/lib/supabase/server");
 
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- Supabase SupabaseClient<Database> generics too deep for vitest mock literal
     vi.mocked(createClient).mockResolvedValue({
       auth: {
         getUser: vi.fn().mockResolvedValue({
@@ -61,6 +63,7 @@ describe("internal layout auth gate", () => {
   it("redirects to /today when user is authenticated but not admin", async () => {
     const { createClient } = await import("@/lib/supabase/server");
 
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- Supabase SupabaseClient<Database> generics too deep for vitest mock literal
     vi.mocked(createClient).mockResolvedValue({
       auth: {
         getUser: vi.fn().mockResolvedValue({
@@ -87,6 +90,7 @@ describe("internal layout auth gate", () => {
   it("renders children when user has staff role", async () => {
     const { createClient } = await import("@/lib/supabase/server");
 
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- Supabase SupabaseClient<Database> generics too deep for vitest mock literal
     vi.mocked(createClient).mockResolvedValue({
       auth: {
         getUser: vi.fn().mockResolvedValue({

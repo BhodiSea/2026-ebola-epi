@@ -35,6 +35,7 @@ describe("EvidenceOgImage", () => {
 
   it("uses Source Serif 4 italic on the quote element", async () => {
     const { createClient } = await import("@/lib/supabase/server");
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- Supabase SupabaseClient<Database> generics too deep for vitest mock literal
     vi.mocked(createClient).mockResolvedValue({
       from: vi.fn().mockReturnValue({
         select: vi.fn().mockReturnValue({
@@ -57,6 +58,7 @@ describe("EvidenceOgImage", () => {
     });
 
     const body = await response.text();
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- JSON.parse returns any; tree is traversed via typed Node helper below
     const tree = JSON.parse(body);
 
     type Node = Record<string, unknown>;
@@ -66,14 +68,17 @@ describe("EvidenceOgImage", () => {
       if (typeof props !== "object" || props === null) {
         return null;
       }
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- node.props typed as unknown; cast to Node to traverse OG image tree in test helper
       const style = (props as Node).style;
       if (typeof style !== "object" || style === null) {
         return null;
       }
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- style typed as unknown; cast to traverse OG image tree in test helper
       return style as Record<string, unknown>;
     }
 
     function nodeChildren(node: Node): Node[] {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- node.props typed as unknown; cast to Node to traverse OG image tree in test helper
       const props = node.props as Node | undefined;
       const children = props === undefined ? undefined : props.children;
       if (!Array.isArray(children)) {
@@ -96,16 +101,22 @@ describe("EvidenceOgImage", () => {
       return null;
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- JSON.parse result cast to Node to pass into typed OG image tree traversal helper
     const quoteEl = findItalicElement(tree as Node);
     expect(quoteEl).not.toBeNull();
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- outer cast (unknown → Record) for style inspection in assertion
     const style = (
-      quoteEl === null ? {} : ((quoteEl.props as Record<string, unknown>).style ?? {})
+      quoteEl === null
+        ? {}
+        : // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- quoteEl.props typed as unknown; inner cast to access .style in OG image tree
+          ((quoteEl.props as Record<string, unknown>).style ?? {})
     ) as Record<string, unknown>;
     expect(style.fontFamily).toBe("Source Serif 4");
   });
 
   it("renders without crashing when supabase returns null", async () => {
     const { createClient } = await import("@/lib/supabase/server");
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- Supabase SupabaseClient<Database> generics too deep for vitest mock literal
     vi.mocked(createClient).mockResolvedValue({
       from: vi.fn().mockReturnValue({
         select: vi.fn().mockReturnValue({

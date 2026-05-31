@@ -51,24 +51,28 @@ describe("toggleSourcePauseAction", () => {
 
   it("calls update with extraction_paused=true", async () => {
     const { toggleSourcePauseAction } = await import("../actions");
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- next-safe-action bindArgsServerAction return is opaque; cast required to call handler in tests
     await (toggleSourcePauseAction as unknown as RawAction)({ paused: true, sourceId: TEST_ID_1 });
     expect(mockUpdate).toHaveBeenCalledWith({ extraction_paused: true });
   });
 
   it("calls update with extraction_paused=false when resuming", async () => {
     const { toggleSourcePauseAction } = await import("../actions");
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- next-safe-action bindArgsServerAction return is opaque; cast required to call handler in tests
     await (toggleSourcePauseAction as unknown as RawAction)({ paused: false, sourceId: TEST_ID_2 });
     expect(mockUpdate).toHaveBeenCalledWith({ extraction_paused: false });
   });
 
   it("calls eq with the source id", async () => {
     const { toggleSourcePauseAction } = await import("../actions");
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- next-safe-action bindArgsServerAction return is opaque; cast required to call handler in tests
     await (toggleSourcePauseAction as unknown as RawAction)({ paused: true, sourceId: TEST_ID_3 });
     expect(mockEq).toHaveBeenCalledWith("id", TEST_ID_3);
   });
 
   it("revalidates /internal/sources after success", async () => {
     const { toggleSourcePauseAction } = await import("../actions");
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- next-safe-action bindArgsServerAction return is opaque; cast required to call handler in tests
     await (toggleSourcePauseAction as unknown as RawAction)({ paused: false, sourceId: TEST_ID_1 });
     expect(mockRevalidatePath).toHaveBeenCalledWith("/internal/sources");
   });
@@ -77,12 +81,14 @@ describe("toggleSourcePauseAction", () => {
     mockEq.mockResolvedValueOnce({ error: { message: "DB error" } });
     const { toggleSourcePauseAction } = await import("../actions");
     await expect(
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- next-safe-action bindArgsServerAction return is opaque; cast required to call handler in tests
       (toggleSourcePauseAction as unknown as RawAction)({ paused: true, sourceId: TEST_ID_4 }),
     ).rejects.toThrow("DB error");
   });
 
   it("uses ctx.supabase from internalAction, never createAdminClient()", async () => {
     const { toggleSourcePauseAction } = await import("../actions");
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- next-safe-action bindArgsServerAction return is opaque; cast required to call handler in tests
     await (toggleSourcePauseAction as unknown as RawAction)({ paused: true, sourceId: TEST_ID_1 });
     expect(mockAdminClient).not.toHaveBeenCalled();
     expect(mockFrom).toHaveBeenCalledWith("sources");

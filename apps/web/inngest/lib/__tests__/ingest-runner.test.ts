@@ -54,9 +54,11 @@ describe("runPerSourceIngest — fetch skip telemetry", () => {
       fetch: vi.fn().mockResolvedValue({ skipped: true, reason: "chromium_required" }),
     });
 
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- IngestAdapter and InngestStep have deep generics; cast required for vitest mock args
     await runPerSourceIngest(adapter as never, step as never);
 
     expect(mockInsert).toHaveBeenCalled();
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- vitest mock.calls typed as any[]; cast to inspect agent_actions row payload in assertion
     const payload = mockInsertValues.mock.calls[0]?.[0] as {
       action: string;
       payload: { reason: string; stage: string };
@@ -73,6 +75,7 @@ describe("runPerSourceIngest — fetch skip telemetry", () => {
       fetch: vi.fn().mockResolvedValue({ skipped: true, reason: "chromium_required" }),
     });
 
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- IngestAdapter and InngestStep have deep generics; cast required for vitest mock args
     await runPerSourceIngest(adapter as never, step as never);
 
     expect(step.sendEvent).not.toHaveBeenCalled();
@@ -90,9 +93,11 @@ describe("runPerSourceIngest — parse skip telemetry", () => {
       parse: vi.fn().mockResolvedValue({ skipped: true, reason: "no_table_found" }),
     });
 
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- IngestAdapter and InngestStep have deep generics; cast required for vitest mock args
     await runPerSourceIngest(adapter as never, step as never);
 
     expect(mockInsert).toHaveBeenCalled();
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- vitest mock.calls typed as any[]; cast to inspect agent_actions row payload in assertion
     const payload = mockInsertValues.mock.calls[0]?.[0] as {
       action: string;
       payload: { reason: string; stage: string };

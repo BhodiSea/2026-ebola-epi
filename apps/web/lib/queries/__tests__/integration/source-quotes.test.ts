@@ -23,10 +23,12 @@ describe("getCustodyForQuote (integration)", () => {
     // view returns a computed custody record derived from the extraction run.
     const result = await getCustodyForQuote(QUOTE_ID);
     expect(result).not.toBeNull();
+    /* eslint-disable @typescript-eslint/no-unsafe-assignment -- vitest expect.any() returns any-typed internal matchers */
     expect(result).toMatchObject({
       anomalyOpen: expect.any(Boolean),
       confidence: expect.any(Number),
     });
+    /* eslint-enable @typescript-eslint/no-unsafe-assignment */
   });
 
   it("returns null for a nonexistent quote id", async () => {

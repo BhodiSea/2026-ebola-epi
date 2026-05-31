@@ -578,15 +578,11 @@ export default defineConfig(
       "max-lines-per-function": ["error", { max: 200 }],
       "max-lines": ["error", { max: 600 }],
       "@typescript-eslint/no-non-null-assertion": "off",
-      "@typescript-eslint/no-unsafe-assignment": "off",
-      "@typescript-eslint/no-unsafe-member-access": "off",
-      "@typescript-eslint/no-unsafe-type-assertion": "off",
       // Vitest mock factories use PascalCase component names as object keys and
       // async mock helpers without explicit awaits — relax naming + async rules.
       "@typescript-eslint/naming-convention": "off",
       "@typescript-eslint/require-await": "off",
       "@typescript-eslint/promise-function-async": "off",
-      "@typescript-eslint/no-unsafe-return": "off",
       "functional/functional-parameters": "off",
       "no-console": "off",
       "sonarjs/no-duplicate-string": "off",

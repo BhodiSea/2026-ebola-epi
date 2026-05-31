@@ -49,6 +49,7 @@ describe("getCostKpis", () => {
   it("queries anthropic_usage_daily, anthropic_usage_log, extraction_runs", async () => {
     mockFrom.mockReturnValue(chain({ data: [], error: null, count: 0 }));
     await getCostKpis("2026-05-01", "2026-05-31");
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return -- vitest mock.calls typed as any[]; map callback returns element for table name assertion
     const calls = mockFrom.mock.calls.map((c) => c[0]);
     expect(calls).toContain("anthropic_usage_daily");
     expect(calls).toContain("anthropic_usage_log");

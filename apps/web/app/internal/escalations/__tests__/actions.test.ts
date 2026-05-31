@@ -48,32 +48,38 @@ describe("ackIncidentAction", () => {
 
   it("calls update with status=acked", async () => {
     const { ackIncidentAction } = await import("../actions");
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- next-safe-action bindArgsServerAction return is opaque; cast required to call handler in tests
     await (ackIncidentAction as unknown as RawAction)({ incidentId: TEST_ID });
     expect(mockUpdate).toHaveBeenCalledWith(expect.objectContaining({ status: "acked" }));
   });
 
   it("sets ack_by to the user email from ctx", async () => {
     const { ackIncidentAction } = await import("../actions");
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- next-safe-action bindArgsServerAction return is opaque; cast required to call handler in tests
     await (ackIncidentAction as unknown as RawAction)({ incidentId: TEST_ID });
     expect(mockUpdate).toHaveBeenCalledWith(expect.objectContaining({ ack_by: "admin@test.com" }));
   });
 
   it("includes a string ack_at timestamp", async () => {
     const { ackIncidentAction } = await import("../actions");
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- next-safe-action bindArgsServerAction return is opaque; cast required to call handler in tests
     await (ackIncidentAction as unknown as RawAction)({ incidentId: TEST_ID });
     expect(mockUpdate).toHaveBeenCalledWith(
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- vitest expect.any() returns an any-typed internal matcher
       expect.objectContaining({ ack_at: expect.any(String) }),
     );
   });
 
   it("calls eq with the incident id", async () => {
     const { ackIncidentAction } = await import("../actions");
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- next-safe-action bindArgsServerAction return is opaque; cast required to call handler in tests
     await (ackIncidentAction as unknown as RawAction)({ incidentId: TEST_ID });
     expect(mockEq).toHaveBeenCalledWith("id", TEST_ID);
   });
 
   it("revalidates /internal/escalations after success", async () => {
     const { ackIncidentAction } = await import("../actions");
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- next-safe-action bindArgsServerAction return is opaque; cast required to call handler in tests
     await (ackIncidentAction as unknown as RawAction)({ incidentId: TEST_ID });
     expect(mockRevalidatePath).toHaveBeenCalledWith("/internal/escalations");
   });
@@ -82,12 +88,14 @@ describe("ackIncidentAction", () => {
     mockEq.mockResolvedValueOnce({ error: { message: "DB error" } });
     const { ackIncidentAction } = await import("../actions");
     await expect(
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- next-safe-action bindArgsServerAction return is opaque; cast required to call handler in tests
       (ackIncidentAction as unknown as RawAction)({ incidentId: TEST_ID }),
     ).rejects.toThrow("DB error");
   });
 
   it("uses ctx.supabase from internalAction, never createAdminClient()", async () => {
     const { ackIncidentAction } = await import("../actions");
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- next-safe-action bindArgsServerAction return is opaque; cast required to call handler in tests
     await (ackIncidentAction as unknown as RawAction)({ incidentId: TEST_ID });
     expect(mockAdminClient).not.toHaveBeenCalled();
     expect(mockFrom).toHaveBeenCalledWith("incidents");
