@@ -22,7 +22,6 @@ import {
 import type { TimeWindow } from "@/lib/map/zone-detail-response";
 
 interface TimeScrubberProps {
-  acledDates?: string[];
   confirmedSeries: SeriesPoint[];
   deathsSeries: SeriesPoint[];
   onCycleWindow?: () => void;
@@ -37,7 +36,6 @@ export function TimeScrubber({
   confirmedSeries,
   deathsSeries,
   sitrepDates,
-  acledDates = [],
   outbreakId: _outbreakId,
   timeWindow = "all",
   onCycleWindow,
@@ -78,8 +76,6 @@ export function TimeScrubber({
         confirmed={confirmed}
         deaths={deaths}
         sitrepDates={sitrepDates}
-        acledDates={acledDates}
-        acledVisible={controls.acledVisible}
         selectedDate={controls.selectedDate}
         onBrushChange={controls.onBrushChange}
       />
@@ -142,7 +138,6 @@ function useScrubberControls(confirmed: SeriesPoint[], latestDate: string): Scru
   const searchParams = useSearchParams();
   const [selectedDate, setSelectedDate] = useState(() => searchParams.get("as_of") ?? latestDate);
   const [playing, setPlaying] = useState(false);
-  const [acledVisible, setAcledVisible] = useState(false);
   const commitTimer = useRef<null | ReturnType<typeof setTimeout>>(null);
 
   const commitDate = useCallback(
@@ -190,13 +185,9 @@ function useScrubberControls(confirmed: SeriesPoint[], latestDate: string): Scru
   const togglePlay = useCallback(() => {
     setPlaying((p) => !p);
   }, []);
-  const toggleAcled = useCallback(() => {
-    setAcledVisible((v) => !v);
-  }, []);
-
   usePlayback(playing, confirmed, setSelectedDate);
 
-  return { selectedDate, playing, acledVisible, stepBy, onBrushChange, togglePlay, toggleAcled };
+  return { selectedDate, playing, stepBy, onBrushChange, togglePlay };
 }
 
 function useScrubberScales(confirmed: SeriesPoint[], width: number): ScrubberScales {

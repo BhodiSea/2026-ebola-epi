@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { JsonLd } from "@/components/seo/json-ld";
+import { getDailyBriefByDate, listPublishedBriefs } from "@/lib/queries/daily-briefs";
 import { buildBreadcrumbs } from "@/lib/seo/breadcrumbs";
-import { createClient } from "@/lib/supabase/server";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://ituri-epi.com";
 
@@ -11,13 +11,7 @@ export default async function BriefPage({
   params,
 }: Readonly<{ params: Promise<{ date: string }> }>) {
   const { date } = await params;
-
-  const supabase = await createClient();
-  const { data } = await supabase
-    .from("daily_briefs")
-    .select("date, headline, body, severity")
-    .eq("date", date)
-    .single();
+  const data = await getDailyBriefByDate(date);
 
   if (data === null) {
     notFound();
@@ -30,7 +24,7 @@ export default async function BriefPage({
     datePublished: date,
     dateModified: date,
     url: `${SITE_URL}/brief/${date}`,
-    author: { "@type": "Person", name: "Claude Sonnet 4.6", description: "AI summarisation" },
+    author: { "@type": "Person", name: data.modelId, description: "AI summarisation" },
     publisher: { "@type": "Person", name: "Thomas Nicklin" },
     about: {
       "@type": "MedicalCondition",
@@ -58,19 +52,15 @@ export default async function BriefPage({
         )}
       </header>
 
-      {/* Placeholder — daily_briefs.delta column pending Phase 9 schema migration */}
-
       <div className="space-y-4">
-        {String(data.body)
-          .split("\n\n")
-          .map((para) => (
-            <p
-              key={para.slice(0, 40)}
-              className="font-source-serif-4 text-[17px] text-fg leading-[1.55]"
-            >
-              {para}
-            </p>
-          ))}
+        {data.body.split("\n\n").map((para) => (
+          <p
+            key={para.slice(0, 40)}
+            className="font-source-serif-4 text-[17px] text-fg leading-[1.55]"
+          >
+            {para}
+          </p>
+        ))}
       </div>
     </main>
   );
@@ -80,23 +70,13 @@ export async function generateMetadata({
   params,
 }: Readonly<{ params: Promise<{ date: string }> }>): Promise<Metadata> {
   const { date } = await params;
-  const supabase = await createClient();
-  const { data } = await supabase.from("daily_briefs").select("headline").eq("date", date).single();
-  const description: string =
-    (data as null | { headline?: string })?.headline ?? `Daily outbreak brief for ${date}.`;
+  const data = await getDailyBriefByDate(date);
   return {
     title: `What Changed — ${date} | Bundibugyo Outbreak Daily Update`,
-    description,
+    description: data?.headline ?? `Daily outbreak brief for ${date}.`,
   };
 }
 
-export function generateStaticParams() {
-  const dates: { date: string }[] = [];
-  const today = new Date();
-  for (let i = 0; i < 30; i++) {
-    const d = new Date(today);
-    d.setDate(d.getDate() - i);
-    dates.push({ date: d.toISOString().slice(0, 10) });
-  }
-  return dates;
+export async function generateStaticParams(): Promise<{ date: string }[]> {
+  return listPublishedBriefs();
 }

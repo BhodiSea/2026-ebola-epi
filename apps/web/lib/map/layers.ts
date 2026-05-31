@@ -12,6 +12,7 @@ export const LAYER_GROUPS = [
 ] as const;
 
 export interface LayerDef {
+  data: "live" | "stub";
   group: LayerGroup;
   id: string;
   label: string;
@@ -20,21 +21,21 @@ export interface LayerDef {
 export type LayerGroup = (typeof LAYER_GROUPS)[number];
 
 export const LAYERS: LayerDef[] = [
-  { id: "admin1", label: "Province outline", group: "Base" },
-  { id: "admin2", label: "Health-zone borders", group: "Base" },
-  { id: "terrain", label: "3D Terrain", group: "Base" },
-  { id: "sentinel", label: "Sentinel-2 imagery", group: "Base" },
-  { id: "confirmed", label: "Confirmed cases", group: "Epi data" },
-  { id: "deaths", label: "Deaths", group: "Epi data" },
-  { id: "attackRate", label: "Attack rate", group: "Epi data" },
-  { id: "etu", label: "ETUs", group: "Operational" },
-  { id: "vaccination", label: "Vaccination sites", group: "Operational" },
-  { id: "acled", label: "ACLED events", group: "Operational" },
-  { id: "popDensity", label: "Population density", group: "Context" },
-  { id: "healthFacilities", label: "Health facilities", group: "Context" },
-  { id: "travelTime", label: "Travel time", group: "Context" },
-  { id: "annotations", label: "Annotations", group: "Annotations" },
-  { id: "savedDefault", label: "Default view", group: "Saved views" },
+  { id: "admin1", label: "Province outline", group: "Base", data: "live" },
+  { id: "admin2", label: "Health-zone borders", group: "Base", data: "live" },
+  { id: "terrain", label: "3D Terrain", group: "Base", data: "live" },
+  { id: "sentinel", label: "Sentinel-2 imagery", group: "Base", data: "live" },
+  { id: "confirmed", label: "Confirmed cases", group: "Epi data", data: "live" },
+  { id: "deaths", label: "Deaths", group: "Epi data", data: "live" },
+  { id: "attackRate", label: "Attack rate", group: "Epi data", data: "stub" },
+  { id: "etu", label: "ETUs", group: "Operational", data: "stub" },
+  { id: "vaccination", label: "Vaccination sites", group: "Operational", data: "stub" },
+  { id: "acled", label: "ACLED events", group: "Operational", data: "stub" },
+  { id: "popDensity", label: "Population density", group: "Context", data: "stub" },
+  { id: "healthFacilities", label: "Health facilities", group: "Context", data: "stub" },
+  { id: "travelTime", label: "Travel time", group: "Context", data: "stub" },
+  { id: "annotations", label: "Annotations", group: "Annotations", data: "stub" },
+  { id: "savedDefault", label: "Default view", group: "Saved views", data: "stub" },
 ];
 
 export const DEFAULT_LAYERS = ["confirmed", "deaths", "admin1", "admin2"] as const;

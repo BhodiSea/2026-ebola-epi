@@ -2,8 +2,9 @@ import "server-only";
 
 import type { MetadataRoute } from "next";
 
+import { listPublishedBriefs } from "@/lib/queries/daily-briefs";
 import { listRecentDocuments } from "@/lib/queries/documents";
-import { createClient } from "@/lib/supabase/server";
+import { listAdmin2Codes } from "@/lib/queries/zones";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://ituri-epi.com";
 
@@ -18,16 +19,14 @@ const STATIC_ROUTES = [
 ];
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const supabase = await createClient();
-
-  const [zonesResult, briefsResult, recentDocs] = await Promise.all([
-    supabase.from("admin1").select("code").limit(200),
-    supabase.from("daily_briefs").select("date").order("date", { ascending: false }).limit(30),
+  const [zones, briefs, recentDocs] = await Promise.all([
+    listAdmin2Codes(),
+    listPublishedBriefs(),
     listRecentDocuments(50),
   ]);
 
-  const zoneCodes: string[] = ((zonesResult.data ?? []) as { code: string }[]).map((r) => r.code);
-  const briefDates: string[] = ((briefsResult.data ?? []) as { date: string }[]).map((r) => r.date);
+  const zoneCodes: string[] = zones.map((z) => z.code);
+  const briefDates: string[] = briefs.map((b) => b.date);
 
   const staticEntries: MetadataRoute.Sitemap = STATIC_ROUTES.map((path) => ({
     url: `${SITE_URL}${path}`,

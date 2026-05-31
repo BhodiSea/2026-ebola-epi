@@ -4,7 +4,7 @@ import { OG_SIZE } from "@/lib/og/config";
 import { getOgFonts } from "@/lib/og/fonts";
 import { SeverityBadge } from "@/lib/og/severity-badge";
 import { Wordmark } from "@/lib/og/wordmark";
-import { createClient } from "@/lib/supabase/server";
+import { getDailyBriefByDate } from "@/lib/queries/daily-briefs";
 
 export const alt = "Daily situation brief";
 // eslint-disable-next-line unicorn/prefer-export-from -- Biome noBarrelFile blocks re-export from syntax
@@ -15,18 +15,11 @@ export default async function BriefOgImage({
   params,
 }: Readonly<{ params: Promise<{ date: string }> }>) {
   const { date } = await params;
+  const data = await getDailyBriefByDate(date);
 
-  const supabase = await createClient();
-  const { data } = await supabase
-    .from("daily_briefs")
-    .select("headline, body, severity")
-    .eq("date", date)
-    .single();
-
-  const headline: string = (data as null | { headline?: string })?.headline ?? "Daily Brief";
-  const severity: string = (data as null | { severity?: string })?.severity ?? "info";
-  const body: string = (data as null | { body?: string })?.body ?? "";
-  const firstBullet = body.split("\n\n")[0] ?? "";
+  const headline: string = data?.headline ?? "Daily Brief";
+  const severity: string = data?.severity ?? "info";
+  const firstBullet = (data?.body ?? "").split("\n\n")[0] ?? "";
   const fonts = await getOgFonts(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000");
 
   return new ImageResponse(

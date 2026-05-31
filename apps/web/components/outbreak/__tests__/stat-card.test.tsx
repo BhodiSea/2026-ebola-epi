@@ -4,8 +4,8 @@ import { describe, expect, it, vi } from "vitest";
 import { StatCard } from "../stat-card";
 
 vi.mock("server-only", () => ({}));
-vi.mock("@/components/provenance/figure", () => ({
-  Figure: ({ value }: { quoteId: string; value: number | string }) => (
+vi.mock("@/components/provenance/figure-or-missing", () => ({
+  FigureOrMissing: ({ value }: { quoteId: null | string; value: number | string }) => (
     <span data-figure>{value}</span>
   ),
 }));

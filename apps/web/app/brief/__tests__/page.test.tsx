@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
 
@@ -8,25 +8,12 @@ vi.mock("next/navigation", () => ({
   }),
 }));
 
-vi.mock("@/lib/supabase/server", () => ({
-  createClient: vi.fn(),
+vi.mock("@/lib/queries/daily-briefs", () => ({
+  getDailyBriefByDate: vi.fn().mockResolvedValue(null),
+  listPublishedBriefs: vi.fn().mockResolvedValue([{ date: "2026-05-28" }]),
 }));
 
 describe("/brief/[date] page", () => {
-  beforeEach(async () => {
-    vi.clearAllMocks();
-    const { createClient } = await import("@/lib/supabase/server");
-    vi.mocked(createClient).mockResolvedValue({
-      from: vi.fn().mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            single: vi.fn().mockResolvedValue({ data: null, error: null }),
-          }),
-        }),
-      }),
-    } as never);
-  });
-
   it("exports a default async function", async () => {
     const mod = await import("../[date]/page");
     expect(typeof mod.default).toBe("function");
@@ -42,5 +29,11 @@ describe("/brief/[date] page", () => {
     await expect(Page({ params: Promise.resolve({ date: "2026-05-29" }) })).rejects.toThrow(
       "NEXT_NOT_FOUND",
     );
+  });
+
+  it("generateStaticParams returns dates from DB", async () => {
+    const { generateStaticParams } = await import("../[date]/page");
+    const params = await generateStaticParams();
+    expect(params).toEqual([{ date: "2026-05-28" }]);
   });
 });

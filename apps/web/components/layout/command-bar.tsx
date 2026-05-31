@@ -1,7 +1,9 @@
 "use client";
 
-import { Fragment, useCallback, useEffect, useState } from "react";
+import Link from "next/link";
+import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 
+import type { SearchResponse } from "@/app/api/search/route";
 import {
   CommandDialog,
   CommandEmpty,
@@ -13,38 +15,16 @@ import {
 } from "@/components/ui/command";
 import { subscribe } from "@/lib/command-bar-store";
 
-const STUB_GROUPS = [
-  {
-    heading: "Outbreaks",
-    items: [{ id: "ituri-2026", label: "Ituri BVD 2026" }],
-  },
-  {
-    heading: "Pathogens",
-    items: [{ id: "bundibugyo", label: "Bundibugyo virus" }],
-  },
-  {
-    heading: "Countries",
-    items: [{ id: "drc", label: "Democratic Republic of Congo" }],
-  },
-  {
-    heading: "Sources",
-    items: [{ id: "who-don", label: "WHO Disease Outbreak News" }],
-  },
-  {
-    heading: "Sitreps",
-    items: [{ id: "latest-sitrep", label: "Latest WHO AFRO sitrep" }],
-  },
-  {
-    heading: "Definitions",
-    items: [{ id: "case-def", label: "Suspected case definition" }],
-  },
-] as const;
-
 function CommandBar() {
   const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const groups = useSearchGroups(query);
 
   const onOpen = useCallback(() => setOpen(true), []);
-  const onClose = useCallback(() => setOpen(false), []);
+  const onClose = useCallback(() => {
+    setOpen(false);
+    setQuery("");
+  }, []);
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -57,11 +37,8 @@ function CommandBar() {
     return () => globalThis.removeEventListener("keydown", onKey);
   }, []);
 
-  useEffect(() => {
-    return subscribe(onOpen);
-  }, [onOpen]);
+  useEffect(() => subscribe(onOpen), [onOpen]);
 
-  // Expose open trigger for TopBar button via data attribute
   useEffect(() => {
     const triggers = document.querySelectorAll("[data-command-trigger]");
     for (const el of triggers) {
@@ -76,16 +53,20 @@ function CommandBar() {
 
   return (
     <CommandDialog open={open} onOpenChange={setOpen}>
-      <CommandInput placeholder="Search outbreaks, sources, methods…" />
+      <CommandInput
+        placeholder="Search outbreaks, sources, zones…"
+        value={query}
+        onValueChange={setQuery}
+      />
       <CommandList className="max-h-[480px]">
-        <CommandEmpty>No results found.</CommandEmpty>
-        {STUB_GROUPS.map((group, i) => (
+        <CommandEmpty>{query.length >= 2 ? "No results found." : "Type to search…"}</CommandEmpty>
+        {groups.map((group, i) => (
           <Fragment key={group.heading}>
             {i > 0 ? <CommandSeparator /> : null}
             <CommandGroup heading={group.heading}>
               {group.items.map((item) => (
-                <CommandItem key={item.id} onSelect={onClose}>
-                  {item.label}
+                <CommandItem key={item.id} asChild onSelect={onClose}>
+                  <Link href={item.href}>{item.label}</Link>
                 </CommandItem>
               ))}
             </CommandGroup>
@@ -97,6 +78,46 @@ function CommandBar() {
       </div>
     </CommandDialog>
   );
+}
+
+function useSearchGroups(query: string) {
+  const [groups, setGroups] = useState<SearchResponse["groups"]>([]);
+  const debounceRef = useRef<null | ReturnType<typeof setTimeout>>(null);
+
+  useEffect(() => {
+    if (debounceRef.current !== null) {
+      clearTimeout(debounceRef.current);
+    }
+    const controller = new AbortController();
+
+    if (query.length >= 2) {
+      debounceRef.current = setTimeout(() => {
+        void (async () => {
+          try {
+            const r = await fetch(`/api/search?q=${encodeURIComponent(query)}`, {
+              signal: controller.signal,
+            });
+            const typed: SearchResponse = r.ok
+              ? // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- fetch to our own typed API
+                ((await r.json()) as SearchResponse)
+              : { groups: [] };
+            setGroups(typed.groups);
+          } catch {
+            void 0; // aborted or network error — leave previous results
+          }
+        })();
+      }, 150);
+    }
+
+    return () => {
+      if (debounceRef.current !== null) {
+        clearTimeout(debounceRef.current);
+      }
+      controller.abort();
+    };
+  }, [query]);
+
+  return query.length >= 2 ? groups : [];
 }
 
 export { CommandBar };

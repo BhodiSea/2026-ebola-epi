@@ -7,9 +7,9 @@ import { ActiveOutbreakBanner } from "@/components/outbreak/active-outbreak-bann
 import { ChoroplethStub } from "@/components/outbreak/choropleth-stub";
 import { StatCard } from "@/components/outbreak/stat-card";
 import { AiGeneratedLabel } from "@/components/provenance/ai-generated-label";
-import { DAILY_BRIEF } from "@/lib/copy/daily-brief";
 import type { DisagreementEntry, DisagreementsMap } from "@/lib/queries/case-counts";
 import { getDisagreements, getSparkline14d, getStatTotals } from "@/lib/queries/case-counts";
+import { getDailyBriefByDate } from "@/lib/queries/daily-briefs";
 import type { Document } from "@/lib/queries/documents";
 import { listRecentDocuments } from "@/lib/queries/documents";
 import type { Outbreak } from "@/lib/queries/outbreaks";
@@ -27,8 +27,6 @@ export const metadata: Metadata = {
       "Live confirmed cases, deaths, and CFR for the 2026 Ituri Bundibugyo virus outbreak.",
   },
 };
-
-const PLACEHOLDER_QUOTE_ID = "00000000-0000-0000-0000-000000000000";
 
 export default async function TodayPage({
   searchParams,
@@ -48,12 +46,12 @@ export default async function TodayPage({
     );
   }
 
-  const { stats, sparkline, sitreps, allOutbreaks, disagreements } = await loadTodayData(
+  const { stats, sparkline, sitreps, allOutbreaks, disagreements, brief } = await loadTodayData(
     outbreak.id,
   );
   const sparklineValues = sparkline.map((p) => p.value);
-  const confirmedQuoteId = stats.confirmed.quoteId ?? PLACEHOLDER_QUOTE_ID;
-  const deathsQuoteId = stats.deaths.quoteId ?? PLACEHOLDER_QUOTE_ID;
+  const confirmedQuoteId = stats.confirmed.quoteId ?? null;
+  const deathsQuoteId = stats.deaths.quoteId ?? null;
   const cfrValue = stats.cfr === null ? "—" : `${stats.cfr.toFixed(1)}%`;
 
   return (
@@ -78,7 +76,7 @@ export default async function TodayPage({
         <StatCard label="Zones affected" value={stats.zonesAffected} quoteId={confirmedQuoteId} />
       </section>
 
-      <DailyBriefSection />
+      <DailyBriefSection brief={brief} />
 
       {/* Desktop: choropleth before recent docs */}
       <div className="hidden md:block">
@@ -119,19 +117,24 @@ function ActiveOutbreaksSection({ outbreaks }: Readonly<{ outbreaks: Outbreak[] 
   );
 }
 
-function DailyBriefSection() {
+function DailyBriefSection({
+  brief,
+}: Readonly<{ brief: Awaited<ReturnType<typeof getDailyBriefByDate>> }>) {
+  if (brief === null) {
+    return null;
+  }
   return (
     <section>
       <div className="mb-2 flex items-center gap-2">
-        <h2 className="font-semibold">{DAILY_BRIEF.headline}</h2>
-        <AiGeneratedLabel modelId="Hand-written by editor" reviewStatus="Editor-reviewed" />
+        <h2 className="font-semibold">{brief.headline}</h2>
+        <AiGeneratedLabel modelId={brief.modelId} reviewStatus="Editor-reviewed" />
       </div>
       <details>
         <summary className="cursor-pointer font-mono text-[12px] text-accent">
           Show situation report ▸
         </summary>
         <div className="mt-3 space-y-3">
-          {DAILY_BRIEF.body.map((para) => (
+          {brief.body.split("\n\n").map((para) => (
             <p
               key={para.slice(0, 40)}
               className="font-source-serif-4 text-[17px] text-fg leading-[1.55]"
@@ -139,7 +142,6 @@ function DailyBriefSection() {
               {para}
             </p>
           ))}
-          <p className="font-mono text-[12px] text-fg-muted">{DAILY_BRIEF.context}</p>
         </div>
       </details>
     </section>
@@ -170,14 +172,16 @@ function InlineOutbreakRow({ outbreak }: Readonly<{ outbreak: Outbreak }>) {
 }
 
 async function loadTodayData(outbreakId: string) {
-  const [stats, sparkline, sitreps, allOutbreaks, disagreements] = await Promise.all([
+  const today = new Date().toISOString().slice(0, 10);
+  const [stats, sparkline, sitreps, allOutbreaks, disagreements, brief] = await Promise.all([
     getStatTotals(outbreakId),
     getSparkline14d(outbreakId, "confirmed"),
     listRecentDocuments(5),
     listOutbreaks({ status: "active" }),
     getDisagreements(outbreakId),
+    getDailyBriefByDate(today),
   ]);
-  return { stats, sparkline, sitreps, allOutbreaks, disagreements };
+  return { stats, sparkline, sitreps, allOutbreaks, disagreements, brief };
 }
 
 /** Return the disagreement entries for the most recent date that has multi-source conflict. */

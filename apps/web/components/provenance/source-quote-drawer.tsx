@@ -4,11 +4,12 @@ import { useEffect } from "react";
 
 import { CitationCopier } from "./citation-copier";
 import { ProvenanceBadge, toTier } from "./provenance-badge";
-import type { SerializedCaseCount, SerializedQuote } from "./types";
+import type { SerializedCaseCount, SerializedCustody, SerializedQuote } from "./types";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 
 interface SourceQuoteDrawerProps {
   caseCounts?: SerializedCaseCount[];
+  custody?: null | SerializedCustody;
   onOpenChange: (open: boolean) => void;
   open: boolean;
   quote: SerializedQuote;
@@ -43,13 +44,27 @@ function CaseCountList({ caseCounts }: Readonly<{ caseCounts: SerializedCaseCoun
   );
 }
 
-function CustodyTable({ quote }: Readonly<{ quote: SerializedQuote }>) {
+function CustodyTable({
+  quote,
+  custody,
+}: Readonly<{ custody?: null | SerializedCustody; quote: SerializedQuote }>) {
+  const reviewed =
+    custody?.reviewedAt === undefined || custody.reviewedAt === null
+      ? "—"
+      : fmtDate(custody.reviewedAt);
+  const anomalyValue = custody?.anomalyOpen === true ? "Yes" : "No";
+  const anomaly = custody === undefined || custody === null ? "—" : anomalyValue;
+  const confidence =
+    custody?.confidence === undefined || custody.confidence === null
+      ? "—"
+      : `${(custody.confidence * 100).toFixed(0)}%`;
+
   const rows = [
     { label: "Published", value: quote.publishedAt === null ? "—" : fmtDate(quote.publishedAt) },
     { label: "Extracted", value: fmtDate(quote.createdAt) },
-    { label: "Reviewed", value: "—" },
-    { label: "Anomaly", value: "—" },
-    { label: "Confidence", value: "—" },
+    { label: "Reviewed", value: reviewed },
+    { label: "Anomaly", value: anomaly },
+    { label: "Confidence", value: confidence },
   ];
   return (
     <table className="w-full text-[12px]">
@@ -75,6 +90,7 @@ function fmtDate(iso: string, opts?: Intl.DateTimeFormatOptions): string {
 function SourceQuoteDrawer({
   quote,
   caseCounts = [],
+  custody,
   open,
   onOpenChange,
 }: Readonly<SourceQuoteDrawerProps>) {
@@ -136,7 +152,7 @@ function SourceQuoteDrawer({
           <h3 className="mb-2 font-mono font-semibold text-[12px] text-fg-muted uppercase tracking-wider">
             Chain of custody
           </h3>
-          <CustodyTable quote={quote} />
+          <CustodyTable quote={quote} {...(custody !== undefined && { custody })} />
         </section>
 
         <section>

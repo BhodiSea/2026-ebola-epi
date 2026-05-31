@@ -1,12 +1,12 @@
 import { DisagreementPill } from "@/components/outbreak/disagreement-pill";
-import { Figure } from "@/components/provenance/figure";
+import { FigureOrMissing } from "@/components/provenance/figure-or-missing";
 import type { DisagreementEntry } from "@/lib/queries/case-counts";
 
 interface StatCardProps {
   deltaPct?: number;
   disagreements?: DisagreementEntry[];
   label: string;
-  quoteId: string;
+  quoteId: null | string;
   sparkline?: number[];
   value: number | string;
 }
@@ -39,7 +39,7 @@ function StatCard({
       <p className="font-mono text-[12px] text-fg-muted uppercase tracking-wide">{label}</p>
       <div className="flex items-center gap-2">
         <p className="font-semibold text-3xl tabular-nums">
-          <Figure value={value} quoteId={quoteId} />
+          <FigureOrMissing value={value} quoteId={quoteId} />
         </p>
         {disagreements !== undefined && disagreements.length > 0 ? (
           <DisagreementPill count={disagreements.length} entries={disagreements} />

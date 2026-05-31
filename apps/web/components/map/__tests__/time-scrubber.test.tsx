@@ -35,6 +35,7 @@ beforeEach(() => {
 });
 
 const PLAY_BUTTON_RE = /play/i;
+const ACLED_RE = /^acled$/i;
 const ANNOUNCE_RE = /^Showing week \d+ of 2026, 55 confirmed cases$/;
 
 const CONFIRMED = [
@@ -82,6 +83,18 @@ describe("TimeScrubber", () => {
       />,
     );
     expect(screen.getByRole("button", { name: PLAY_BUTTON_RE })).toBeInTheDocument();
+  });
+
+  it("does not render an ACLED toggle button (no backing data)", () => {
+    render(
+      <TimeScrubber
+        confirmedSeries={CONFIRMED}
+        deathsSeries={DEATHS}
+        sitrepDates={[]}
+        outbreakId="d0eebc99-9c0b-4ef8-bb6d-6bb9bd380a01"
+      />,
+    );
+    expect(screen.queryByRole("button", { name: ACLED_RE })).toBeNull();
   });
 
   it("announces the ISO week, year, and cumulative confirmed count in the spec format", () => {

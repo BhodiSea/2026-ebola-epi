@@ -30,7 +30,7 @@ export function PlaybackControls({
   onCycleWindow: (() => void) | undefined;
   timeWindow: TimeWindow;
 }>) {
-  const { playing, acledVisible, selectedDate, stepBy, togglePlay, toggleAcled } = controls;
+  const { playing, selectedDate, stepBy, togglePlay } = controls;
   const subtle = "rounded px-1 text-[var(--color-fg-subtle)] text-xs hover:text-[var(--color-fg)]";
   return (
     <div className="flex items-center justify-center gap-1 pb-1">
@@ -67,14 +67,6 @@ export function PlaybackControls({
       <span className="mx-2 font-mono text-[10px] text-[var(--color-fg-subtle)] tabular-nums">
         {selectedDate}
       </span>
-      <button
-        type="button"
-        aria-pressed={acledVisible}
-        onClick={toggleAcled}
-        className="rounded px-1 text-[10px] text-[var(--color-fg-subtle)] uppercase hover:text-[var(--color-fg)]"
-      >
-        ACLED
-      </button>
       {onCycleWindow === undefined ? null : (
         <button
           type="button"
@@ -95,13 +87,9 @@ export function ScrubberSvg({
   confirmed,
   deaths,
   sitrepDates,
-  acledDates,
-  acledVisible,
   selectedDate,
   onBrushChange,
 }: Readonly<{
-  acledDates: string[];
-  acledVisible: boolean;
   confirmed: SeriesPoint[];
   deaths: SeriesPoint[];
   onBrushChange: (bounds: null | { x1: Date | number }) => void;
@@ -124,16 +112,6 @@ export function ScrubberSvg({
         stroke="var(--color-fg-subtle)"
         dashed
       />
-      {acledVisible ? (
-        <RuleMarks
-          dates={acledDates}
-          xScale={xScale}
-          y1={ACLED_Y - 6}
-          y2={ACLED_Y + 6}
-          prefix="acled"
-          stroke="#d97706"
-        />
-      ) : null}
       <line
         x1={playheadX}
         x2={playheadX}

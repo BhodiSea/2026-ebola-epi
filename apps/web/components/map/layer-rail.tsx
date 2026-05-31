@@ -90,6 +90,8 @@ export function LayerRail({ outbreakId, keyboard, outbreaks = [] }: Readonly<Lay
   );
 }
 
+const SHOW_STUB = process.env.NEXT_PUBLIC_SHOW_STUB_LAYERS === "true";
+
 function LayerGroups({
   activeLayers,
   onToggle,
@@ -97,7 +99,7 @@ function LayerGroups({
   return (
     <>
       {LAYER_GROUPS.map((group) => {
-        const layers = LAYERS.filter((l) => l.group === group);
+        const layers = LAYERS.filter((l) => l.group === group && (SHOW_STUB || l.data === "live"));
         if (layers.length === 0) {
           return null;
         }

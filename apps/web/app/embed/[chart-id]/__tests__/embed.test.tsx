@@ -13,8 +13,8 @@ function post(data: unknown) {
 }
 
 async function renderEmbed() {
-  const { default: EmbedPage } = await import("../page");
-  return render(<EmbedPage />);
+  const { EmbedShell } = await import("../embed-shell");
+  return render(<EmbedShell initialTheme="light" chartId="epi-curve" />);
 }
 
 describe("embed postMessage handler", () => {

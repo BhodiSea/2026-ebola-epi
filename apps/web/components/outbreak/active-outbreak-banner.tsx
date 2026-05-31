@@ -2,7 +2,7 @@ import { SeverityPill } from "@/components/provenance/severity-pill";
 import type { Outbreak } from "@/lib/queries/outbreaks";
 
 interface ActiveOutbreakBannerProps {
-  confirmedQuoteId: string;
+  confirmedQuoteId: null | string;
   outbreak: Outbreak;
 }
 

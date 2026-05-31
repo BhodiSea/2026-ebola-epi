@@ -3,12 +3,10 @@ import { scaleLinear, scaleTime } from "@visx/scale";
 import type { TimeWindow } from "@/lib/map/zone-detail-response";
 
 export interface ScrubberControls {
-  acledVisible: boolean;
   onBrushChange: (bounds: null | { x1: Date | number }) => void;
   playing: boolean;
   selectedDate: string;
   stepBy: (delta: number) => void;
-  toggleAcled: () => void;
   togglePlay: () => void;
 }
 

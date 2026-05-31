@@ -154,3 +154,47 @@ export async function getOutbreakBySlug(
 function severityRank(level: null | string): number {
   return SEVERITY_RANK[level ?? "info"] ?? 3;
 }
+
+/* eslint-disable @typescript-eslint/naming-convention */
+const PathogenRow = z.object({
+  pathogen_slug: z.string().nullable(),
+  pathogen_icd11: z.string(),
+});
+/* eslint-enable @typescript-eslint/naming-convention */
+
+export interface Pathogen {
+  pathogenIcd11: string;
+  pathogenSlug: null | string;
+}
+
+/** Distinct pathogens present in the outbreaks table, ordered by slug. */
+export async function listPathogens(): Promise<Pathogen[]> {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from("outbreaks")
+    .select("pathogen_slug, pathogen_icd11")
+    .order("pathogen_slug");
+
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition, sonarjs/different-types-comparison -- Supabase response types include null/error branches
+  if (error !== null || data === null) {
+    return [];
+  }
+
+  const rows = z.array(PathogenRow).safeParse(data);
+  if (!rows.success) {
+    return [];
+  }
+
+  // Deduplicate by slug (distinct via Set on JSON key).
+  const seen = new Set<string>();
+  const result: Pathogen[] = [];
+  for (const r of rows.data) {
+    const key = r.pathogen_slug ?? r.pathogen_icd11;
+    if (!seen.has(key)) {
+      seen.add(key);
+      result.push({ pathogenSlug: r.pathogen_slug, pathogenIcd11: r.pathogen_icd11 });
+    }
+  }
+  return result;
+}

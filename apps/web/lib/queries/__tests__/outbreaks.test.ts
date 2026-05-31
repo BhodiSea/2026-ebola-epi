@@ -1,7 +1,7 @@
 // Lint-clean refactor: fixing deprecated z.uuid(), naming conventions, unnecessary conditions, and unused disable directives.
 import { describe, expect, it, vi } from "vitest";
 
-import { getActiveOutbreak, getOutbreakBySlug, listOutbreaks } from "../outbreaks";
+import { getActiveOutbreak, getOutbreakBySlug, listOutbreaks, listPathogens } from "../outbreaks";
 
 // Must mock server-only and Supabase client before importing the module under test.
 vi.mock("server-only", () => ({}));
@@ -111,6 +111,33 @@ describe("listOutbreaks", () => {
   it("returns empty array on DB error", async () => {
     mockFrom.mockReturnValue(buildChain({ data: null, error: { message: "connection failed" } }));
     const result = await listOutbreaks({});
+    expect(result).toEqual([]);
+  });
+});
+
+describe("listPathogens", () => {
+  it("returns distinct pathogen slugs", async () => {
+    const chain = {
+      select: vi.fn().mockReturnThis(),
+      order: vi.fn().mockResolvedValue({
+        data: [{ pathogen_slug: "bundibugyo", pathogen_icd11: "1D60.00" }],
+        error: null,
+      }),
+    };
+    mockFrom.mockReturnValue(chain);
+    const result = await listPathogens();
+    expect(result).toHaveLength(1);
+    expect(result[0]?.pathogenSlug).toBe("bundibugyo");
+    expect(result[0]?.pathogenIcd11).toBe("1D60.00");
+  });
+
+  it("returns empty array on error", async () => {
+    const chain = {
+      select: vi.fn().mockReturnThis(),
+      order: vi.fn().mockResolvedValue({ data: null, error: { message: "oops" } }),
+    };
+    mockFrom.mockReturnValue(chain);
+    const result = await listPathogens();
     expect(result).toEqual([]);
   });
 });

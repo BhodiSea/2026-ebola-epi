@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 
+import { FigureOrMissing } from "@/components/provenance/figure-or-missing";
 import { JsonLd } from "@/components/seo/json-ld";
 import type { Document } from "@/lib/queries/documents";
 import { getDocumentsForZone } from "@/lib/queries/documents";
@@ -16,8 +17,6 @@ export async function generateMetadata({
     description: `Bundibugyo virus case counts and source documents for the ${code} health zone.`,
   };
 }
-
-const PLACEHOLDER_QUOTE_ID = "00000000-0000-0000-0000-000000000000";
 
 export default async function ZonePage({
   params,
@@ -39,7 +38,9 @@ export default async function ZonePage({
     getDocumentsForZone(outbreak.id, code),
   ]);
 
-  const confirmedQuoteId = stats.confirmed.quoteId ?? PLACEHOLDER_QUOTE_ID;
+  const confirmedQuoteId = stats.confirmed.quoteId ?? null;
+  const deathsQuoteId = stats.deaths.quoteId ?? null;
+  const cfrValue = stats.cfr === null ? "—" : `${stats.cfr.toFixed(1)}%`;
 
   const breadcrumbs = buildBreadcrumbs([
     { label: "Home", path: "/" },
@@ -58,17 +59,20 @@ export default async function ZonePage({
       <section className="grid grid-cols-2 gap-4 md:grid-cols-3">
         <div className="rounded-md border border-border bg-bg p-4">
           <p className="font-mono text-[10px] text-fg-muted uppercase tracking-wide">Confirmed</p>
-          <p className="mt-1 font-mono text-2xl tabular-nums">{stats.confirmed.value}</p>
-          <p className="font-mono text-[10px] text-fg-subtle">src {confirmedQuoteId.slice(0, 8)}</p>
+          <p className="mt-1 font-semibold text-2xl tabular-nums">
+            <FigureOrMissing quoteId={confirmedQuoteId} value={stats.confirmed.value} />
+          </p>
         </div>
         <div className="rounded-md border border-border bg-bg p-4">
           <p className="font-mono text-[10px] text-fg-muted uppercase tracking-wide">Deaths</p>
-          <p className="mt-1 font-mono text-2xl tabular-nums">{stats.deaths.value}</p>
+          <p className="mt-1 font-semibold text-2xl tabular-nums">
+            <FigureOrMissing quoteId={deathsQuoteId} value={stats.deaths.value} />
+          </p>
         </div>
         <div className="rounded-md border border-border bg-bg p-4">
           <p className="font-mono text-[10px] text-fg-muted uppercase tracking-wide">CFR</p>
-          <p className="mt-1 font-mono text-2xl tabular-nums">
-            {stats.cfr === null ? "—" : `${stats.cfr.toFixed(1)}%`}
+          <p className="mt-1 font-semibold text-2xl tabular-nums">
+            <FigureOrMissing quoteId={confirmedQuoteId} value={cfrValue} />
           </p>
         </div>
       </section>

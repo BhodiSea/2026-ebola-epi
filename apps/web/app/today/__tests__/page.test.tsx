@@ -22,13 +22,17 @@ vi.mock("@/lib/queries/case-counts", () => ({
 vi.mock("@/lib/queries/documents", () => ({
   listRecentDocuments: vi.fn(),
 }));
-vi.mock("@/lib/copy/daily-brief", () => ({
-  DAILY_BRIEF: {
+vi.mock("@/lib/queries/daily-briefs", () => ({
+  getDailyBriefByDate: vi.fn().mockResolvedValue({
     date: "2026-05-28",
     headline: "Test headline",
-    body: ["Test body paragraph."],
-    context: "Test context.",
-  },
+    body: "Test body paragraph.",
+    severity: null,
+    modelId: "editor",
+    reviewStatus: "published",
+    sourceQuoteIds: [],
+  }),
+  listPublishedBriefs: vi.fn().mockResolvedValue([]),
 }));
 vi.mock("@/components/outbreak/stat-card", () => ({
   StatCard: ({ label, quoteId }: { label: string; quoteId: string; value: number | string }) => (

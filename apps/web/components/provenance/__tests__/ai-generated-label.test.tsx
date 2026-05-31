@@ -10,12 +10,12 @@ function Wrapper({ children }: Readonly<{ children: React.ReactNode }>) {
 
 describe("AiGeneratedLabel", () => {
   it("renders the ✦ prefix glyph", () => {
-    render(<AiGeneratedLabel />, { wrapper: Wrapper });
+    render(<AiGeneratedLabel modelId="editor" />, { wrapper: Wrapper });
     expect(screen.getByText("✦")).toBeInTheDocument();
   });
 
   it("renders 'Auto-generated' text", () => {
-    render(<AiGeneratedLabel />, { wrapper: Wrapper });
+    render(<AiGeneratedLabel modelId="editor" />, { wrapper: Wrapper });
     expect(screen.getByText("Auto-generated")).toBeInTheDocument();
   });
 

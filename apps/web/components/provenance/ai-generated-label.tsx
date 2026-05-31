@@ -1,12 +1,12 @@
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface AiGeneratedLabelProps {
-  modelId?: string;
+  modelId: string;
   reviewStatus?: string;
 }
 
 function AiGeneratedLabel({
-  modelId = "Claude Sonnet 4.6",
+  modelId,
   reviewStatus = "Unreviewed",
 }: Readonly<AiGeneratedLabelProps>) {
   return (

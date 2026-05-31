@@ -4,6 +4,12 @@ export interface SerializedCaseCount {
   value: null | number;
 }
 
+export interface SerializedCustody {
+  anomalyOpen: boolean;
+  confidence: null | number;
+  reviewedAt: null | string;
+}
+
 /** Serializable quote data safe to pass across the Server→Client boundary. */
 export interface SerializedQuote {
   charEnd: number;

@@ -1,71 +1,69 @@
-"use client";
+import { EmbedShell } from "./embed-shell";
+import { ChoroplethStub } from "@/components/outbreak/choropleth-stub";
+import { TimelineMulti } from "@/components/outbreak/timeline-multi";
+import { getEpiCurveSeries } from "@/lib/queries/case-counts";
+import { getActiveOutbreak, getOutbreakById } from "@/lib/queries/outbreaks";
 
-import { useParams, useSearchParams } from "next/navigation";
-import { useEffect, useRef } from "react";
-import { z } from "zod";
+const KNOWN_CHART_IDS = new Set(["cfr-trend", "epi-curve", "zone-map"]);
 
-// origin-untrusted: accept any parent frame but validate payload strictly
-const SET_THEME_SCHEMA = z.object({
-  type: z.literal("set-theme"),
-  theme: z.enum(["light", "dark"]),
-});
+export default async function EmbedPage({
+  params,
+  searchParams,
+}: Readonly<{
+  // eslint-disable-next-line @typescript-eslint/naming-convention -- URL segment contains hyphen
+  params: Promise<{ "chart-id": string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}>) {
+  const { "chart-id": chartId } = await params;
+  const sp = await searchParams;
+  const initialTheme = sp.theme === "dark" ? "dark" : "light";
+  const outbreakIdParam = typeof sp.outbreak_id === "string" ? sp.outbreak_id : undefined;
 
-const SITE_DOMAIN = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://ituri-epi.com")
-  .replace("https://", "")
-  .replace("http://", "");
+  if (!KNOWN_CHART_IDS.has(chartId)) {
+    return <EmbedShell initialTheme={initialTheme} chartId={chartId} />;
+  }
 
-const CHARTS: Record<string, { label: string }> = {
-  "cfr-trend": { label: "CFR Trend" },
-  "epi-curve": { label: "Epi Curve" },
-  "zone-map": { label: "Zone Map" },
-};
+  const outbreak =
+    outbreakIdParam === undefined
+      ? await getActiveOutbreak()
+      : await getOutbreakById(outbreakIdParam);
 
-export default function EmbedPage() {
-  // eslint-disable-next-line @typescript-eslint/naming-convention -- URL segment contains hyphen; cannot be renamed
-  const params = useParams<{ "chart-id": string }>();
-  const searchParams = useSearchParams();
-  const chartId = params["chart-id"];
-  const theme = searchParams.get("theme") === "dark" ? "dark" : "light";
-  const iframeRef = useRef<HTMLIFrameElement>(null);
+  if (outbreak === null) {
+    return <EmbedShell initialTheme={initialTheme} chartId={chartId} />;
+  }
 
-  useEffect(() => {
-    function handleMessage(event: MessageEvent<unknown>) {
-      const parsed = SET_THEME_SCHEMA.safeParse(event.data);
-      if (parsed.success) {
-        document.documentElement.dataset.theme = parsed.data.theme;
-      }
-    }
-    // eslint-disable-next-line sonarjs/post-message -- embed intentionally accepts theme-sync from any parent frame
-    window.addEventListener("message", handleMessage);
-    return () => {
-      window.removeEventListener("message", handleMessage);
-    };
-  }, []);
+  if (chartId === "zone-map") {
+    return (
+      <EmbedShell initialTheme={initialTheme} chartId={chartId}>
+        <ChoroplethStub outbreakId={outbreak.id} />
+      </EmbedShell>
+    );
+  }
 
-  useEffect(() => {
-    document.documentElement.dataset.theme = theme;
-  }, [theme]);
+  // epi-curve and cfr-trend both use the epi series
+  const { confirmed, deaths } = await getEpiCurveSeries(outbreak.id);
 
-  const chart = CHARTS[chartId];
+  if (chartId === "cfr-trend") {
+    const cfrSeries = confirmed
+      .map((c, i) => {
+        const d = deaths[i];
+        if (d === undefined || c.value === 0) {
+          return null;
+        }
+        return { date: c.date, value: Number(((d.value / c.value) * 100).toFixed(1)) };
+      })
+      .filter((p): p is NonNullable<typeof p> => p !== null);
+
+    return (
+      <EmbedShell initialTheme={initialTheme} chartId={chartId}>
+        <TimelineMulti confirmedSeries={cfrSeries} deathsSeries={[]} ariaLabel="CFR trend" />
+      </EmbedShell>
+    );
+  }
 
   return (
-    <div className="flex h-screen w-screen items-center justify-center bg-bg p-4" data-embed>
-      {chart === undefined ? (
-        <p className="font-mono text-[13px] text-fg-muted">Unknown chart: {chartId}</p>
-      ) : (
-        <div className="flex h-full w-full flex-col gap-2">
-          <div className="flex-1 rounded-md border border-border bg-bg" ref={iframeRef}>
-            <p className="p-4 font-mono text-[12px] text-fg-muted">Chart placeholder — {chartId}</p>
-          </div>
-          <p
-            className="shrink-0 font-mono text-[10px] text-fg-subtle"
-            role="note"
-            aria-label="Source attribution"
-          >
-            Source: {chart.label} · {SITE_DOMAIN}/embed/{chartId}
-          </p>
-        </div>
-      )}
-    </div>
+    <EmbedShell initialTheme={initialTheme} chartId={chartId}>
+      <TimelineMulti confirmedSeries={confirmed} deathsSeries={deaths} ariaLabel="Epi curve" />
+    </EmbedShell>
   );
 }

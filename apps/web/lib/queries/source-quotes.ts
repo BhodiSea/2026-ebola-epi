@@ -75,6 +75,45 @@ export async function getSourceQuoteById(id: SourceQuoteId): Promise<null | Sour
   return parsed.success ? parsed.data : null;
 }
 
+/* eslint-disable @typescript-eslint/naming-convention */
+const CustodyRow = z.object({
+  quote_id: z.string(),
+  reviewed_at: z.string().nullable(),
+  anomaly_open: z.boolean(),
+  confidence: z.number().nullable(),
+});
+/* eslint-enable @typescript-eslint/naming-convention */
+
+export interface QuoteCustody {
+  anomalyOpen: boolean;
+  confidence: null | number;
+  reviewedAt: null | string;
+}
+
+export async function getCustodyForQuote(id: SourceQuoteId): Promise<null | QuoteCustody> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("quote_custody")
+    .select("quote_id, reviewed_at, anomaly_open, confidence")
+    .eq("quote_id", id)
+    .maybeSingle();
+
+  if (error !== null || data === null) {
+    return null;
+  }
+
+  const parsed = CustodyRow.safeParse(data);
+  if (!parsed.success) {
+    return null;
+  }
+
+  return {
+    reviewedAt: parsed.data.reviewed_at,
+    anomalyOpen: parsed.data.anomaly_open,
+    confidence: parsed.data.confidence,
+  };
+}
+
 export const getQuotesForMethodsPage = unstable_cache(
   async (): Promise<SourceQuoteRow[]> => {
     const supabase = await createClient();
