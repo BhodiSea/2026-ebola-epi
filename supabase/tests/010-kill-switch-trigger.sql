@@ -4,12 +4,14 @@ select plan(7);
 -- ── Fixture: source → document (extraction_run not needed; anthropic_usage_log.extraction_run_id is nullable)
 with
   src as (
-    insert into public.sources (id, slug, name, url)
+    insert into public.sources (id, slug, name, url, posture_terms, posture_attribution)
     values (
       'aaaaaaaa-aaaa-4aaa-8aaa-aa0000000010',
       'test-010-src',
       'Test 010 Source',
-      'https://example.com/test-010'
+      'https://example.com/test-010',
+      'Publicly licensed content for testing purposes.',
+      'Test 010 Source'
     )
     returning id
   )

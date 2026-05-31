@@ -29,6 +29,7 @@ dependency requires an ADR landed before the implementing PR.
 | 0018 | [promptfoo as extraction eval harness](0018-promptfoo-extraction-eval-harness.md) | Accepted |
 | 0019 | [Upstash Redis for per-IP / per-org rate limiting](0019-upstash-redis-rate-limiting.md) | Accepted |
 | 0020 | [Defer five Priority-tier source adapters to post-Phase 9](0020-defer-priority-adapters-to-post-phase-9.md) | Accepted |
+| 0021 | [Adopt mise for gitleaks binary pinning](0021-mise-gitleaks.md) | Accepted |
 
 ## Lifecycle
 

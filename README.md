@@ -210,6 +210,7 @@ Bayesian Rt nowcasting and branching-process scenario panels on Modal (Python: `
 ### Prerequisites
 
 - Node 22 LTS, pnpm 10+
+- mise (`brew install mise` on macOS, or `curl https://mise.run | sh` on Linux) — used to pin `gitleaks 8.18.4` for the `ship-gate` secret-scan step. Run `mise install` once after cloning.
 - Supabase CLI (`brew install supabase/tap/supabase`)
 - Docker (for local Supabase)
 - Python 3.11+ (for Modal / GEE derived-layers pipeline; not required for the web app)

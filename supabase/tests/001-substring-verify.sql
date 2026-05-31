@@ -3,12 +3,14 @@ select plan(3);
 
 -- Fixtures
 with src as (
-  insert into public.sources (id, slug, name, url)
+  insert into public.sources (id, slug, name, url, posture_terms, posture_attribution)
   values (
     '11111111-1111-1111-1111-111111111101',
     'test-source-001',
     'Test Source',
-    'https://example.com'
+    'https://example.com',
+    'Publicly licensed content for testing purposes.',
+    'Test Source'
   )
   returning id
 ),

@@ -36,7 +36,8 @@ select ok(
 set local role anon;
 select throws_ok(
   $$select internal.mvt(6, 32, 32)$$,
-  'insufficient_privilege',
+  '42501',
+  null,
   'anon cannot execute internal.mvt directly'
 );
 reset role;

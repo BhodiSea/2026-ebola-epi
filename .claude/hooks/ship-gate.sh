@@ -1,11 +1,27 @@
 #!/usr/bin/env bash
 # Stop hook: refuse to end the session while quality gates are red.
 #
-# Exit 2 in a Stop hook tells Claude to keep working. We use this to
-# enforce the "no red commits" rule from the root CLAUDE.md / AGENTS.md.
+# Exit 2 in a Stop hook tells Claude to keep working.
+# Exit 0 allows the session to end.
 #
-# Today (single-app, pnpm/biome/vitest not yet installed) this is a no-op.
-# As each tool lands, the relevant gate activates automatically.
+# Gates run sequentially; the first failure stops the chain.
+# External tools (supabase, gitleaks) warn-skip locally when not installed;
+# they hard-fail in CI (CI=true).
+#
+# Gate order and coverage:
+#   1. lint          — Biome + ESLint workspace-wide
+#   2. typecheck     — TypeScript across all packages (turbo)
+#   3. test          — Vitest unit suite incl. offline gold-set eval
+#   4. db:test       — pgTAP suite (supabase test db)
+#   5. test:integration — Supabase integration tests (WP5)
+#   6. e2e           — Playwright specs (WP7)
+#   7. knip          — unused exports / dead code
+#   8. gitleaks      — secret scanning
+#   9. audit:prod    — pnpm audit --prod --audit-level=high
+#
+# The live Anthropic eval (F1 ≥ 0.95) runs in CI only, via eval-pr.yml.
+# The offline gold-set check is included in gate 3 (pnpm test → turbo test →
+# @ituri/evals vitest run).
 
 set -euo pipefail
 
@@ -13,89 +29,115 @@ cd "${CLAUDE_PROJECT_DIR:-$(pwd)}"
 
 has() { command -v "$1" >/dev/null 2>&1; }
 have_script() {
-  # Returns 0 if package.json defines a script named $1.
   [ -f package.json ] || return 1
-  command -v jq >/dev/null 2>&1 || return 1
+  has jq || return 1
   jq -e --arg s "$1" '.scripts[$s] != null' package.json >/dev/null 2>&1
 }
-deps_installed() {
-  # During the template phase (pre-`npm install`) the user has scripts wired
-  # but no node_modules. Skip gates rather than fail with `command not found`.
-  [ -d node_modules ]
-}
 
-fail=0
-ran_any=0
+is_ci() { [ "${CI:-}" = "true" ]; }
 
+# Run a gate: print label, run cmd, stop on first failure.
+# In CI, missing binaries hard-fail. Locally they warn-skip.
 run_gate() {
-  local gate_name="${1:-?}"
-  shift || true
-  printf '[ship-gate] %s...\n' "$gate_name" >&2
+  local label="$1"
+  shift
+  printf '[ship-gate] %s...\n' "$label" >&2
   if "$@" >/dev/null 2>&1; then
-    printf '[ship-gate] PASS %s\n' "$gate_name" >&2
+    printf '[ship-gate] PASS %s\n' "$label" >&2
   else
-    printf '[ship-gate] FAIL %s\n' "$gate_name" >&2
+    printf '[ship-gate] FAIL %s\n' "$label" >&2
     "$@" >&2 || true
-    fail=1
+    printf '\n' >&2
+    printf 'SHIP-GATE: refusing to end session — %s failed.\n' "$label" >&2
+    printf '\n' >&2
+    printf 'Fix the gate above and try again, or run /ship for the full\n' >&2
+    printf 'preflight (lint, typecheck, test, db:test, integration, e2e,\n' >&2
+    printf 'knip, gitleaks, audit:prod).\n' >&2
+    exit 2
   fi
-  ran_any=1
 }
 
-if ! deps_installed; then
-  # Dependencies aren't installed yet — nothing to gate on. Allow session end.
-  exit 0
-fi
-
-# Lint — gate on Biome only; ESLint errors on pre-existing code are addressed
-# in a follow-up PR (the config landing is the deliverable, not zero ESLint errors).
-if has pnpm && have_script lint:biome; then
-  run_gate "lint" pnpm run lint:biome
-elif has pnpm && have_script lint; then
-  run_gate "lint" pnpm run lint
-elif has npm && have_script lint; then
-  run_gate "lint" npm run lint
-fi
-
-# Typecheck
-if has pnpm && have_script typecheck; then
-  run_gate "typecheck" pnpm run typecheck
-elif has npm && have_script typecheck; then
-  run_gate "typecheck" npm run typecheck
-fi
-
-# Tests
-if has pnpm && have_script test; then
-  run_gate "test" pnpm run test
-elif has npm && have_script test; then
-  run_gate "test" npm test
-fi
-
-# Integration tests — only run when the local Supabase stack is up.
-# The WP6 PR will add a --with-db flag for explicit gating; this is the
-# soft guard that skips gracefully when no stack is running.
-if has supabase && have_script test:integration; then
-  if supabase status >/dev/null 2>&1; then
-    run_gate "integration" pnpm run test:integration
+# Warn-skip or hard-fail depending on CI mode.
+skip_or_fail() {
+  local label="$1"
+  local reason="$2"
+  if is_ci; then
+    printf '[ship-gate] FAIL %s — %s (required in CI)\n' "$label" "$reason" >&2
+    exit 2
   else
-    printf '[ship-gate] SKIP integration (supabase stack not running)\n' >&2
+    printf '[ship-gate] SKIP %s — %s\n' "$label" "$reason" >&2
   fi
-fi
+}
 
-if [ "$ran_any" -eq 0 ]; then
-  # Nothing wired yet. Allow the session to end so we don't block work
-  # in the template phase of the project.
+if [ ! -d node_modules ]; then
+  # Pre-install: nothing to gate on; allow session end.
   exit 0
 fi
 
-if [ "$fail" -ne 0 ]; then
-  printf '\n' >&2
-  printf 'SHIP-GATE: refusing to end session with red quality gates.\n' >&2
-  printf '\n' >&2
-  printf 'Project rule (CLAUDE.md): no commits with red lint / typecheck / vitest.\n' >&2
-  printf '\n' >&2
-  printf 'Fix the failing gate(s) above and try again, or run `/ship` for the\n' >&2
-  printf 'full preflight (lint, typecheck, test, pgtap, e2e, knip, gitleaks, audit, eval).\n' >&2
-  exit 2
+# ── 1. Lint ──────────────────────────────────────────────────────────────────
+if have_script lint; then
+  run_gate "lint" pnpm run lint
+else
+  skip_or_fail "lint" "no lint script in package.json"
 fi
 
+# ── 2. Typecheck ─────────────────────────────────────────────────────────────
+if have_script typecheck; then
+  run_gate "typecheck" pnpm run typecheck
+else
+  skip_or_fail "typecheck" "no typecheck script in package.json"
+fi
+
+# ── 3. Test (unit + offline gold-set) ────────────────────────────────────────
+if have_script test; then
+  run_gate "test" pnpm run test
+else
+  skip_or_fail "test" "no test script in package.json"
+fi
+
+# ── 4. pgTAP (db:test) ───────────────────────────────────────────────────────
+if ! has supabase; then
+  skip_or_fail "db:test" "supabase CLI not installed"
+elif have_script db:test; then
+  run_gate "db:test" pnpm run db:test
+fi
+
+# ── 5. Integration tests ──────────────────────────────────────────────────────
+if ! has supabase; then
+  skip_or_fail "test:integration" "supabase CLI not installed"
+elif ! supabase status >/dev/null 2>&1; then
+  skip_or_fail "test:integration" "supabase stack not running (supabase start)"
+elif have_script test:integration; then
+  run_gate "test:integration" pnpm run test:integration
+fi
+
+# ── 6. E2E (Playwright) ───────────────────────────────────────────────────────
+if ! has playwright && ! [ -x "node_modules/.bin/playwright" ]; then
+  skip_or_fail "e2e" "playwright binary not found (pnpm exec playwright install)"
+elif have_script e2e; then
+  run_gate "e2e" pnpm run e2e
+fi
+
+# ── 7. Knip (dead exports) ────────────────────────────────────────────────────
+if have_script knip; then
+  # drizzle.config.ts throws at module load when SUPABASE_DB_URL is unset and
+  # knip tries to evaluate it. Fall back to the standard local Supabase DB URL
+  # (port 54322 per supabase/config.toml). In CI, SUPABASE_DB_URL must be set.
+  SUPABASE_DB_URL="${SUPABASE_DB_URL:-postgresql://postgres:postgres@127.0.0.1:54322/postgres}" \
+    run_gate "knip" pnpm run knip
+fi
+
+# ── 8. Secret scanning (gitleaks) ─────────────────────────────────────────────
+if ! has gitleaks; then
+  skip_or_fail "gitleaks" "gitleaks not installed (mise install)"
+elif have_script gitleaks; then
+  run_gate "gitleaks" pnpm run gitleaks
+fi
+
+# ── 9. Dependency audit ───────────────────────────────────────────────────────
+if have_script audit:prod; then
+  run_gate "audit:prod" pnpm run audit:prod
+fi
+
+printf '[ship-gate] All gates passed.\n' >&2
 exit 0

@@ -4,12 +4,14 @@ select plan(6);
 -- Full fixture chain: source → document → extraction_run → llm_trace
 with
   src as (
-    insert into public.sources (id, slug, name, url)
+    insert into public.sources (id, slug, name, url, posture_terms, posture_attribution)
     values (
       'aaaaaaaa-aaaa-4aaa-8aaa-aa0000000005',
       'test-005-src',
       'Test 005 Source',
-      'https://example.com/test-005'
+      'https://example.com/test-005',
+      'Publicly licensed content for testing purposes.',
+      'Test 005 Source'
     )
     returning id
   ),

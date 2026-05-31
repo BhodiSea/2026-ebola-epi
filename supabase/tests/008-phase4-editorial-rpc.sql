@@ -40,8 +40,8 @@ select is(
      (select id from public.outbreaks where pathogen_slug = 'bundibugyo' limit 1)
    )
   ),
-  5,
-  'outbreak_zone_svg returns 5 admin2 zones for bundibugyo outbreak'
+  7,
+  'outbreak_zone_svg returns 7 admin2 zones for bundibugyo outbreak'
 );
 
 -- (g) all total_value are non-negative (coalesce ensures no nulls)

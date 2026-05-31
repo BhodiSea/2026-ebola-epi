@@ -4,12 +4,14 @@ select plan(1);
 -- Fixture: source + document (superuser bypasses RLS)
 with
   src as (
-    insert into public.sources (id, slug, name, url)
+    insert into public.sources (id, slug, name, url, posture_terms, posture_attribution)
     values (
       'aaaaaaaa-aaaa-4aaa-8aaa-aa0000000004',
       'test-004-src',
       'Test 004 Source',
-      'https://example.com/test-004'
+      'https://example.com/test-004',
+      'Publicly licensed content for testing purposes.',
+      'Test 004 Source'
     )
     returning id
   ),

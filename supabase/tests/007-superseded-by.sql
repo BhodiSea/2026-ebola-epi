@@ -4,12 +4,14 @@ select plan(2);
 -- Minimal fixture chain (superuser, bypasses RLS)
 with
   src as (
-    insert into public.sources (id, slug, name, url)
+    insert into public.sources (id, slug, name, url, posture_terms, posture_attribution)
     values (
       'a7777777-7777-4777-8777-777777777701',
       'test-src-007',
       'Supersede Test Source',
-      'https://example.com/007'
+      'https://example.com/007',
+      'Publicly licensed content for testing purposes.',
+      'Supersede Test Source'
     )
     returning id
   ),

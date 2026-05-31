@@ -4,12 +4,14 @@ select plan(2);
 -- Fixture: source + document
 with
   src as (
-    insert into public.sources (id, slug, name, url)
+    insert into public.sources (id, slug, name, url, posture_terms, posture_attribution)
     values (
       'aaaaaaaa-aaaa-4aaa-8aaa-aa000000004b',
       'test-004b-src',
       'Test 004b Source',
-      'https://example.com/test-004b'
+      'https://example.com/test-004b',
+      'Publicly licensed content for testing purposes.',
+      'Test 004b Source'
     )
     returning id
   ),

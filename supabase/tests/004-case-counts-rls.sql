@@ -6,12 +6,14 @@ select plan(3);
 -- which bypasses RLS.  We then switch to anon to exercise the policy.
 with
   src as (
-    insert into public.sources (id, slug, name, url)
+    insert into public.sources (id, slug, name, url, posture_terms, posture_attribution)
     values (
       'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
       'rls-filter-src',
       'RLS Filter Test Source',
-      'https://example.com/rls'
+      'https://example.com/rls',
+      'Publicly licensed content for testing purposes.',
+      'RLS Filter Test Source'
     )
     returning id
   ),

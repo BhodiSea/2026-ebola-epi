@@ -1,0 +1,3 @@
+[tools]
+# Secret scanning binary — see docs/adr/0021-mise-gitleaks.md
+gitleaks = "8.18.4"

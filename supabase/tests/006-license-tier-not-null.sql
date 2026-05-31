@@ -16,8 +16,9 @@ select col_not_null(
 -- invalid tier value must be rejected by check constraint (23514 = check_violation)
 select throws_ok(
   $$
-    insert into public.sources (slug, name, url, license_tier)
-    values ('test-006-reject', 'Test 006 Reject', 'https://example.com/006', 'invalid_tier')
+    insert into public.sources (slug, name, url, license_tier, posture_terms, posture_attribution)
+    values ('test-006-reject', 'Test 006 Reject', 'https://example.com/006', 'invalid_tier',
+            'Publicly licensed content for testing purposes.', 'Test 006 Reject')
   $$,
   '23514',
   null,

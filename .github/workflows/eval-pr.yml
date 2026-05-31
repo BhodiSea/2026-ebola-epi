@@ -1,0 +1,53 @@
+name: Eval (PR gate)
+
+# Runs the live promptfoo extraction eval on pull requests that touch the
+# extraction prompt, tools, or eval fixtures. Forks and Dependabot PRs have
+# no access to ANTHROPIC_API_KEY; the eval step no-ops cleanly with a skip
+# message so their checks still go green.
+#
+# The nightly llm-eval.yml is separate and covers main-branch drift.
+# Threshold: F1 >= 0.95 (promptfoo.config.yaml). The offline gold-set
+# (F1 >= 0.90) runs in CI as part of the standard `pnpm test` step.
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "packages/extract/**"
+      - "evals/**"
+      - ".github/workflows/eval-pr.yml"
+
+jobs:
+  eval:
+    name: Live extraction eval
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run live eval (skipped in forks / Dependabot — no API key)
+        if: env.ANTHROPIC_API_KEY != ''
+        run: pnpm --filter @ituri/evals run eval
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+
+      - name: Skip notice (fork or Dependabot — no ANTHROPIC_API_KEY)
+        if: env.ANTHROPIC_API_KEY == ''
+        run: |
+          echo "::notice::Live eval skipped — ANTHROPIC_API_KEY is not available in this context (fork or Dependabot PR)."
+          echo "The offline gold-set check (F1 >= 0.90) runs in the standard CI job via pnpm test."
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
