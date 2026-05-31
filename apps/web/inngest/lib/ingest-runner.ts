@@ -1,6 +1,7 @@
 import "server-only";
 import { createHash } from "node:crypto";
 
+import { agentActions } from "@ituri/db";
 import type { RegisteredAdapter } from "@ituri/ingest";
 import type { GetStepTools } from "inngest";
 
@@ -8,6 +9,7 @@ import type { inngest } from "@/inngest/client";
 import { DOCUMENT_TRIAGE_REQUESTED } from "@/inngest/functions/pipeline-events-config";
 import { resolveSourceId, upsertDocument } from "@/inngest/lib/persist-extraction";
 import { translateRateLimitError } from "@/inngest/lib/rate-limit-error";
+import { db } from "@/lib/db";
 
 type FetchParseResult = null | {
   documentId: string;
@@ -41,11 +43,35 @@ export async function runPerSourceIngest(
     const doc = await step.run(`fetch-parse-${stepId}`, async (): Promise<FetchParseResult> => {
       const fetchResult = await adapter.fetch(item.url).catch(translateRateLimitError);
       if (fetchResult.skipped) {
+        await db.insert(agentActions).values({
+          agent: "ingest-runner",
+          action: "ingest_skipped",
+          subjectTable: "sources",
+          subjectId: sourceId,
+          payload: {
+            sourceSlug: adapter.sourceSlug,
+            url: item.url,
+            stage: "fetch",
+            reason: fetchResult.reason,
+          },
+        });
         return null;
       }
 
       const parseResult = await adapter.parse(fetchResult.rawContent);
       if (parseResult.skipped) {
+        await db.insert(agentActions).values({
+          agent: "ingest-runner",
+          action: "ingest_skipped",
+          subjectTable: "sources",
+          subjectId: sourceId,
+          payload: {
+            sourceSlug: adapter.sourceSlug,
+            url: item.url,
+            stage: "parse",
+            reason: parseResult.reason,
+          },
+        });
         return null;
       }
 

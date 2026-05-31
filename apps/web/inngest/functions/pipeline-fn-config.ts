@@ -4,6 +4,7 @@
 import {
   DOCUMENT_EXTRACTION_REQUESTED,
   DOCUMENT_TRIAGE_REQUESTED,
+  ESCALATION_NOVEL_PATHOGEN_COUNTRY,
   RECONCILE_REQUESTED,
 } from "./pipeline-events-config";
 
@@ -39,3 +40,18 @@ export const RECONCILE_SWEEP_FN_CONFIG = {
   retries: 2,
   concurrency: { limit: 1 },
 } as const;
+
+// Each matchKey (pathogen-country pair) gets one dedicated slot; global cap is high
+// because these are cheap wait steps, not compute-intensive work.
+// Moves waitForEvent out of triage-document (which has limit=5) to prevent starvation
+// when ≥5 novel-pair escalations are open simultaneously.
+export const AWAIT_ESCALATION_FN_CONFIG = {
+  id: "await-escalation" as const,
+  retries: 0 as const,
+  concurrency: [{ limit: 1, key: "event.data.matchKey" }, { limit: 1000 }] as [
+    { key: string; limit: number },
+    { limit: number },
+  ],
+};
+
+export const AWAIT_ESCALATION_TRIGGER = { event: ESCALATION_NOVEL_PATHOGEN_COUNTRY } as const;

@@ -1,3 +1,4 @@
+import { awaitEscalation } from "./await-escalation";
 import { backFillExtraction } from "./back-fill";
 import { extractDocument } from "./extract-document";
 import { ingestACLED } from "./ingest-acled";
@@ -24,6 +25,7 @@ export const functions = [
   ingestMOHDRC,
   ingestUgandaMOH,
   triageDocument,
+  awaitEscalation,
   extractDocument,
   reconcileCounts,
   syntheticMonitor,

@@ -26,11 +26,13 @@ describe("/internal/sources page", () => {
   beforeEach(async () => {
     vi.clearAllMocks();
     vi.resetModules();
-    mockFrom = vi.fn().mockReturnValue({
-      select: vi.fn().mockReturnValue({
-        order: vi.fn().mockResolvedValue({ data: [], error: null }),
-      }),
-    });
+    const chainObj = {
+      select: vi.fn().mockReturnThis(),
+      order: vi.fn().mockResolvedValue({ data: [], error: null }),
+      eq: vi.fn().mockReturnThis(),
+      gte: vi.fn().mockResolvedValue({ data: [], error: null }),
+    };
+    mockFrom = vi.fn().mockReturnValue(chainObj);
     const { createClient } = await import("@/lib/supabase/server");
     vi.mocked(createClient).mockResolvedValue({ from: mockFrom } as never);
   });

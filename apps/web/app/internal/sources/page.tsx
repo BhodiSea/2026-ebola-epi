@@ -1,4 +1,5 @@
 import { SourcePauseButton } from "@/components/internal/source-pause-button";
+import { listSkipCounts24h } from "@/lib/queries/source-skip-counts";
 import type { SourceWithHealth } from "@/lib/queries/sources-with-health";
 import { listSourcesWithHealth } from "@/lib/queries/sources-with-health";
 
@@ -9,7 +10,7 @@ const STATUS_PILL: Record<string, string> = {
 };
 
 export default async function SourcesPage() {
-  const sources = await listSourcesWithHealth();
+  const [sources, skipCounts] = await Promise.all([listSourcesWithHealth(), listSkipCounts24h()]);
 
   return (
     <div className="flex-1 space-y-6 p-6">
@@ -25,6 +26,7 @@ export default async function SourcesPage() {
               <th className="pr-4 pb-1">Last fetch</th>
               <th className="pr-4 pb-1">Parser ver.</th>
               <th className="pr-4 pb-1 text-right">Fails (7d)</th>
+              <th className="pr-4 pb-1 text-right">Skipped (24h)</th>
               <th className="pr-4 pb-1">Status</th>
               <th className="pb-1">Toggle</th>
             </tr>
@@ -40,6 +42,7 @@ export default async function SourcesPage() {
                   </td>
                   <td className="py-1.5 pr-4 text-fg-muted">{src.parserVersion ?? "—"}</td>
                   <td className="py-1.5 pr-4 text-right tabular-nums">{src.failureCount7d}</td>
+                  <td className="py-1.5 pr-4 text-right tabular-nums">{skipCounts[src.id] ?? 0}</td>
                   <td className="py-1.5 pr-4">
                     <span className={STATUS_PILL[sk]}>{sk}</span>
                   </td>

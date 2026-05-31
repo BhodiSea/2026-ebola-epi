@@ -16,7 +16,6 @@ import { evaluateCapacity } from "../lib/capacity-guard";
 import { logAnthropicUsage } from "../lib/usage-log";
 import {
   DOCUMENT_EXTRACTION_REQUESTED,
-  ESCALATION_CONFIRMED,
   ESCALATION_NOVEL_PATHOGEN_COUNTRY,
 } from "./pipeline-events-config";
 import { TRIAGE_DOCUMENT_FN_CONFIG, TRIAGE_DOCUMENT_TRIGGER } from "./pipeline-fn-config";
@@ -133,6 +132,10 @@ export const triageDocument = inngest.createFunction(
             countryIso3: triage.country_iso3,
             documentId,
             sourceSlug,
+            fullText,
+            sha256,
+            publishedAtIso,
+            triageHash,
           },
         });
         // Class 1: write incident row and alert Slack before waiting on human confirmation.
@@ -152,20 +155,9 @@ export const triageDocument = inngest.createFunction(
             ),
           ]),
         );
-        // Wait up to 7 days for a human to confirm the novel pair.
-        // On timeout (resolved to null), skip extraction for safety.
-        // WARNING: with TRIAGE_DOCUMENT_FN_CONFIG.concurrency.limit = 5, up to 5
-        // simultaneous escalations will hold all concurrency slots for the full 7d window,
-        // starving new documents. If novel-pair escalations become frequent, move the
-        // waitForEvent into a dedicated await-escalation Inngest function or raise the limit.
-        const confirmed = await step.waitForEvent("wait-confirm", {
-          event: ESCALATION_CONFIRMED,
-          match: "data.matchKey",
-          timeout: "7d",
-        });
-        if (!confirmed) {
-          return { skipped: true, reason: "escalation_timeout" };
-        }
+        // await-escalation.ts holds the 7-day waitForEvent in its own concurrency slot,
+        // freeing this function's limit=5 slots for new documents.
+        return { triaged: true, escalated: true };
       }
     }
 
