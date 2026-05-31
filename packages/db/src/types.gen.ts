@@ -59,6 +59,13 @@ export type Database = {
         };
         Relationships: [
           {
+            foreignKeyName: "case_counts_admin2_code_fkey";
+            columns: ["admin2_code"];
+            isOneToOne: false;
+            referencedRelation: "zone_codes";
+            referencedColumns: ["code"];
+          },
+          {
             foreignKeyName: "case_counts_extraction_run_id_fkey";
             columns: ["extraction_run_id"];
             isOneToOne: false;
@@ -76,6 +83,13 @@ export type Database = {
             foreignKeyName: "case_counts_source_quote_id_fkey";
             columns: ["source_quote_id"];
             isOneToOne: false;
+            referencedRelation: "quote_custody";
+            referencedColumns: ["quote_id"];
+          },
+          {
+            foreignKeyName: "case_counts_source_quote_id_fkey";
+            columns: ["source_quote_id"];
+            isOneToOne: false;
             referencedRelation: "source_quotes";
             referencedColumns: ["id"];
           },
@@ -87,6 +101,42 @@ export type Database = {
             referencedColumns: ["id"];
           },
         ];
+      };
+      daily_briefs: {
+        Row: {
+          body: string;
+          created_at: string;
+          date: string;
+          headline: string;
+          model_id: string;
+          review_status: string;
+          severity: string | null;
+          source_quote_ids: string[];
+          updated_at: string;
+        };
+        Insert: {
+          body: string;
+          created_at?: string;
+          date: string;
+          headline: string;
+          model_id: string;
+          review_status?: string;
+          severity?: string | null;
+          source_quote_ids?: string[];
+          updated_at?: string;
+        };
+        Update: {
+          body?: string;
+          created_at?: string;
+          date?: string;
+          headline?: string;
+          model_id?: string;
+          review_status?: string;
+          severity?: string | null;
+          source_quote_ids?: string[];
+          updated_at?: string;
+        };
+        Relationships: [];
       };
       documents: {
         Row: {
@@ -140,6 +190,13 @@ export type Database = {
             columns: ["source_id"];
             isOneToOne: false;
             referencedRelation: "sources";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "documents_source_id_fkey";
+            columns: ["source_id"];
+            isOneToOne: false;
+            referencedRelation: "sources_with_health";
             referencedColumns: ["id"];
           },
         ];
@@ -305,10 +362,12 @@ export type Database = {
           created_at: string;
           extraction_paused: boolean;
           id: string;
+          last_fetched_at: string | null;
           license_tier: string;
           license_url: string | null;
           metadata: Json;
           name: string;
+          parser_version: string | null;
           slug: string;
           trust_score: number;
           url: string;
@@ -318,10 +377,12 @@ export type Database = {
           created_at?: string;
           extraction_paused?: boolean;
           id?: string;
+          last_fetched_at?: string | null;
           license_tier?: string;
           license_url?: string | null;
           metadata?: Json;
           name: string;
+          parser_version?: string | null;
           slug: string;
           trust_score?: number;
           url: string;
@@ -331,10 +392,12 @@ export type Database = {
           created_at?: string;
           extraction_paused?: boolean;
           id?: string;
+          last_fetched_at?: string | null;
           license_tier?: string;
           license_url?: string | null;
           metadata?: Json;
           name?: string;
+          parser_version?: string | null;
           slug?: string;
           trust_score?: number;
           url?: string;
@@ -444,6 +507,33 @@ export type Database = {
         };
         Relationships: [];
       };
+      batch_results: {
+        Row: {
+          batch_id: string | null;
+          created_at: string | null;
+          custom_id: string | null;
+          document_id: string | null;
+          id: string | null;
+          result: Json | null;
+        };
+        Insert: {
+          batch_id?: string | null;
+          created_at?: string | null;
+          custom_id?: string | null;
+          document_id?: string | null;
+          id?: string | null;
+          result?: Json | null;
+        };
+        Update: {
+          batch_id?: string | null;
+          created_at?: string | null;
+          custom_id?: string | null;
+          document_id?: string | null;
+          id?: string | null;
+          result?: Json | null;
+        };
+        Relationships: [];
+      };
       extraction_runs: {
         Row: {
           cache_creation_input_tokens: number | null;
@@ -546,6 +636,96 @@ export type Database = {
           f_table_schema?: unknown;
           srid?: number | null;
           type?: string | null;
+        };
+        Relationships: [];
+      };
+      quote_custody: {
+        Row: {
+          anomaly_open: boolean | null;
+          confidence: number | null;
+          quote_id: string | null;
+          reviewed_at: string | null;
+        };
+        Relationships: [];
+      };
+      shadow_results: {
+        Row: {
+          candidate_version: string | null;
+          created_at: string | null;
+          document_id: string | null;
+          field_variances: Json | null;
+          id: string | null;
+          production_run_id: string | null;
+          promoted: boolean | null;
+        };
+        Insert: {
+          candidate_version?: string | null;
+          created_at?: string | null;
+          document_id?: string | null;
+          field_variances?: Json | null;
+          id?: string | null;
+          production_run_id?: string | null;
+          promoted?: boolean | null;
+        };
+        Update: {
+          candidate_version?: string | null;
+          created_at?: string | null;
+          document_id?: string | null;
+          field_variances?: Json | null;
+          id?: string | null;
+          production_run_id?: string | null;
+          promoted?: boolean | null;
+        };
+        Relationships: [];
+      };
+      sources_with_health: {
+        Row: {
+          extraction_paused: boolean | null;
+          failure_count_7d: number | null;
+          id: string | null;
+          last_fetched_at: string | null;
+          license_tier: string | null;
+          name: string | null;
+          parser_version: string | null;
+          slug: string | null;
+        };
+        Insert: {
+          extraction_paused?: boolean | null;
+          failure_count_7d?: never;
+          id?: string | null;
+          last_fetched_at?: string | null;
+          license_tier?: string | null;
+          name?: string | null;
+          parser_version?: string | null;
+          slug?: string | null;
+        };
+        Update: {
+          extraction_paused?: boolean | null;
+          failure_count_7d?: never;
+          id?: string | null;
+          last_fetched_at?: string | null;
+          license_tier?: string | null;
+          name?: string | null;
+          parser_version?: string | null;
+          slug?: string | null;
+        };
+        Relationships: [];
+      };
+      zone_codes: {
+        Row: {
+          admin1_code: string | null;
+          code: string | null;
+          name: string | null;
+        };
+        Insert: {
+          admin1_code?: string | null;
+          code?: string | null;
+          name?: string | null;
+        };
+        Update: {
+          admin1_code?: string | null;
+          code?: string | null;
+          name?: string | null;
         };
         Relationships: [];
       };

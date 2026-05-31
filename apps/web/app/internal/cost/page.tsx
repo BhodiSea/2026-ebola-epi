@@ -1,56 +1,19 @@
 import { CostDailyArea } from "@/components/internal/cost-daily-area";
-import { createClient } from "@/lib/supabase/server";
+import { getCostKpis } from "@/lib/queries/cost";
 
-/* eslint-disable @typescript-eslint/naming-convention */
-// Exported for the chart component
-export interface DailyViewRow {
-  day: string;
-  model_id: string;
-  total_cost: number | string;
-}
-/* eslint-enable @typescript-eslint/naming-convention */
-
-/* eslint-disable @typescript-eslint/naming-convention */
-interface OutlierRow {
-  cost_usd: null | number;
-  input_tokens: number;
-  logged_at: string;
-  model_id: string;
-  output_tokens: number;
-}
-/* eslint-enable @typescript-eslint/naming-convention */
+export type { CostDailyRow as DailyViewRow } from "@/lib/queries/cost";
 
 const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
 
 export default async function CostPage() {
   // eslint-disable-next-line react-hooks/purity -- Server Component runs once per request; Date.now() is safe
   const cutoffDate = new Date(Date.now() - THIRTY_DAYS_MS).toISOString().slice(0, 10);
-
   const todayDate = new Date().toISOString().slice(0, 10);
-  const supabase = await createClient();
 
-  const [{ data: viewData }, { data: outlierData }, { count: runCount }] = await Promise.all([
-    supabase
-      .from("anthropic_usage_daily")
-      .select("day, model_id, total_cost")
-      .gte("day", cutoffDate)
-      .order("day", { ascending: true })
-      .limit(300),
-    supabase
-      .from("anthropic_usage_log")
-      .select("logged_at, model_id, input_tokens, output_tokens, cost_usd")
-      .order("cost_usd", { ascending: false })
-      .limit(10),
-    supabase
-      .from("extraction_runs")
-      .select("*", { count: "exact", head: true })
-      .gte("created_at", cutoffDate),
-  ]);
-
-  const daily = (viewData ?? []) as DailyViewRow[];
-  const outliers = (outlierData ?? []) as OutlierRow[];
-
-  const { total30d, totalToday, costPerRun } = computeKpis(daily, todayDate, runCount ?? 0);
+  const { daily, outliers, runCount, total30d, totalToday, costPerRun } = await getCostKpis(
+    cutoffDate,
+    todayDate,
+  );
 
   return (
     <div className="flex-1 space-y-8 p-6">
@@ -59,7 +22,7 @@ export default async function CostPage() {
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
         <KpiCard label="Today" value={`$${totalToday.toFixed(2)}`} />
         <KpiCard label="30-day" value={`$${total30d.toFixed(2)}`} />
-        <KpiCard label="Runs" value={String(runCount ?? 0)} />
+        <KpiCard label="Runs" value={String(runCount)} />
         <KpiCard label="$/extraction" value={`$${costPerRun.toFixed(4)}`} />
       </div>
 
@@ -105,19 +68,6 @@ export default async function CostPage() {
       </section>
     </div>
   );
-}
-
-function computeKpis(
-  daily: DailyViewRow[],
-  todayDate: string,
-  runCount: number,
-): { costPerRun: number; total30d: number; totalToday: number } {
-  const total30d = daily.reduce((s, r) => s + Number(r.total_cost), 0);
-  const totalToday = daily
-    .filter((r) => r.day === todayDate)
-    .reduce((s, r) => s + Number(r.total_cost), 0);
-  const costPerRun = runCount > 0 ? total30d / runCount : 0;
-  return { total30d, totalToday, costPerRun };
 }
 
 function KpiCard({ label, value }: Readonly<{ label: string; value: string }>) {

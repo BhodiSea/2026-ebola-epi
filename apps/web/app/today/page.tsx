@@ -4,7 +4,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 
 import { ActiveOutbreakBanner } from "@/components/outbreak/active-outbreak-banner";
-import { ChoroplethStub } from "@/components/outbreak/choropleth-stub";
+import { OutbreakChoropleth } from "@/components/outbreak/choropleth-stub";
 import { StatCard } from "@/components/outbreak/stat-card";
 import { AiGeneratedLabel } from "@/components/provenance/ai-generated-label";
 import type { DisagreementEntry, DisagreementsMap } from "@/lib/queries/case-counts";
@@ -72,8 +72,8 @@ export default async function TodayPage({
           quoteId={deathsQuoteId}
           disagreements={pickDisagreements(disagreements, "deaths")}
         />
-        <StatCard label="CFR" value={cfrValue} quoteId={confirmedQuoteId} />
-        <StatCard label="Zones affected" value={stats.zonesAffected} quoteId={confirmedQuoteId} />
+        <StatCard label="CFR" value={cfrValue} quoteId={deathsQuoteId} />
+        <StatCard label="Zones affected" value={stats.zonesAffected} quoteId={null} />
       </section>
 
       <DailyBriefSection brief={brief} />
@@ -81,7 +81,7 @@ export default async function TodayPage({
       {/* Desktop: choropleth before recent docs */}
       <div className="hidden md:block">
         <Suspense fallback={<div className="h-80 animate-pulse rounded-lg bg-card" />}>
-          <ChoroplethStub outbreakId={outbreak.id} viewMode={viewMode} />
+          <OutbreakChoropleth outbreakId={outbreak.id} viewMode={viewMode} />
         </Suspense>
       </div>
 
@@ -90,7 +90,7 @@ export default async function TodayPage({
       {/* Mobile: choropleth after recent docs (feed-first) */}
       <div className="md:hidden">
         <Suspense fallback={<div className="h-80 animate-pulse rounded-lg bg-card" />}>
-          <ChoroplethStub outbreakId={outbreak.id} viewMode={viewMode} />
+          <OutbreakChoropleth outbreakId={outbreak.id} viewMode={viewMode} />
         </Suspense>
       </div>
 

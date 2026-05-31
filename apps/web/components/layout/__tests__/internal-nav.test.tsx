@@ -11,9 +11,11 @@ const RE_ESCALATIONS = /escalations/i;
 const RE_QUALITY = /quality/i;
 const RE_SOURCES = /sources/i;
 const RE_AUDIT = /audit/i;
+const RE_SHADOW = /shadow/i;
+const RE_BACKFILL = /backfill/i;
 
 describe("InternalNav", () => {
-  it("renders links to all six internal pages", async () => {
+  it("renders links to all eight internal pages", async () => {
     const { InternalNav } = await import("../internal-nav");
     render(<InternalNav />);
     expect(screen.getByRole("link", { name: RE_COST })).toBeInTheDocument();
@@ -22,6 +24,8 @@ describe("InternalNav", () => {
     expect(screen.getByRole("link", { name: RE_QUALITY })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: RE_SOURCES })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: RE_AUDIT })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: RE_SHADOW })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: RE_BACKFILL })).toBeInTheDocument();
   });
 
   it("marks the active link with aria-current=page", async () => {

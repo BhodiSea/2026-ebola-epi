@@ -1,8 +1,11 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
-import { generateMetadata as detailGenerateMetadata } from "../[pathogen]/[country]/[onset]/page";
+import OutbreakDetailPage, {
+  generateMetadata as detailGenerateMetadata,
+} from "../[pathogen]/[country]/[onset]/page";
 import OutbreaksPage from "../page";
+import { getDailyBriefByDate } from "@/lib/queries/daily-briefs";
 import { getOutbreakBySlug, listOutbreaks } from "@/lib/queries/outbreaks";
 
 vi.mock("server-only", () => ({}));
@@ -10,6 +13,21 @@ vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn() }));
 vi.mock("@/lib/queries/outbreaks", () => ({
   listOutbreaks: vi.fn(),
   getOutbreakBySlug: vi.fn(),
+}));
+vi.mock("@/lib/queries/case-counts", () => ({
+  getEpiCurveSeries: vi.fn().mockResolvedValue({ confirmed: [], deaths: [] }),
+  getStatTotals: vi.fn().mockResolvedValue({
+    confirmed: { value: 0, quoteId: null },
+    deaths: { value: 0, quoteId: null },
+    cfr: null,
+    zonesAffected: 0,
+  }),
+}));
+vi.mock("@/lib/queries/documents", () => ({
+  getDocumentsForOutbreak: vi.fn().mockResolvedValue([]),
+}));
+vi.mock("@/lib/queries/daily-briefs", () => ({
+  getDailyBriefByDate: vi.fn().mockResolvedValue(null),
 }));
 vi.mock("@/components/outbreak/outbreak-row", () => ({
   OutbreakRow: ({ outbreak }: { outbreak: { id: string; name: null | string } }) => (
@@ -21,6 +39,25 @@ vi.mock("@/components/outbreak/outbreak-row", () => ({
 vi.mock("@/components/outbreak/filter-chips", () => ({
   FilterChips: () => <div data-filter-chips>FilterChips</div>,
 }));
+vi.mock("@/components/outbreak/stat-card", () => ({
+  StatCard: ({ label }: { label: string }) => <div data-stat-card={label.toLowerCase()} />,
+}));
+vi.mock("@/components/outbreak/active-outbreak-banner", () => ({
+  ActiveOutbreakBanner: () => <div data-banner />,
+}));
+vi.mock("@/components/outbreak/outbreak-tabs", () => ({
+  OutbreakTabs: () => <div data-outbreak-tabs />,
+}));
+vi.mock("@/components/outbreak/outbreak-header", () => ({
+  OutbreakHeader: () => <div data-outbreak-header />,
+}));
+vi.mock("@/components/outbreak/choropleth-stub", () => ({
+  OutbreakChoropleth: () => <div data-choropleth />,
+}));
+vi.mock("@/components/seo/json-ld", () => ({ JsonLd: () => null }));
+vi.mock("@/lib/seo/breadcrumbs", () => ({ buildBreadcrumbs: vi.fn().mockReturnValue({}) }));
+vi.mock("@/lib/a11y/alt-text", () => ({ buildChartAltText: vi.fn().mockReturnValue("") }));
+vi.mock("@/lib/copy/outbreak-briefs", () => ({ getOutbreakBrief: vi.fn().mockReturnValue(null) }));
 
 const EMPTY_STATE_RE = /No outbreaks match/;
 const PATHOGEN_RE = /bundibugyo/i;
@@ -93,5 +130,17 @@ describe("OutbreakDetailPage generateMetadata", () => {
       params: Promise.resolve({ pathogen: "bundibugyo", country: "cod", onset: "2026-04-20" }),
     });
     expect(typeof meta.description).toBe("string");
+  });
+});
+
+describe("OutbreakDetailPage", () => {
+  it("loads the brief from daily_briefs via getDailyBriefByDate, not the TS dictionary", async () => {
+    vi.mocked(getOutbreakBySlug).mockResolvedValue(MOCK_OUTBREAK);
+    vi.mocked(getDailyBriefByDate).mockClear();
+    await OutbreakDetailPage({
+      params: Promise.resolve({ pathogen: "bundibugyo", country: "cod", onset: "2026-04-20" }),
+      searchParams: Promise.resolve({}),
+    });
+    expect(vi.mocked(getDailyBriefByDate)).toHaveBeenCalled();
   });
 });

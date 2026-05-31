@@ -4,13 +4,11 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { internalAction } from "@/lib/actions/client";
-import { createAdminClient } from "@/lib/supabase/admin";
 
 export const toggleSourcePauseAction = internalAction
   .inputSchema(z.object({ paused: z.boolean(), sourceId: z.uuid() }))
-  .action(async ({ parsedInput }) => {
-    const admin = createAdminClient();
-    const { error } = await admin
+  .action(async ({ parsedInput, ctx }) => {
+    const { error } = await ctx.supabase
       .from("sources")
       /* eslint-disable @typescript-eslint/naming-convention */
       .update({ extraction_paused: parsedInput.paused })

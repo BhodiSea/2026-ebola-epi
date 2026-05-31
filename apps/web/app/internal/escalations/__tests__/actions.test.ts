@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
 
-const { mockEq, mockUpdate, mockAdminClient, mockRevalidatePath } = vi.hoisted(() => {
+const { mockEq, mockUpdate, mockAdminClient, mockRevalidatePath, mockFrom } = vi.hoisted(() => {
   const eq = vi.fn().mockResolvedValue({ error: null });
   const update = vi.fn(() => ({ eq }));
   const from = vi.fn(() => ({ update }));
@@ -10,15 +10,12 @@ const { mockEq, mockUpdate, mockAdminClient, mockRevalidatePath } = vi.hoisted((
   const revalidatePath = vi.fn();
   return {
     mockEq: eq,
+    mockFrom: from,
     mockUpdate: update,
     mockAdminClient: adminClient,
     mockRevalidatePath: revalidatePath,
   };
 });
-
-vi.mock("@/lib/supabase/admin", () => ({
-  createAdminClient: mockAdminClient,
-}));
 
 vi.mock("next/cache", () => ({
   revalidatePath: mockRevalidatePath,
@@ -31,7 +28,7 @@ vi.mock("@/lib/actions/client", () => ({
         (handler: (args: { ctx: unknown; parsedInput: unknown }) => Promise<unknown>) =>
           (input: unknown) =>
             handler({
-              ctx: { user: { email: "admin@test.com" }, supabase: {} },
+              ctx: { user: { email: "admin@test.com" }, supabase: { from: mockFrom } },
               parsedInput: input,
             }),
       ),
@@ -87,5 +84,12 @@ describe("ackIncidentAction", () => {
     await expect(
       (ackIncidentAction as unknown as RawAction)({ incidentId: TEST_ID }),
     ).rejects.toThrow("DB error");
+  });
+
+  it("uses ctx.supabase from internalAction, never createAdminClient()", async () => {
+    const { ackIncidentAction } = await import("../actions");
+    await (ackIncidentAction as unknown as RawAction)({ incidentId: TEST_ID });
+    expect(mockAdminClient).not.toHaveBeenCalled();
+    expect(mockFrom).toHaveBeenCalledWith("incidents");
   });
 });

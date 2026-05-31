@@ -1,4 +1,4 @@
-import { Figure } from "@/components/provenance/figure";
+import { FigureOrMissing } from "@/components/provenance/figure-or-missing";
 import { SeverityPill } from "@/components/provenance/severity-pill";
 import { getStatTotals } from "@/lib/queries/case-counts";
 import type { Outbreak } from "@/lib/queries/outbreaks";
@@ -20,9 +20,8 @@ async function OutbreakRow({ outbreak, sparkline, lastUpdate }: Readonly<Outbrea
   const days = daysSinceOnset(outbreak.onsetDate);
   const level = toSeverityLevel(outbreak.severityLevel);
   const cfrLabel = stats.cfr === null ? "—" : `${stats.cfr.toFixed(1)}%`;
-  const FALLBACK_QUOTE_ID = "00000000-0000-0000-0000-000000000000";
-  const confirmedQuoteId = stats.confirmed.quoteId ?? FALLBACK_QUOTE_ID;
-  const deathsQuoteId = stats.deaths.quoteId ?? FALLBACK_QUOTE_ID;
+  const confirmedQuoteId = stats.confirmed.quoteId ?? null;
+  const deathsQuoteId = stats.deaths.quoteId ?? null;
 
   return (
     <a
@@ -64,13 +63,13 @@ async function OutbreakRow({ outbreak, sparkline, lastUpdate }: Readonly<Outbrea
         <div className="text-right">
           <div className="text-[11px] text-fg-muted uppercase">Confirmed</div>
           <div data-numeric>
-            <Figure value={stats.confirmed.value} quoteId={confirmedQuoteId} />
+            <FigureOrMissing value={stats.confirmed.value} quoteId={confirmedQuoteId} />
           </div>
         </div>
         <div className="text-right">
           <div className="text-[11px] text-fg-muted uppercase">CFR</div>
           <div data-numeric>
-            <Figure value={cfrLabel} quoteId={deathsQuoteId} />
+            <FigureOrMissing value={cfrLabel} quoteId={deathsQuoteId} />
           </div>
         </div>
       </div>

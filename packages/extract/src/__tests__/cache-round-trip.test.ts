@@ -14,7 +14,6 @@ const FIXTURE_PATH = new URL(
 // This is the only observable proof that the ttl:"1h" cache block produces a real
 // cache hit under live conditions. Run with:
 //   ANTHROPIC_API_KEY=... pnpm vitest run packages/extract/src/__tests__/cache-round-trip.test.ts
-// biome-ignore lint/complexity/useLiteralKeys: noPropertyAccessFromIndexSignature requires bracket notation
 // eslint-disable-next-line n/no-process-env -- integration flag; no env schema available in packages/
 const apiKey = process.env["ANTHROPIC_API_KEY"];
 

@@ -21,16 +21,18 @@ vi.mock("next-safe-action/hooks", () => ({
 }));
 
 describe("/internal/sources page", () => {
+  let mockFrom: ReturnType<typeof vi.fn>;
+
   beforeEach(async () => {
     vi.clearAllMocks();
-    const { createClient } = await import("@/lib/supabase/server");
-    vi.mocked(createClient).mockResolvedValue({
-      from: vi.fn().mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          order: vi.fn().mockResolvedValue({ data: [], error: null }),
-        }),
+    vi.resetModules();
+    mockFrom = vi.fn().mockReturnValue({
+      select: vi.fn().mockReturnValue({
+        order: vi.fn().mockResolvedValue({ data: [], error: null }),
       }),
-    } as never);
+    });
+    const { createClient } = await import("@/lib/supabase/server");
+    vi.mocked(createClient).mockResolvedValue({ from: mockFrom } as never);
   });
 
   it("exports a default async function", async () => {
@@ -42,5 +44,12 @@ describe("/internal/sources page", () => {
     const { default: Page } = await import("../sources/page");
     const result = await Page();
     expect(result).toBeTruthy();
+  });
+
+  it("reads from sources_with_health view, not the bare sources table", async () => {
+    const { default: Page } = await import("../sources/page");
+    await Page();
+    expect(mockFrom).toHaveBeenCalledWith("sources_with_health");
+    expect(mockFrom).not.toHaveBeenCalledWith("sources");
   });
 });

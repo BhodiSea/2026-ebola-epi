@@ -1,4 +1,4 @@
-import { Figure } from "@/components/provenance/figure";
+import { FigureOrMissing } from "@/components/provenance/figure-or-missing";
 import { getEpiCurveSeries } from "@/lib/queries/case-counts";
 
 interface TabularViewProps {
@@ -34,15 +34,15 @@ export async function TabularView({ outbreakId }: Readonly<TabularViewProps>) {
             <tr key={date} className="border-[var(--color-border)] border-b">
               <td className="py-1.5 pr-4 font-mono text-xs">{date}</td>
               <td className="py-1.5 pr-4 text-right font-mono text-xs" data-numeric="">
-                <Figure
+                <FigureOrMissing
                   value={confMap.get(date)?.value ?? 0}
-                  quoteId={confMap.get(date)?.quoteId ?? ""}
+                  quoteId={confMap.get(date)?.quoteId ?? null}
                 />
               </td>
               <td className="py-1.5 text-right font-mono text-xs" data-numeric="">
-                <Figure
+                <FigureOrMissing
                   value={deathMap.get(date)?.value ?? 0}
-                  quoteId={deathMap.get(date)?.quoteId ?? ""}
+                  quoteId={deathMap.get(date)?.quoteId ?? null}
                 />
               </td>
             </tr>

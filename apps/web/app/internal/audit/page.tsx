@@ -1,18 +1,7 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
+import type { AgentAction } from "@/lib/queries/agent-actions";
+import { AGENT_ACTIONS_PAGE_SIZE, listAgentActions } from "@/lib/queries/agent-actions";
 
-import { createClient } from "@/lib/supabase/server";
-
-const PAGE_SIZE = 50;
-
-/* eslint-disable @typescript-eslint/naming-convention */
-interface AgentAction {
-  action: string;
-  agent: string;
-  id: number;
-  subject_id: null | string;
-  ts: string;
-}
-/* eslint-enable @typescript-eslint/naming-convention */
+const PAGE_SIZE = AGENT_ACTIONS_PAGE_SIZE;
 
 interface Filters {
   action: string | undefined;
@@ -34,9 +23,7 @@ export default async function AuditPage({
     subject: typeof params.subject === "string" ? params.subject : undefined,
   };
 
-  const supabase = await createClient();
-  const { data: rows } = await buildQuery(supabase, filters, page);
-  const actions = (rows ?? []) as AgentAction[];
+  const actions: AgentAction[] = await listAgentActions(filters, page);
 
   return (
     <div className="flex-1 space-y-6 p-6">
@@ -85,20 +72,6 @@ export default async function AuditPage({
       )}
     </div>
   );
-}
-
-function buildQuery(supabase: SupabaseClient, filters: Filters, page: number) {
-  let q = supabase.from("agent_actions").select("id, agent, action, subject_id, ts");
-  if (filters.agent !== undefined) {
-    q = q.eq("agent", filters.agent);
-  }
-  if (filters.action !== undefined) {
-    q = q.eq("action", filters.action);
-  }
-  if (filters.subject !== undefined) {
-    q = q.eq("subject_id", filters.subject);
-  }
-  return q.order("ts", { ascending: false }).range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
 }
 
 function FilterBar({ filters }: Readonly<{ filters: Filters }>) {

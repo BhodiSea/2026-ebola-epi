@@ -1,7 +1,7 @@
 import { render } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
-import { ChoroplethStub } from "../choropleth-stub";
+import { OutbreakChoropleth } from "../choropleth-stub";
 import type { ChoroplethData } from "@/lib/queries/choropleth";
 import { getOutbreakZoneSvg } from "@/lib/queries/choropleth";
 
@@ -52,17 +52,17 @@ const MOCK_DATA: ChoroplethData = {
 
 const OUTBREAK_ID = "d0eebc99-0000-0000-0000-000000000001";
 
-describe("ChoroplethStub", () => {
-  it("renders data-choropleth-stub attribute", async () => {
+describe("OutbreakChoropleth", () => {
+  it("renders data-outbreak-choropleth attribute", async () => {
     vi.mocked(getOutbreakZoneSvg).mockResolvedValue(MOCK_DATA);
-    const jsx = await ChoroplethStub({ outbreakId: OUTBREAK_ID });
+    const jsx = await OutbreakChoropleth({ outbreakId: OUTBREAK_ID });
     const { container } = render(jsx);
-    expect(container.querySelector("[data-choropleth-stub]")).not.toBeNull();
+    expect(container.querySelector("[data-outbreak-choropleth]")).not.toBeNull();
   });
 
   it("renders SVG with path elements for map view", async () => {
     vi.mocked(getOutbreakZoneSvg).mockResolvedValue(MOCK_DATA);
-    const jsx = await ChoroplethStub({ outbreakId: OUTBREAK_ID });
+    const jsx = await OutbreakChoropleth({ outbreakId: OUTBREAK_ID });
     const { container } = render(jsx);
     const paths = container.querySelectorAll("svg path");
     expect(paths.length).toBeGreaterThan(0);
@@ -70,14 +70,14 @@ describe("ChoroplethStub", () => {
 
   it("renders a table when viewMode=table", async () => {
     vi.mocked(getOutbreakZoneSvg).mockResolvedValue(MOCK_DATA);
-    const jsx = await ChoroplethStub({ outbreakId: OUTBREAK_ID, viewMode: "table" });
+    const jsx = await OutbreakChoropleth({ outbreakId: OUTBREAK_ID, viewMode: "table" });
     const { container } = render(jsx);
     expect(container.querySelector("table")).not.toBeNull();
   });
 
   it("renders zone names in table view", async () => {
     vi.mocked(getOutbreakZoneSvg).mockResolvedValue(MOCK_DATA);
-    const jsx = await ChoroplethStub({ outbreakId: OUTBREAK_ID, viewMode: "table" });
+    const jsx = await OutbreakChoropleth({ outbreakId: OUTBREAK_ID, viewMode: "table" });
     const { getByText } = render(jsx);
     expect(getByText("Irumu")).toBeInTheDocument();
     expect(getByText("Mambasa")).toBeInTheDocument();
@@ -85,9 +85,9 @@ describe("ChoroplethStub", () => {
 
   it("renders empty state when no data returned", async () => {
     vi.mocked(getOutbreakZoneSvg).mockResolvedValue(null);
-    const jsx = await ChoroplethStub({ outbreakId: OUTBREAK_ID });
+    const jsx = await OutbreakChoropleth({ outbreakId: OUTBREAK_ID });
     const { container } = render(jsx);
-    expect(container.querySelector("[data-choropleth-stub]")).not.toBeNull();
+    expect(container.querySelector("[data-outbreak-choropleth]")).not.toBeNull();
     expect(container.querySelector("svg")).toBeNull();
   });
 });

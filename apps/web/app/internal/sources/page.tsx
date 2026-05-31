@@ -1,17 +1,6 @@
 import { SourcePauseButton } from "@/components/internal/source-pause-button";
-import { createClient } from "@/lib/supabase/server";
-
-/* eslint-disable @typescript-eslint/naming-convention */
-interface SourceRow {
-  extraction_paused: boolean;
-  failure_count_7d: null | number;
-  id: string;
-  last_fetched_at: null | string;
-  name: null | string;
-  parser_version: null | string;
-  slug: string;
-}
-/* eslint-enable @typescript-eslint/naming-convention */
+import type { SourceWithHealth } from "@/lib/queries/sources-with-health";
+import { listSourcesWithHealth } from "@/lib/queries/sources-with-health";
 
 const STATUS_PILL: Record<string, string> = {
   failing: "rounded px-1.5 py-0.5 font-mono text-[10px] bg-emergency/20 text-emergency",
@@ -20,14 +9,7 @@ const STATUS_PILL: Record<string, string> = {
 };
 
 export default async function SourcesPage() {
-  const supabase = await createClient();
-
-  const { data: rows } = await supabase
-    .from("sources")
-    .select("id, slug, name, last_fetched_at, parser_version, extraction_paused, failure_count_7d")
-    .order("slug");
-
-  const sources = (rows ?? []) as SourceRow[];
+  const sources = await listSourcesWithHealth();
 
   return (
     <div className="flex-1 space-y-6 p-6">
@@ -54,17 +36,15 @@ export default async function SourcesPage() {
                 <tr key={src.id} className="border-border/50 border-b">
                   <td className="py-1.5 pr-4 font-semibold">{src.slug}</td>
                   <td className="py-1.5 pr-4 text-fg-muted">
-                    {src.last_fetched_at?.slice(0, 16) ?? "—"}
+                    {src.lastFetchedAt?.slice(0, 16) ?? "—"}
                   </td>
-                  <td className="py-1.5 pr-4 text-fg-muted">{src.parser_version ?? "—"}</td>
-                  <td className="py-1.5 pr-4 text-right tabular-nums">
-                    {src.failure_count_7d ?? 0}
-                  </td>
+                  <td className="py-1.5 pr-4 text-fg-muted">{src.parserVersion ?? "—"}</td>
+                  <td className="py-1.5 pr-4 text-right tabular-nums">{src.failureCount7d}</td>
                   <td className="py-1.5 pr-4">
                     <span className={STATUS_PILL[sk]}>{sk}</span>
                   </td>
                   <td className="py-1.5">
-                    <SourcePauseButton sourceId={src.id} paused={src.extraction_paused} />
+                    <SourcePauseButton sourceId={src.id} paused={src.extractionPaused} />
                   </td>
                 </tr>
               );
@@ -76,11 +56,11 @@ export default async function SourcesPage() {
   );
 }
 
-function statusKey(row: SourceRow): string {
-  if (row.extraction_paused) {
+function statusKey(row: SourceWithHealth): string {
+  if (row.extractionPaused) {
     return "paused";
   }
-  if ((row.failure_count_7d ?? 0) > 3) {
+  if (row.failureCount7d > 3) {
     return "failing";
   }
   return "ok";

@@ -12,6 +12,8 @@ vi.mock("next/navigation", () => ({
 
 const TERRAIN_RE = /terrain/i;
 const CASES_RE = /confirmed cases/i;
+const ATTACK_RATE_RE = /attack rate/i;
+const NO_DATA_RE = /no data/i;
 const OUTBREAK_ID = "d0eebc99-9c0b-4ef8-bb6d-6bb9bd380a01";
 
 beforeEach(() => {
@@ -40,6 +42,13 @@ describe("LayerRail", () => {
   it("renders cases layer checkbox", () => {
     render(<LayerRail outbreakId={OUTBREAK_ID} keyboard={createMapKeyboard()} />);
     expect(screen.getByRole("checkbox", { name: CASES_RE })).toBeInTheDocument();
+  });
+
+  it("renders stub layers as disabled with a no-data badge", () => {
+    render(<LayerRail outbreakId={OUTBREAK_ID} keyboard={createMapKeyboard()} />);
+    const attackRate = screen.getByRole("checkbox", { name: ATTACK_RATE_RE });
+    expect(attackRate).toBeDisabled();
+    expect(screen.getAllByText(NO_DATA_RE).length).toBeGreaterThan(0);
   });
 
   it("moves DOM focus to a layer checkbox when keyboard emits cycleLayer", () => {

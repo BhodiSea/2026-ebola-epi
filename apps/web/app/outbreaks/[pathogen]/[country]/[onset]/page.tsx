@@ -5,7 +5,7 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
 import { ActiveOutbreakBanner } from "@/components/outbreak/active-outbreak-banner";
-import { ChoroplethStub } from "@/components/outbreak/choropleth-stub";
+import { OutbreakChoropleth } from "@/components/outbreak/choropleth-stub";
 import { OutbreakHeader } from "@/components/outbreak/outbreak-header";
 import { OutbreakTabs } from "@/components/outbreak/outbreak-tabs";
 import { StatCard } from "@/components/outbreak/stat-card";
@@ -14,29 +14,28 @@ import { AiGeneratedLabel } from "@/components/provenance/ai-generated-label";
 import { SkeletonChart } from "@/components/provenance/skeleton-chart";
 import { JsonLd } from "@/components/seo/json-ld";
 import { buildChartAltText } from "@/lib/a11y/alt-text";
-import { getOutbreakBrief } from "@/lib/copy/outbreak-briefs";
 import type { SparklinePoint, StatTotals } from "@/lib/queries/case-counts";
 import { getEpiCurveSeries, getStatTotals } from "@/lib/queries/case-counts";
+import type { DailyBrief } from "@/lib/queries/daily-briefs";
+import { getDailyBriefByDate } from "@/lib/queries/daily-briefs";
 import type { Document } from "@/lib/queries/documents";
 import { getDocumentsForOutbreak } from "@/lib/queries/documents";
 import { getOutbreakBySlug } from "@/lib/queries/outbreaks";
 import { buildBreadcrumbs } from "@/lib/seo/breadcrumbs";
 
-const FALLBACK_QUOTE_ID = "00000000-0000-0000-0000-000000000000";
-
 interface BriefTabProps {
-  brief: ReturnType<typeof getOutbreakBrief>;
+  brief: DailyBrief | null;
   cfrLabel: string;
-  confirmedQuoteId: string;
-  deathsQuoteId: string;
+  confirmedQuoteId: null | string;
+  deathsQuoteId: null | string;
   stats: StatTotals;
 }
 
 interface TabsInput {
-  brief: ReturnType<typeof getOutbreakBrief>;
+  brief: DailyBrief | null;
   cfrLabel: string;
-  confirmedQuoteId: string;
-  deathsQuoteId: string;
+  confirmedQuoteId: null | string;
+  deathsQuoteId: null | string;
   documents: Document[];
   epiCurve: { confirmed: SparklinePoint[]; deaths: SparklinePoint[] };
   epiCurveLabel: string;
@@ -79,15 +78,16 @@ export default async function OutbreakDetailPage({
     notFound();
   }
 
-  const [stats, epiCurve, documents] = await Promise.all([
+  const today = new Date().toISOString().slice(0, 10);
+  const [stats, epiCurve, documents, brief] = await Promise.all([
     getStatTotals(outbreak.id),
     getEpiCurveSeries(outbreak.id),
     getDocumentsForOutbreak(outbreak.id),
+    getDailyBriefByDate(today),
   ]);
 
-  const brief = getOutbreakBrief(pathogen, country, onset);
-  const confirmedQuoteId = stats.confirmed.quoteId ?? FALLBACK_QUOTE_ID;
-  const deathsQuoteId = stats.deaths.quoteId ?? FALLBACK_QUOTE_ID;
+  const confirmedQuoteId = stats.confirmed.quoteId ?? null;
+  const deathsQuoteId = stats.deaths.quoteId ?? null;
   const cfrLabel = stats.cfr === null ? "—" : `${stats.cfr.toFixed(1)}%`;
   const epiCurveLabel = buildChartAltText({
     elementType: "timeline",
@@ -146,26 +146,27 @@ function BriefTabContent({
 }: Readonly<BriefTabProps>) {
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2">
-        <AiGeneratedLabel modelId="Hand-written by editor" reviewStatus="Editor-reviewed" />
-      </div>
       {brief === null ? (
         <p className="font-mono text-[13px] text-fg-muted">No brief available yet.</p>
       ) : (
-        <div className="space-y-3">
-          {brief.body.map((para) => (
-            <p key={para.slice(0, 40)} className="font-source-serif-4 text-[17px] leading-[1.55]">
-              {para}
-            </p>
-          ))}
-          <p className="font-mono text-[12px] text-fg-muted">{brief.context}</p>
-        </div>
+        <>
+          <div className="flex items-center gap-2">
+            <AiGeneratedLabel modelId={brief.modelId} reviewStatus={brief.reviewStatus} />
+          </div>
+          <div className="space-y-3">
+            {brief.body.split("\n\n").map((para) => (
+              <p key={para.slice(0, 40)} className="font-source-serif-4 text-[17px] leading-[1.55]">
+                {para}
+              </p>
+            ))}
+          </div>
+        </>
       )}
       <section className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         <StatCard label="Confirmed" value={stats.confirmed.value} quoteId={confirmedQuoteId} />
         <StatCard label="Deaths" value={stats.deaths.value} quoteId={deathsQuoteId} />
-        <StatCard label="CFR" value={cfrLabel} quoteId={confirmedQuoteId} />
-        <StatCard label="Zones affected" value={stats.zonesAffected} quoteId={confirmedQuoteId} />
+        <StatCard label="CFR" value={cfrLabel} quoteId={deathsQuoteId} />
+        <StatCard label="Zones affected" value={stats.zonesAffected} quoteId={null} />
       </section>
     </div>
   );
@@ -215,7 +216,7 @@ function buildOutbreakTabs({
       label: "Geography",
       content: (
         <Suspense fallback={<div className="h-80 animate-pulse rounded-lg bg-card" />}>
-          <ChoroplethStub outbreakId={outbreakId} viewMode={viewMode} />
+          <OutbreakChoropleth outbreakId={outbreakId} viewMode={viewMode} />
         </Suspense>
       ),
     },

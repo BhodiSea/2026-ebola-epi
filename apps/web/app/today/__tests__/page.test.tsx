@@ -35,9 +35,16 @@ vi.mock("@/lib/queries/daily-briefs", () => ({
   listPublishedBriefs: vi.fn().mockResolvedValue([]),
 }));
 vi.mock("@/components/outbreak/stat-card", () => ({
-  StatCard: ({ label, quoteId }: { label: string; quoteId: string; value: number | string }) => (
+  StatCard: ({
+    label,
+    quoteId,
+  }: {
+    label: string;
+    quoteId: null | string;
+    value: number | string;
+  }) => (
     <div data-stat-card={label.toLowerCase()}>
-      <span data-figure data-quote-id={quoteId}>
+      <span data-figure data-quote-id={quoteId ?? "null"}>
         {label}
       </span>
     </div>
@@ -51,7 +58,7 @@ vi.mock("@/components/outbreak/active-outbreak-banner", () => ({
   ),
 }));
 vi.mock("@/components/outbreak/choropleth-stub", () => ({
-  ChoroplethStub: () => <div data-choropleth-stub>ChoroplethStub</div>,
+  OutbreakChoropleth: () => <div data-outbreak-choropleth="">OutbreakChoropleth</div>,
 }));
 vi.mock("@/components/provenance/ai-generated-label", () => ({
   AiGeneratedLabel: () => <span data-ai-label>AI label</span>,
@@ -116,7 +123,7 @@ describe("TodayPage", () => {
     setupMocks();
     const jsx = await TodayPage({ searchParams: Promise.resolve({}) });
     const { container } = render(jsx);
-    expect(container.querySelector("[data-choropleth-stub]")).not.toBeNull();
+    expect(container.querySelector("[data-outbreak-choropleth]")).not.toBeNull();
   });
 
   it("renders daily brief headline", async () => {
@@ -131,5 +138,21 @@ describe("TodayPage", () => {
     const jsx = await TodayPage({ searchParams: Promise.resolve({}) });
     const { container } = render(jsx);
     expect(container.querySelector("[data-banner]")).toBeNull();
+  });
+
+  it("CFR card receives deathsQuoteId, not confirmedQuoteId", async () => {
+    setupMocks();
+    const jsx = await TodayPage({ searchParams: Promise.resolve({}) });
+    const { container } = render(jsx);
+    const cfrFigure = container.querySelector('[data-stat-card="cfr"] [data-figure]');
+    expect(cfrFigure?.getAttribute("data-quote-id")).toBe(MOCK_STATS.deaths.quoteId);
+  });
+
+  it("Zones affected card receives null quoteId — count is derived, not citable", async () => {
+    setupMocks();
+    const jsx = await TodayPage({ searchParams: Promise.resolve({}) });
+    const { container } = render(jsx);
+    const zonesFigure = container.querySelector('[data-stat-card="zones affected"] [data-figure]');
+    expect(zonesFigure?.getAttribute("data-quote-id")).toBe("null");
   });
 });

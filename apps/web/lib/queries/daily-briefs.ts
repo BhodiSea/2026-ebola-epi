@@ -7,20 +7,20 @@ import { createClient, createStaticClient } from "@/lib/supabase/server";
 /* ─── schema ────────────────────────────────────────────────────────────────── */
 
 /* eslint-disable @typescript-eslint/naming-convention */
-const DailyBriefRow = z.object({
+const DailyBriefRowSchema = z.object({
+  body: z.string(),
   date: z.string(),
   headline: z.string(),
-  body: z.string(),
-  severity: z.string().nullable(),
   model_id: z.string(),
   review_status: z.string(),
+  severity: z.string().nullable(),
   source_quote_ids: z.array(z.string()),
 });
 /* eslint-enable @typescript-eslint/naming-convention */
 
 export type DailyBrief = ReturnType<typeof toBrief>;
 
-type DailyBriefRow = z.infer<typeof DailyBriefRow>;
+type DailyBriefRow = z.infer<typeof DailyBriefRowSchema>;
 
 /* ─── queries ───────────────────────────────────────────────────────────────── */
 
@@ -37,7 +37,7 @@ export async function getDailyBriefByDate(date: string): Promise<DailyBrief | nu
     return null;
   }
 
-  const parsed = DailyBriefRow.safeParse(data);
+  const parsed = DailyBriefRowSchema.safeParse(data);
   return parsed.success ? toBrief(parsed.data) : null;
 }
 
@@ -53,7 +53,8 @@ export async function listPublishedBriefs(): Promise<{ date: string }[]> {
     return [];
   }
 
-  return data;
+  const parsed = z.array(z.object({ date: z.string() })).safeParse(data);
+  return parsed.success ? parsed.data : [];
 }
 
 /* ─── helpers ───────────────────────────────────────────────────────────────── */

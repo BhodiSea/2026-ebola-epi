@@ -4,13 +4,11 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { internalAction } from "@/lib/actions/client";
-import { createAdminClient } from "@/lib/supabase/admin";
 
 export const ackIncidentAction = internalAction
   .inputSchema(z.object({ incidentId: z.uuid() }))
   .action(async ({ parsedInput, ctx }) => {
-    const admin = createAdminClient();
-    const { error } = await admin
+    const { error } = await ctx.supabase
       .from("incidents")
       /* eslint-disable @typescript-eslint/naming-convention */
       .update({

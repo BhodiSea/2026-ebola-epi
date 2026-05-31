@@ -90,8 +90,6 @@ export function LayerRail({ outbreakId, keyboard, outbreaks = [] }: Readonly<Lay
   );
 }
 
-const SHOW_STUB = process.env.NEXT_PUBLIC_SHOW_STUB_LAYERS === "true";
-
 function LayerGroups({
   activeLayers,
   onToggle,
@@ -99,7 +97,7 @@ function LayerGroups({
   return (
     <>
       {LAYER_GROUPS.map((group) => {
-        const layers = LAYERS.filter((l) => l.group === group && (SHOW_STUB || l.data === "live"));
+        const layers = LAYERS.filter((l) => l.group === group);
         if (layers.length === 0) {
           return null;
         }
@@ -114,14 +112,27 @@ function LayerGroups({
                   <Checkbox
                     id={`layer-${layer.id}`}
                     data-layer-label=""
-                    checked={activeLayers.has(layer.id)}
+                    checked={layer.available ? activeLayers.has(layer.id) : false}
+                    disabled={!layer.available}
                     aria-label={layer.label}
                     onCheckedChange={() => {
-                      onToggle(layer.id);
+                      if (layer.available) {
+                        onToggle(layer.id);
+                      }
                     }}
                   />
-                  <Label htmlFor={`layer-${layer.id}`} className="cursor-pointer text-sm">
+                  <Label
+                    htmlFor={`layer-${layer.id}`}
+                    className={
+                      layer.available ? "cursor-pointer text-sm" : "text-fg-subtle text-sm"
+                    }
+                  >
                     {layer.label}
+                    {layer.available ? null : (
+                      <span className="ml-1.5 rounded bg-surface-3 px-1 py-0.5 font-mono text-[9px] text-fg-subtle uppercase">
+                        no data
+                      </span>
+                    )}
                   </Label>
                 </li>
               ))}

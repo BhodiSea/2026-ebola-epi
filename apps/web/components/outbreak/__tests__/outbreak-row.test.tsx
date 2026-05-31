@@ -15,6 +15,13 @@ vi.mock("@/components/provenance/figure", () => ({
     </span>
   ),
 }));
+vi.mock("@/components/provenance/figure-or-missing", () => ({
+  FigureOrMissing: ({ value, quoteId }: { quoteId: null | string; value: number | string }) => (
+    <span data-figure-or-missing="" data-quote-id={quoteId ?? "null"}>
+      {value}
+    </span>
+  ),
+}));
 
 const MOCK_OUTBREAK: Outbreak = {
   id: "d0eebc99-0000-0000-0000-000000000001",
@@ -45,11 +52,11 @@ describe("OutbreakRow", () => {
     expect(screen.getByText(PATHOGEN_NAME_RE)).toBeInTheDocument();
   });
 
-  it("renders confirmed count with quoteId passed to Figure", async () => {
+  it("renders confirmed count with quoteId passed to FigureOrMissing", async () => {
     vi.mocked(getStatTotals).mockResolvedValue(MOCK_STATS);
     const jsx = await OutbreakRow({ outbreak: MOCK_OUTBREAK });
     const { container } = render(jsx);
-    const figures = container.querySelectorAll("[data-figure]");
+    const figures = container.querySelectorAll("[data-figure-or-missing]");
     expect(figures.length).toBeGreaterThanOrEqual(2);
     const confirmedFigure = container.querySelector(
       '[data-quote-id="00000000-0000-0000-0000-000000000001"]',
@@ -57,11 +64,11 @@ describe("OutbreakRow", () => {
     expect(confirmedFigure).not.toBeNull();
   });
 
-  it("renders CFR with a quoteId passed to Figure", async () => {
+  it("renders CFR with deathsQuoteId passed to FigureOrMissing", async () => {
     vi.mocked(getStatTotals).mockResolvedValue(MOCK_STATS);
     const jsx = await OutbreakRow({ outbreak: MOCK_OUTBREAK });
     const { container } = render(jsx);
-    const cfrFigures = container.querySelectorAll("[data-figure]");
+    const cfrFigures = container.querySelectorAll("[data-figure-or-missing]");
     expect(cfrFigures.length).toBeGreaterThanOrEqual(2);
   });
 
@@ -70,5 +77,25 @@ describe("OutbreakRow", () => {
     const jsx = await OutbreakRow({ outbreak: MOCK_OUTBREAK });
     const { container } = render(jsx);
     expect(container.innerHTML).toContain("bg-emergency");
+  });
+
+  it("passes null to FigureOrMissing when stats have no quote — never fabricates fallback UUID", async () => {
+    const nullStats = {
+      confirmed: { value: 42, quoteId: null },
+      deaths: { value: 8, quoteId: null },
+      cfr: 19,
+      zonesAffected: 2,
+    };
+    vi.mocked(getStatTotals).mockResolvedValue(nullStats);
+    const jsx = await OutbreakRow({ outbreak: MOCK_OUTBREAK });
+    const { container } = render(jsx);
+    // Must not synthesize the all-zeros fallback UUID
+    expect(
+      container.querySelector(
+        '[data-figure-or-missing][data-quote-id="00000000-0000-0000-0000-000000000000"]',
+      ),
+    ).toBeNull();
+    // Must use FigureOrMissing (null-safe), not Figure (string-only)
+    expect(container.querySelectorAll("[data-figure-or-missing]").length).toBeGreaterThanOrEqual(1);
   });
 });

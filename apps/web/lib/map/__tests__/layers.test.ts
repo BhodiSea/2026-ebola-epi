@@ -11,6 +11,13 @@ describe("parseLayers", () => {
   it("parses a comma-separated list, dropping empties", () => {
     expect(parseLayers("confirmed,terrain,")).toEqual(new Set(["confirmed", "terrain"]));
   });
+
+  it("strips unavailable layer ids from URL so they cannot persist in state", () => {
+    const result = parseLayers("confirmed,etu,attackRate");
+    expect(result.has("confirmed")).toBe(true);
+    expect(result.has("etu")).toBe(false);
+    expect(result.has("attackRate")).toBe(false);
+  });
 });
 
 describe("LAYERS", () => {

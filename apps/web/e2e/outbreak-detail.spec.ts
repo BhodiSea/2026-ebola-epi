@@ -16,5 +16,5 @@ test("clicking Geography tab renders choropleth stub", async ({ page }) => {
   const geoTab = page.locator('[data-tab="geography"]');
   await geoTab.waitFor({ timeout: 10_000 });
   await geoTab.click();
-  await expect(page.locator("[data-choropleth-stub]")).toBeVisible({ timeout: 5000 });
+  await expect(page.locator("[data-outbreak-choropleth]")).toBeVisible({ timeout: 5000 });
 });

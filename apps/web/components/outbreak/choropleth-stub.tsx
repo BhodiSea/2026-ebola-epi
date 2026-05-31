@@ -1,7 +1,7 @@
 import type { ChoroplethData, ZoneData } from "@/lib/queries/choropleth";
 import { getOutbreakZoneSvg } from "@/lib/queries/choropleth";
 
-interface ChoroplethStubProps {
+interface OutbreakChoroplethProps {
   outbreakId: string;
   viewMode?: "map" | "table";
 }
@@ -55,16 +55,6 @@ function ChoroplethMap({ zones, globalBbox }: Readonly<MapProps>) {
   );
 }
 
-async function ChoroplethStub({ outbreakId, viewMode = "map" }: Readonly<ChoroplethStubProps>) {
-  const data = await getOutbreakZoneSvg(outbreakId);
-
-  return (
-    <div data-choropleth-stub className="overflow-hidden rounded-lg border bg-card">
-      {renderContent(data, viewMode)}
-    </div>
-  );
-}
-
 function ChoroplethTable({ zones }: Readonly<{ zones: ZoneData[] }>) {
   return (
     <table className="w-full text-sm">
@@ -87,6 +77,19 @@ function ChoroplethTable({ zones }: Readonly<{ zones: ZoneData[] }>) {
         ))}
       </tbody>
     </table>
+  );
+}
+
+async function OutbreakChoropleth({
+  outbreakId,
+  viewMode = "map",
+}: Readonly<OutbreakChoroplethProps>) {
+  const data = await getOutbreakZoneSvg(outbreakId);
+
+  return (
+    <div data-outbreak-choropleth="" className="overflow-hidden rounded-lg border bg-card">
+      {renderContent(data, viewMode)}
+    </div>
   );
 }
 
@@ -118,4 +121,4 @@ function zoneColor(value: number, breaks: number[]): string {
   return REDS[idx] ?? REDS[0];
 }
 
-export { ChoroplethStub };
+export { OutbreakChoropleth as ChoroplethStub, OutbreakChoropleth };

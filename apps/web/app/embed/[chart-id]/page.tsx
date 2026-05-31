@@ -1,5 +1,7 @@
+import { notFound } from "next/navigation";
+
 import { EmbedShell } from "./embed-shell";
-import { ChoroplethStub } from "@/components/outbreak/choropleth-stub";
+import { OutbreakChoropleth } from "@/components/outbreak/choropleth-stub";
 import { TimelineMulti } from "@/components/outbreak/timeline-multi";
 import { getEpiCurveSeries } from "@/lib/queries/case-counts";
 import { getActiveOutbreak, getOutbreakById } from "@/lib/queries/outbreaks";
@@ -20,7 +22,7 @@ export default async function EmbedPage({
   const outbreakIdParam = typeof sp.outbreak_id === "string" ? sp.outbreak_id : undefined;
 
   if (!KNOWN_CHART_IDS.has(chartId)) {
-    return <EmbedShell initialTheme={initialTheme} chartId={chartId} />;
+    notFound();
   }
 
   const outbreak =
@@ -35,7 +37,7 @@ export default async function EmbedPage({
   if (chartId === "zone-map") {
     return (
       <EmbedShell initialTheme={initialTheme} chartId={chartId}>
-        <ChoroplethStub outbreakId={outbreak.id} />
+        <OutbreakChoropleth outbreakId={outbreak.id} />
       </EmbedShell>
     );
   }

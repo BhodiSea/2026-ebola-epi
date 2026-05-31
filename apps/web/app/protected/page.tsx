@@ -20,11 +20,11 @@ export default function ProtectedPage() {
 
 async function UserDetails() {
   const supabase = await createClient();
-  const { data, error } = await supabase.auth.getClaims();
+  const { data, error } = await supabase.auth.getUser();
 
-  if (error || !data?.claims) {
+  if (error !== null) {
     redirect("/auth/login");
   }
 
-  return JSON.stringify(data.claims, null, 2);
+  return JSON.stringify(data.user, null, 2);
 }

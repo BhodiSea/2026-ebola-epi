@@ -2,7 +2,6 @@ import Link from "next/link";
 import { Suspense } from "react";
 
 import { AuthButton } from "@/components/auth-button";
-import { ThemeSwitcher } from "@/components/theme-switcher";
 
 export const dynamic = "force-dynamic";
 
@@ -21,9 +20,6 @@ export default function ProtectedLayout({ children }: Readonly<{ children: React
           </div>
         </nav>
         <div className="flex max-w-5xl flex-1 flex-col gap-20 p-5">{children}</div>
-        <footer className="mx-auto flex w-full items-center justify-center gap-8 border-t py-16 text-center text-xs">
-          <ThemeSwitcher />
-        </footer>
       </div>
     </main>
   );

@@ -1,25 +1,7 @@
-import { createClient } from "@/lib/supabase/server";
-
-/* eslint-disable @typescript-eslint/naming-convention */
-interface EvalRow {
-  evaluated_at: string;
-  metric: string;
-  run_id: string;
-  score: number;
-  source_slug: null | string;
-}
-/* eslint-enable @typescript-eslint/naming-convention */
+import { listEvalScores } from "@/lib/queries/eval-scores";
 
 export default async function QualityPage() {
-  const supabase = await createClient();
-
-  const { data: rows } = await supabase
-    .from("extraction_eval_scores")
-    .select("run_id, metric, score, source_slug, evaluated_at")
-    .order("evaluated_at", { ascending: false })
-    .limit(200);
-
-  const evals = (rows ?? []) as EvalRow[];
+  const evals = await listEvalScores();
 
   const metrics = [...new Set(evals.map((r) => r.metric))];
 

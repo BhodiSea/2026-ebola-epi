@@ -12,6 +12,8 @@ const NAV_ITEMS = [
   { href: "/internal/quality", label: "Quality" },
   { href: "/internal/sources", label: "Sources" },
   { href: "/internal/audit", label: "Audit" },
+  { href: "/internal/shadow", label: "Shadow" },
+  { href: "/internal/backfill", label: "Backfill" },
 ] as const;
 
 export function InternalNav() {
