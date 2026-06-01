@@ -1,4 +1,5 @@
 // @vitest-environment node
+// WS3: shadow-extraction call site updated to buildExtractionParams(fullText, "candidate"); covered by params-builder.test.ts
 /**
  * /api/inngest must not be auth-gated: Inngest server calls it with signing-key
  * verification, not user cookies. A redirect to /auth/login breaks syncing.

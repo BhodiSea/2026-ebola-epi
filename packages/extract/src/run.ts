@@ -1,23 +1,45 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import type Anthropic from "@anthropic-ai/sdk";
 
-import { computePromptVersionHash, computeToolSchemaHash } from "./hash.js";
+import {
+  computeCandidatePromptVersionHash,
+  computePromptVersionHash,
+  computeToolSchemaHash,
+} from "./hash.js";
 import { MODEL_SONNET } from "./models.js";
-import { FEW_SHOTS, STATIC_INSTRUCTIONS } from "./prompt.js";
+import {
+  CANDIDATE_FEW_SHOTS,
+  CANDIDATE_STATIC_INSTRUCTIONS,
+  FEW_SHOTS,
+  STATIC_INSTRUCTIONS,
+} from "./prompt.js";
 import type { ExtractionRow } from "./tools.js";
 import { ExtractionBatchSchema, extractionTool } from "./tools.js";
 import { resolveSubstring } from "./verify.js";
 
+// Same tools block for every prompt variant. Variable assignment bypasses the excess-property
+// check on cache_control.ttl (not in SDK 0.52 types, accepted by the API — AGENTS.md Rule 13).
+const EXTRACTION_TOOLS = [
+  {
+    name: extractionTool.name,
+    description: extractionTool.description,
+    input_schema: extractionTool.input_schema,
+    cache_control: { type: "ephemeral" as const, ttl: "1h" },
+  },
+];
+
 // Back-compat alias — consumers that import MODEL from @ituri/extract continue to work.
 export const MODEL = MODEL_SONNET;
 
+/** Selects which prompt variant buildExtractionParams should use. */
+export type PromptVariant = "candidate" | "production";
+
 /**
  * Candidate prompt version for shadow-run comparisons.
- * Defaults to the current production version until a real candidate is staged.
- * Update this constant (with a bump to computePromptVersionHash) to start routing
- * 10% of production traffic through the new prompt.
+ * Points to the pre-WS1 baseline (7-metric, national-only prompt).
+ * Shadow-extraction compares this against the production prompt on 10% of traffic.
  */
-export const CANDIDATE_PROMPT_VERSION = computePromptVersionHash();
+export const CANDIDATE_PROMPT_VERSION = computeCandidatePromptVersionHash();
 
 export interface ExtractionResult {
   promptVersionHash: string;
@@ -37,30 +59,28 @@ export interface ExtractionUsage {
  * Build the JSON-serialisable params passed to anthropic.messages.create.
  * Exported so the Inngest function can pass these directly to step.ai.wrap,
  * keeping input visible and editable in the Inngest dev-server UI.
+ *
+ * Pass variant="candidate" in shadow-extraction to compare the candidate
+ * prompt against the production prompt on the same document.
  */
 export function buildExtractionParams(
   documentText: string,
+  variant: PromptVariant = "production",
 ): Anthropic.MessageCreateParamsNonStreaming {
+  const instructions =
+    variant === "candidate" ? CANDIDATE_STATIC_INSTRUCTIONS : STATIC_INSTRUCTIONS;
+  const fewShots = variant === "candidate" ? CANDIDATE_FEW_SHOTS : FEW_SHOTS;
   return {
     model: MODEL,
     max_tokens: 4096,
-    // cache_control on the last tool caches tools + system (1h TTL, before the 5m few-shots block)
-    tools: [
-      {
-        name: extractionTool.name,
-        description: extractionTool.description,
-        input_schema: extractionTool.input_schema,
-        // @ts-expect-error: SDK 0.52 types CacheControlEphemeral without ttl; AGENTS.md Rule 13 requires explicit 1h
-        cache_control: { type: "ephemeral", ttl: "1h" },
-      },
-    ],
-    system: STATIC_INSTRUCTIONS,
+    tools: EXTRACTION_TOOLS,
+    system: instructions,
     messages: [
       {
         role: "user",
         content: [
           // cache_control on few-shots block (5m TTL, default)
-          { type: "text", text: FEW_SHOTS, cache_control: { type: "ephemeral" } },
+          { type: "text", text: fewShots, cache_control: { type: "ephemeral" } },
           { type: "text", text: `<document trust="untrusted">\n${documentText}\n</document>` },
         ],
       },

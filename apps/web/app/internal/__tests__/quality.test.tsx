@@ -7,6 +7,19 @@ vi.mock("@/lib/supabase/server", () => ({
   createClient: vi.fn(),
 }));
 
+const mockGetProvenanceCoverageStats = vi.hoisted(() =>
+  vi.fn().mockResolvedValue({
+    totalPublished: 0,
+    withVerifiedOffsets: 0,
+    withPlaceholderOffsets: 0,
+    documentsMissingProvenance: 0,
+    percentVerified: 100,
+  }),
+);
+vi.mock("@/lib/queries/provenance-stats", () => ({
+  getProvenanceCoverageStats: mockGetProvenanceCoverageStats,
+}));
+
 function makeClientMock(data: unknown[]) {
   // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- Supabase SupabaseClient<Database> generics too deep for vitest mock literal
   return {
@@ -20,6 +33,7 @@ function makeClientMock(data: unknown[]) {
   } as never;
 }
 
+// Covers: provenance coverage KPI section (WS4) + extraction eval table; tone prop uses exactOptionalPropertyTypes
 describe("/internal/quality page", () => {
   beforeEach(async () => {
     vi.clearAllMocks();
@@ -36,6 +50,21 @@ describe("/internal/quality page", () => {
     const { default: Page } = await import("../quality/page");
     const result = await Page();
     expect(result).toBeTruthy();
+  });
+
+  it("renders provenance coverage section with percentVerified", async () => {
+    mockGetProvenanceCoverageStats.mockResolvedValueOnce({
+      totalPublished: 50,
+      withVerifiedOffsets: 45,
+      withPlaceholderOffsets: 3,
+      documentsMissingProvenance: 2,
+      percentVerified: 90,
+    });
+    const { default: Page } = await import("../quality/page");
+    const html = renderToStaticMarkup(await Page());
+    expect(html).toContain("Provenance coverage");
+    expect(html).toContain("90.0%");
+    expect(html).toContain("50");
   });
 
   it("renders KPI tiles with computed averages when eval rows exist", async () => {

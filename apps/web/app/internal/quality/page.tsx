@@ -1,17 +1,15 @@
 import { listEvalScores } from "@/lib/queries/eval-scores";
+import { getProvenanceCoverageStats } from "@/lib/queries/provenance-stats";
+
+interface KpiProps {
+  readonly label: string;
+  readonly tone?: "warn" | undefined;
+  readonly value: string;
+}
 
 export default async function QualityPage() {
-  const evals = await listEvalScores();
-
+  const [evals, coverage] = await Promise.all([listEvalScores(), getProvenanceCoverageStats()]);
   const metrics = [...new Set(evals.map((r) => r.metric))];
-
-  function avgScore(metric: string) {
-    const subset = evals.filter((r) => r.metric === metric);
-    if (subset.length === 0) {
-      return null;
-    }
-    return subset.reduce((s, r) => s + r.score, 0) / subset.length;
-  }
 
   return (
     <div className="flex-1 space-y-8 p-6">
@@ -19,13 +17,33 @@ export default async function QualityPage() {
         Extraction Quality
       </h1>
 
+      <section className="space-y-3">
+        <h2 className="font-mono text-[11px] text-fg-muted uppercase tracking-wide">
+          Provenance coverage
+        </h2>
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+          <Kpi label="% verified offsets" value={`${coverage.percentVerified.toFixed(1)}%`} />
+          <Kpi label="Published rows" value={coverage.totalPublished.toLocaleString()} />
+          <Kpi
+            label="Placeholder offsets"
+            value={coverage.withPlaceholderOffsets.toLocaleString()}
+            tone={coverage.withPlaceholderOffsets > 0 ? "warn" : undefined}
+          />
+          <Kpi
+            label="Docs missing provenance"
+            value={coverage.documentsMissingProvenance.toLocaleString()}
+            tone={coverage.documentsMissingProvenance > 0 ? "warn" : undefined}
+          />
+        </div>
+      </section>
+
       {evals.length === 0 ? (
         <p className="font-mono text-[12px] text-fg-muted">No eval data yet.</p>
       ) : (
         <>
           <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
             {metrics.map((m) => {
-              const avg = avgScore(m);
+              const avg = avgScore(evals, m);
               return (
                 <div key={m} className="rounded-md border border-border bg-bg p-4">
                   <p className="font-mono text-[10px] text-fg-muted uppercase tracking-wide">{m}</p>
@@ -61,6 +79,24 @@ export default async function QualityPage() {
           </table>
         </>
       )}
+    </div>
+  );
+}
+
+function avgScore(scores: { metric: string; score: number }[], metric: string): null | number {
+  const subset = scores.filter((r) => r.metric === metric);
+  if (subset.length === 0) {
+    return null;
+  }
+  return subset.reduce((s, r) => s + r.score, 0) / subset.length;
+}
+
+function Kpi({ label, tone, value }: KpiProps) {
+  const border = tone === "warn" ? "border-amber-400" : "border-border";
+  return (
+    <div className={`rounded-md border ${border} bg-bg p-4`}>
+      <p className="font-mono text-[10px] text-fg-muted uppercase tracking-wide">{label}</p>
+      <p className="mt-1 font-mono text-2xl tabular-nums">{value}</p>
     </div>
   );
 }

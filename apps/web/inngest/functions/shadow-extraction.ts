@@ -46,7 +46,7 @@ export const shadowExtraction = inngest.createFunction(
     const rawMsg = await step.ai.wrap(
       "shadow-extract",
       createMessage,
-      buildExtractionParams(fullText),
+      buildExtractionParams(fullText, "candidate"),
     );
 
     const computeResult = await step.run(

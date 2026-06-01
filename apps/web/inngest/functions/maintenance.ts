@@ -1,5 +1,7 @@
 import "server-only";
 
+import { agentActions } from "@ituri/db";
+
 import { inngest } from "../client";
 import {
   checkAndFixLinkRot,
@@ -9,7 +11,13 @@ import {
   suggestParserFix,
 } from "../lib/maintenance";
 import { MAINTENANCE_CRON, MAINTENANCE_FN_CONFIG } from "./maintenance-config";
+import { DOCUMENT_BACKFILL_REQUESTED } from "./pipeline-events-config";
+import { db } from "@/lib/db";
 import { openGithubIssue, openGithubPR } from "@/lib/notify";
+import {
+  getDocumentsWithoutProvenance,
+  getProvenanceCoverageStats,
+} from "@/lib/queries/provenance-stats";
 
 export const maintenanceAgent = inngest.createFunction(
   MAINTENANCE_FN_CONFIG,
@@ -45,10 +53,33 @@ export const maintenanceAgent = inngest.createFunction(
       );
     }
 
+    const missing = await step.run("provenance-coverage-check", async () =>
+      getDocumentsWithoutProvenance(50),
+    );
+
+    if (missing.length > 0) {
+      await step.sendEvent("enqueue-provenance-backfill", {
+        name: DOCUMENT_BACKFILL_REQUESTED,
+        data: { documentIds: missing.map((d) => d.id) },
+      });
+    }
+
+    const provenance = await step.run("provenance-coverage-log", async () => {
+      const s = await getProvenanceCoverageStats();
+      await db.insert(agentActions).values({
+        agent: "maintenance",
+        action: "provenance_coverage_logged",
+        subjectTable: "case_counts",
+        payload: { ...s, enqueuedDocuments: missing.length },
+      });
+      return s;
+    });
+
     return {
       unhealthySources: unhealthy.length,
       linkRotFixed: rotFixed,
       docDrift: driftResult,
+      provenance,
     };
   },
 );

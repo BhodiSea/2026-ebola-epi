@@ -44,6 +44,12 @@ jobs:
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
 
+      - name: Run live API integration tests (cache-read assertion)
+        if: env.ANTHROPIC_API_KEY != ''
+        run: pnpm --filter @ituri/extract test
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+
       - name: Skip notice (fork or Dependabot — no ANTHROPIC_API_KEY)
         if: env.ANTHROPIC_API_KEY == ''
         run: |

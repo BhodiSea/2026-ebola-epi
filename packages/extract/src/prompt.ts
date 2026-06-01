@@ -11,6 +11,34 @@ Rules:
 - If a figure is absent or ambiguous, do not include it.
 - ICD-11 codes: Ebola Sudan: 1D60.0, Ebola Zaire: 1D60.1, Bundibugyo virus: 1D60.2, Marburg: 1C90.0, mpox: 1E71, cholera: 1A00.`;
 
+// Candidate prompt — pre-WS1 baseline (7 base metrics, national-only few-shot).
+// Used by shadow-extraction to surface divergence from the production prompt.
+// Intentionally narrower: no zone-level guidance, no is_new_in_period, 7 metrics.
+export const CANDIDATE_STATIC_INSTRUCTIONS = `You extract epidemiological data from outbreak situation reports.
+
+Rules:
+- Only extract figures explicitly stated in the document.
+- char_start and char_end are zero-indexed character offsets of quote_text within the document text (not HTML/XML tags). quote_text must be the verbatim substring at [char_start, char_end). No paraphrasing.
+- Call extract_case_counts ONCE with ALL figures found.
+- Required per extraction: pathogen_icd11, country_iso3, metric, value, as_of, source_quote.
+- Metrics: cases, deaths, suspected, confirmed, probable, vaccinated, contacts.
+- If a figure is absent or ambiguous, do not include it.
+- ICD-11 codes: Ebola Sudan: 1D60.0, Ebola Zaire: 1D60.1, Bundibugyo virus: 1D60.2, Marburg: 1C90.0, mpox: 1E71, cholera: 1A00.`;
+
+export const CANDIDATE_FEW_SHOTS = `\
+Example document: "As of 15 May 2026, 47 confirmed cases and 12 deaths have been reported."
+
+Example call: extract_case_counts({ extractions: [
+  { pathogen_icd11: "1D60.2", country_iso3: "COD", metric: "confirmed", value: 47,
+    as_of: "2026-05-15",
+    source_quote: { char_start: 19, char_end: 70,
+      quote_text: "47 confirmed cases and 12 deaths have been reported" } },
+  { pathogen_icd11: "1D60.2", country_iso3: "COD", metric: "deaths", value: 12,
+    as_of: "2026-05-15",
+    source_quote: { char_start: 19, char_end: 70,
+      quote_text: "47 confirmed cases and 12 deaths have been reported" } }
+]})`;
+
 export const FEW_SHOTS = `\
 Example document: "As of 15 May 2026, 47 cumulative confirmed cases and 12 deaths have been reported from Ituri Province. Rwampara Health Zone accounts for 28 cases. Four deaths occurred among healthcare workers at Mongbwalu General Referral Hospital."
 

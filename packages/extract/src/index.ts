@@ -12,12 +12,21 @@ export { buildReconcileParams, parseReconcileResponse } from "./agents/reconcile
 export { shouldReconcile } from "./agents/shared.js";
 export type { TriageOutput } from "./agents/triage.js";
 export { buildTriageParams, parseTriageResponse } from "./agents/triage.js";
-export { computePromptVersionHash, computeToolSchemaHash } from "./hash.js";
+export {
+  computeCandidatePromptVersionHash,
+  computePromptVersionHash,
+  computeToolSchemaHash,
+} from "./hash.js";
 export { MODEL_HAIKU, MODEL_OPUS, MODEL_SONNET } from "./models.js";
 export type { ComputeCostOptions, ModelPrice } from "./pricing.js";
 export { computeCost, MODEL_PRICES } from "./pricing.js";
-export { FEW_SHOTS, STATIC_INSTRUCTIONS } from "./prompt.js";
-export type { ExtractionResult, ExtractionUsage } from "./run.js";
+export {
+  CANDIDATE_FEW_SHOTS,
+  CANDIDATE_STATIC_INSTRUCTIONS,
+  FEW_SHOTS,
+  STATIC_INSTRUCTIONS,
+} from "./prompt.js";
+export type { ExtractionResult, ExtractionUsage, PromptVariant } from "./run.js";
 export {
   buildExtractionParams,
   CANDIDATE_PROMPT_VERSION,

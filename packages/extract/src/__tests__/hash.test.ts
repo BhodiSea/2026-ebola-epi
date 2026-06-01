@@ -2,8 +2,17 @@ import { createHash } from "node:crypto";
 
 import { describe, expect, it } from "vitest";
 
-import { computePromptVersionHash, computeToolSchemaHash } from "../hash.js";
-import { FEW_SHOTS, STATIC_INSTRUCTIONS } from "../prompt.js";
+import {
+  computeCandidatePromptVersionHash,
+  computePromptVersionHash,
+  computeToolSchemaHash,
+} from "../hash.js";
+import {
+  CANDIDATE_FEW_SHOTS,
+  CANDIDATE_STATIC_INSTRUCTIONS,
+  FEW_SHOTS,
+  STATIC_INSTRUCTIONS,
+} from "../prompt.js";
 import { MODEL } from "../run.js";
 import { extractionTool } from "../tools.js";
 
@@ -63,5 +72,31 @@ describe("computePromptVersionHash — tool schema included (AGENTS.md Rule 7)",
       .digest("hex")
       .slice(0, 16);
     expect(computePromptVersionHash()).toBe(expected);
+  });
+});
+
+describe("computeCandidatePromptVersionHash (WS3)", () => {
+  it("returns a 16-character hex string", () => {
+    expect(computeCandidatePromptVersionHash()).toMatch(HEX_16);
+  });
+
+  it("is deterministic across calls", () => {
+    expect(computeCandidatePromptVersionHash()).toBe(computeCandidatePromptVersionHash());
+  });
+
+  it("differs from computePromptVersionHash (candidate and production are distinct)", () => {
+    expect(computeCandidatePromptVersionHash()).not.toBe(computePromptVersionHash());
+  });
+
+  it("matches sha256(candidateInstructions + candidateFewShots + tool_schema)[:16]", () => {
+    const expected = createHash("sha256")
+      .update(
+        CANDIDATE_STATIC_INSTRUCTIONS +
+          CANDIDATE_FEW_SHOTS +
+          JSON.stringify(extractionTool.input_schema),
+      )
+      .digest("hex")
+      .slice(0, 16);
+    expect(computeCandidatePromptVersionHash()).toBe(expected);
   });
 });

@@ -1,7 +1,14 @@
 import type Anthropic from "@anthropic-ai/sdk";
 import { describe, expect, it, vi } from "vitest";
 
-import { buildExtractionParams, parseExtractionResponse, runExtraction } from "../run.js";
+import { computeCandidatePromptVersionHash, computePromptVersionHash } from "../hash.js";
+import { CANDIDATE_STATIC_INSTRUCTIONS } from "../prompt.js";
+import {
+  buildExtractionParams,
+  CANDIDATE_PROMPT_VERSION,
+  parseExtractionResponse,
+  runExtraction,
+} from "../run.js";
 import { extractionTool } from "../tools.js";
 
 const VALID_DOC =
@@ -27,17 +34,21 @@ const MOCK_RESPONSE: Pick<Anthropic.Message, "content" | "usage"> = {
 };
 
 function capturedParams(client: Anthropic): Anthropic.MessageCreateParamsNonStreaming {
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- narrowing SDK fn type to Mock for test call introspection
   const call = (client.messages.create as ReturnType<typeof vi.fn>).mock.calls[0];
   if (call === undefined) {
     throw new Error("no Anthropic call was made");
   }
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- mock.calls[0] is any[] for overloaded SDK fn; shape is known from makeClient
   return call[0] as Anthropic.MessageCreateParamsNonStreaming;
 }
 
 function makeClient() {
-  return {
+  const mock = {
     messages: { create: vi.fn().mockResolvedValue(MOCK_RESPONSE) },
-  } as unknown as Anthropic;
+  };
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- structural mock of Anthropic class; only messages.create is exercised by tests
+  return mock as unknown as Anthropic;
 }
 
 // ─── buildExtractionParams ────────────────────────────────────────────────────
@@ -50,11 +61,7 @@ describe("buildExtractionParams — shape for step.ai.wrap", () => {
 
   it("tools block cache_control.ttl is '1h' (AGENTS.md Rule 13)", () => {
     const params = buildExtractionParams(VALID_DOC);
-    const cc = params.tools?.[0]?.cache_control as
-      | null
-      | undefined
-      | { ttl?: string; type: string };
-    expect(cc?.ttl).toBe("1h");
+    expect(JSON.stringify(params.tools?.[0]?.cache_control)).toContain('"ttl":"1h"');
   });
 
   it("few-shots cache_control has no ttl (5m default)", () => {
@@ -63,8 +70,11 @@ describe("buildExtractionParams — shape for step.ai.wrap", () => {
     if (!Array.isArray(content)) {
       throw new TypeError("expected array user content");
     }
-    const cc = (content[0] as { cache_control?: { ttl?: string } }).cache_control;
-    expect(cc?.ttl).toBeUndefined();
+    const block = content[0];
+    if (block?.type !== "text") {
+      throw new TypeError("expected text block");
+    }
+    expect(JSON.stringify(block.cache_control)).not.toContain('"ttl"');
   });
 
   it("tool_choice is forced to extract_case_counts", () => {
@@ -83,9 +93,12 @@ describe("buildExtractionParams — shape for step.ai.wrap", () => {
     if (!Array.isArray(content)) {
       throw new TypeError("expected array user content");
     }
-    const docBlock = (content[1] as { text?: string }).text ?? "";
-    expect(docBlock).toContain('<document trust="untrusted">');
-    expect(docBlock).toContain(VALID_DOC);
+    const docBlock = content[1];
+    if (docBlock?.type !== "text") {
+      throw new TypeError("expected text block");
+    }
+    expect(docBlock.text).toContain('<document trust="untrusted">');
+    expect(docBlock.text).toContain(VALID_DOC);
   });
 });
 
@@ -169,16 +182,24 @@ describe("parseExtractionResponse", () => {
 // ─── CANDIDATE_PROMPT_VERSION ────────────────────────────────────────────────
 
 describe("CANDIDATE_PROMPT_VERSION", () => {
-  it("is exported as a non-empty string (shadow-run sampler depends on it)", async () => {
-    const { CANDIDATE_PROMPT_VERSION } = await import("../run.js");
+  it("is exported as a non-empty string (shadow-run sampler depends on it)", () => {
     expect(typeof CANDIDATE_PROMPT_VERSION).toBe("string");
     expect(CANDIDATE_PROMPT_VERSION.length).toBeGreaterThan(0);
   });
 
-  it("equals computePromptVersionHash() (defaults to production until a real candidate is staged)", async () => {
-    const { CANDIDATE_PROMPT_VERSION } = await import("../run.js");
-    const { computePromptVersionHash } = await import("../hash.js");
-    expect(CANDIDATE_PROMPT_VERSION).toBe(computePromptVersionHash());
+  it("equals computeCandidatePromptVersionHash() (WS3: a real candidate is staged)", () => {
+    expect(CANDIDATE_PROMPT_VERSION).toBe(computeCandidatePromptVersionHash());
+  });
+
+  it("differs from computePromptVersionHash() (candidate and production are distinct)", () => {
+    expect(CANDIDATE_PROMPT_VERSION).not.toBe(computePromptVersionHash());
+  });
+});
+
+describe("buildExtractionParams — variant: candidate selects candidate system prompt", () => {
+  it("system text is CANDIDATE_STATIC_INSTRUCTIONS when variant is 'candidate'", () => {
+    const params = buildExtractionParams(VALID_DOC, "candidate");
+    expect(params.system).toBe(CANDIDATE_STATIC_INSTRUCTIONS);
   });
 });
 
@@ -188,11 +209,9 @@ describe("runExtraction — Anthropic call params", () => {
   it("tools block cache_control.ttl is '1h' (AGENTS.md Rule 13)", async () => {
     const client = makeClient();
     await runExtraction(client, "test document");
-    const cc = capturedParams(client).tools?.[0]?.cache_control as
-      | null
-      | undefined
-      | { ttl?: string; type: string };
-    expect(cc?.ttl).toBe("1h");
+    expect(JSON.stringify(capturedParams(client).tools?.[0]?.cache_control)).toContain(
+      '"ttl":"1h"',
+    );
   });
 
   it("few-shots cache_control has no ttl (5m default)", async () => {
@@ -202,8 +221,11 @@ describe("runExtraction — Anthropic call params", () => {
     if (!Array.isArray(content)) {
       throw new TypeError("expected array user content");
     }
-    const cc = (content[0] as { cache_control?: { ttl?: string } }).cache_control;
-    expect(cc?.ttl).toBeUndefined();
+    const block = content[0];
+    if (block?.type !== "text") {
+      throw new TypeError("expected text block");
+    }
+    expect(JSON.stringify(block.cache_control)).not.toContain('"ttl"');
   });
 
   it("tool_choice is forced to extract_case_counts", async () => {
