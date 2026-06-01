@@ -1,8 +1,9 @@
 "use client";
 
 import { Laptop, Moon, Sun } from "lucide-react";
-import { useTheme } from "next-themes";
+import { useSyncExternalStore } from "react";
 
+import { isThemeValue, useTheme } from "@/components/theme/theme-provider";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -14,7 +15,15 @@ import {
 
 const ICON_SIZE = 16;
 
-function ThemeIcon({ theme }: Readonly<{ theme: string | undefined }>) {
+function noopUnsubscribe(): void {
+  // intentional no-op: mounted sentinel has no external store to unsubscribe from
+}
+
+function subscribe(_onChange: () => void): () => void {
+  return noopUnsubscribe;
+}
+
+function ThemeIcon({ theme }: Readonly<{ theme: string }>) {
   if (theme === "light") {
     return <Sun key="light" size={ICON_SIZE} className="text-muted-foreground" />;
   }
@@ -24,11 +33,16 @@ function ThemeIcon({ theme }: Readonly<{ theme: string | undefined }>) {
   return <Laptop key="system" size={ICON_SIZE} className="text-muted-foreground" />;
 }
 
-const ThemeSwitcher = () => {
+function ThemeSwitcher() {
+  const mounted = useSyncExternalStore(
+    subscribe,
+    () => true,
+    () => false,
+  );
   const { theme, setTheme } = useTheme();
 
-  if (theme === undefined) {
-    return null;
+  if (!mounted) {
+    return <div aria-hidden className="size-8" />;
   }
 
   return (
@@ -39,7 +53,14 @@ const ThemeSwitcher = () => {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-content" align="start">
-        <DropdownMenuRadioGroup value={theme} onValueChange={(e) => setTheme(e)}>
+        <DropdownMenuRadioGroup
+          value={theme}
+          onValueChange={(v) => {
+            if (isThemeValue(v)) {
+              setTheme(v);
+            }
+          }}
+        >
           <DropdownMenuRadioItem className="flex gap-2" value="light">
             <Sun size={ICON_SIZE} className="text-muted-foreground" /> <span>Light</span>
           </DropdownMenuRadioItem>
@@ -53,6 +74,6 @@ const ThemeSwitcher = () => {
       </DropdownMenuContent>
     </DropdownMenu>
   );
-};
+}
 
 export { ThemeSwitcher };

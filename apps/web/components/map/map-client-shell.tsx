@@ -1,7 +1,6 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { useTheme } from "next-themes";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { InspectorTabs } from "./inspector-tabs";
@@ -11,6 +10,7 @@ import type { ZoneSelection } from "./map-pane";
 import { MapPane } from "./map-pane";
 import { MobileInspector } from "./mobile-inspector";
 import { TimeScrubber } from "./time-scrubber";
+import { useTheme } from "@/components/theme/theme-provider";
 import { buildChartAltText } from "@/lib/a11y/alt-text";
 import type { MapKeyboard } from "@/lib/map/keyboard";
 import { createMapKeyboard } from "@/lib/map/keyboard";
@@ -84,7 +84,7 @@ export function MapClientShell({
             variable: "suspected Bundibugyo virus case count",
             asOf: searchParams.get("as_of") ?? "current date",
           })}
-          {...(resolvedTheme === undefined ? {} : { theme: resolvedTheme })}
+          theme={resolvedTheme}
         />
         <TimeScrubber
           confirmedSeries={confirmedSeries}

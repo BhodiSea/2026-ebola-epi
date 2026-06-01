@@ -1,8 +1,9 @@
 "use client";
 
 import { Laptop, Moon, Sun } from "lucide-react";
-import { useTheme } from "next-themes";
+import { useSyncExternalStore } from "react";
 
+import { isThemeValue, useTheme } from "@/components/theme/theme-provider";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -12,7 +13,15 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-function ThemeIcon({ theme }: Readonly<{ theme: string | undefined }>) {
+function noopUnsubscribe(): void {
+  // intentional no-op: mounted sentinel has no external store to unsubscribe from
+}
+
+function subscribe(_onChange: () => void): () => void {
+  return noopUnsubscribe;
+}
+
+function ThemeIcon({ theme }: Readonly<{ theme: string }>) {
   if (theme === "dark") {
     return <Moon className="size-4 text-fg-muted" />;
   }
@@ -23,20 +32,35 @@ function ThemeIcon({ theme }: Readonly<{ theme: string | undefined }>) {
 }
 
 function ThemeToggle() {
+  // useSyncExternalStore: false on server, true on client — consistent hydration placeholder,
+  // no setState-in-effect.
+  const mounted = useSyncExternalStore(
+    subscribe,
+    () => true,
+    () => false,
+  );
   const { theme, setTheme } = useTheme();
-  if (theme === undefined) {
-    return null;
+
+  if (!mounted) {
+    return <div aria-hidden className="size-8" />;
   }
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon-sm" aria-label="Toggle theme">
+        <Button aria-label="Toggle theme" size="icon-sm" variant="ghost">
           <ThemeIcon theme={theme} />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-32">
-        <DropdownMenuRadioGroup value={theme} onValueChange={setTheme}>
+        <DropdownMenuRadioGroup
+          value={theme}
+          onValueChange={(v) => {
+            if (isThemeValue(v)) {
+              setTheme(v);
+            }
+          }}
+        >
           <DropdownMenuRadioItem value="light">Light</DropdownMenuRadioItem>
           <DropdownMenuRadioItem value="dark">Dark</DropdownMenuRadioItem>
           <DropdownMenuRadioItem value="system">System</DropdownMenuRadioItem>

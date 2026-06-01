@@ -1,7 +1,7 @@
 import { z } from "zod";
 
+import { env } from "@/lib/env";
 import { TILE_VERSION } from "@/lib/map/tile-version";
-import { createClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
 
@@ -38,25 +38,45 @@ export async function GET(
     return new Response("invalid tile request", { status: 400 });
   }
 
-  const sb = await createClient();
-  /* eslint-disable @typescript-eslint/naming-convention, @typescript-eslint/no-unsafe-assignment -- custom RPC is untyped; outbreak_id is a SQL arg name */
-  const { data, error } = await sb.rpc("mvt", {
-    z: parsed.data.z,
-    x: parsed.data.x,
-    y: parsed.data.y,
-    ...(parsed.data.outbreakId === undefined ? {} : { outbreak_id: parsed.data.outbreakId }),
-  });
-  /* eslint-enable @typescript-eslint/naming-convention, @typescript-eslint/no-unsafe-assignment */
-
-  if (error !== null) {
+  const supabaseUrl = env.NEXT_PUBLIC_SUPABASE_URL;
+  const publishableKey = env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+  if (supabaseUrl === undefined || publishableKey === undefined) {
     return new Response("tile generation failed", { status: 500 });
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- internal.mvt returns bytea; Supabase types it as `any`
-  return new Response(data as ArrayBuffer, {
+  /* eslint-disable @typescript-eslint/naming-convention -- SQL arg name uses snake_case */
+  const rpcBody = {
+    ...(parsed.data.outbreakId === undefined ? {} : { outbreak_id: parsed.data.outbreakId }),
+    x: parsed.data.x,
+    y: parsed.data.y,
+    z: parsed.data.z,
+  };
+  /* eslint-enable @typescript-eslint/naming-convention */
+
+  const res = await fetch(`${supabaseUrl}/rest/v1/rpc/mvt`, {
+    method: "POST",
     headers: {
-      "Content-Type": "application/x-protobuf",
+      Accept: "application/octet-stream",
+      Authorization: `Bearer ${publishableKey}`,
+      "Content-Type": "application/json",
+      apikey: publishableKey,
+    },
+    body: JSON.stringify(rpcBody),
+  });
+
+  if (!res.ok) {
+    return new Response("tile generation failed", { status: 500 });
+  }
+
+  const buffer = await res.arrayBuffer();
+  if (buffer.byteLength === 0) {
+    return new Response(null, { status: 204 });
+  }
+
+  return new Response(buffer, {
+    headers: {
       "Cache-Control": "public, max-age=86400, s-maxage=604800, immutable",
+      "Content-Type": "application/x-protobuf",
     },
   });
 }

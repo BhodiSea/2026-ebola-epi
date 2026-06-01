@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Source_Serif_4 } from "next/font/google";
 import { headers } from "next/headers";
-import { ThemeProvider } from "next-themes";
 
 import { BottomTabNav } from "@/components/layout/bottom-tab-nav";
 import { CommandBarLoader } from "@/components/layout/command-bar-loader";
 import { NavRail } from "@/components/layout/nav-rail";
 import { TopBar } from "@/components/layout/top-bar";
 import { JsonLd } from "@/components/seo/json-ld";
+import { ThemeProvider } from "@/components/theme/theme-provider";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { siteUrl } from "@/lib/env";
 
@@ -56,6 +56,10 @@ const sourceSerif4 = Source_Serif_4({
   style: ["normal", "italic"],
 });
 
+// Runs before React hydrates: reads localStorage and sets data-theme on <html>.
+// Lives in <head> so React 19 does not emit the body-script warning.
+const PREHYDRATION = `(function(){try{var t=localStorage.getItem("theme")||"system";var r=t==="system"?(window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light"):t;document.documentElement.setAttribute("data-theme",r)}catch(e){}})()`;
+
 export default async function RootLayout({
   children,
 }: Readonly<{
@@ -63,9 +67,18 @@ export default async function RootLayout({
 }>) {
   const headersList = await headers();
   const nonce = headersList.get("x-nonce") ?? undefined;
+  // eslint-disable-next-line @typescript-eslint/naming-convention -- React's required API shape for dangerouslySetInnerHTML
+  const prehydrationHtml = { __html: PREHYDRATION };
 
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        <script
+          // biome-ignore lint/security/noDangerouslySetInnerHtml: static string literal set at build time, not user input
+          dangerouslySetInnerHTML={prehydrationHtml}
+          {...(nonce !== undefined && { nonce })}
+        />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${sourceSerif4.variable} font-sans antialiased`}
       >
@@ -89,13 +102,7 @@ export default async function RootLayout({
             },
           }}
         />
-        <ThemeProvider
-          attribute="data-theme"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
-          {...(nonce !== undefined && { nonce })}
-        >
+        <ThemeProvider>
           <TooltipProvider>
             <TopBar />
             <div className="flex min-h-[calc(100vh-3.5rem)]">

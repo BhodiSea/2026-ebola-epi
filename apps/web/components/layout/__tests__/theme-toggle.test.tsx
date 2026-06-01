@@ -4,8 +4,9 @@ import { describe, expect, it, vi } from "vitest";
 
 import { ThemeToggle } from "../theme-toggle";
 
-vi.mock("next-themes", () => ({
-  useTheme: () => ({ theme: undefined as string | undefined, setTheme: vi.fn() }),
+vi.mock("@/components/theme/theme-provider", () => ({
+  isThemeValue: (v: string) => ["dark", "light", "system"].includes(v),
+  useTheme: () => ({ resolvedTheme: "light", setTheme: vi.fn(), theme: "light" }),
 }));
 
 vi.mock("@/components/ui/button", () => ({
@@ -14,16 +15,17 @@ vi.mock("@/components/ui/button", () => ({
 
 vi.mock("@/components/ui/dropdown-menu", () => ({
   DropdownMenu: ({ children }: { children: ReactNode }) => <>{children}</>,
-  DropdownMenuTrigger: ({ children }: { children: ReactNode }) => <>{children}</>,
   DropdownMenuContent: () => null,
   DropdownMenuRadioGroup: ({ children }: { children: ReactNode }) => <>{children}</>,
   DropdownMenuRadioItem: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+  DropdownMenuTrigger: ({ children }: { children: ReactNode }) => <>{children}</>,
 }));
 
-// Guard: ThemeToggle must return null when theme is undefined to avoid SSR hydration mismatch.
+// useSyncExternalStore in jsdom uses the client snapshot (() => true), so mounted=true and
+// the full trigger button is rendered.
 describe("ThemeToggle", () => {
-  it("renders nothing when theme is undefined (prevents SSR hydration mismatch)", () => {
+  it("renders a trigger button when mounted (jsdom uses client snapshot)", () => {
     const { container } = render(<ThemeToggle />);
-    expect(container.firstChild).toBeNull();
+    expect(container.firstChild).not.toBeNull();
   });
 });
