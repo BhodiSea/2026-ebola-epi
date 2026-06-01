@@ -10,7 +10,6 @@ export const env = createEnv({
     ARCJET_KEY: z.string().min(1).optional(),
     INNGEST_EVENT_KEY: z.string().min(1),
     INNGEST_SIGNING_KEY: z.string().min(1),
-    INNGEST_API_KEY: z.string().min(1).optional(),
     POSTGRES_URL_NON_POOLING: z.url(),
     // Phase 7 — cost kill-switch + notifications
     EDGE_CONFIG: z.string().optional(),
@@ -47,7 +46,6 @@ export const env = createEnv({
     ARCJET_KEY: process.env.ARCJET_KEY,
     INNGEST_EVENT_KEY: process.env.INNGEST_EVENT_KEY,
     INNGEST_SIGNING_KEY: process.env.INNGEST_SIGNING_KEY,
-    INNGEST_API_KEY: process.env.INNGEST_API_KEY,
     POSTGRES_URL_NON_POOLING: process.env.POSTGRES_URL_NON_POOLING,
     EDGE_CONFIG: process.env.EDGE_CONFIG,
     SLACK_WEBHOOK_URL: process.env.SLACK_WEBHOOK_URL,

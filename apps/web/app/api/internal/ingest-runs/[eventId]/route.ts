@@ -27,12 +27,17 @@ export async function GET(_req: Request, ctx: { params: Promise<{ eventId: strin
   }
 
   const res = await fetch(`https://api.inngest.com/v1/events/${eventId}/runs`, {
-    headers: { Authorization: `Bearer ${env.INNGEST_API_KEY ?? ""}` },
+    headers: { Authorization: `Bearer ${env.INNGEST_SIGNING_KEY}` },
     cache: "no-store",
   });
 
   if (!res.ok) {
-    return NextResponse.json({ error: `Inngest ${res.status}` }, { status: 502 });
+    const text = await res.text().catch(() => "");
+    console.error(`[ingest-runs] Inngest API ${res.status}: ${text}`);
+    return NextResponse.json(
+      { error: "Inngest API failed", upstreamStatus: res.status },
+      { status: 502, headers: { "x-upstream-status": String(res.status) } },
+    );
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- res.json() returns any; as unknown as T is the accepted safe-assertion idiom

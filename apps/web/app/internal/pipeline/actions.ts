@@ -18,13 +18,10 @@ export const retryInngestRunAction = internalAction
     }),
   )
   .action(async ({ parsedInput }) => {
-    if (env.INNGEST_API_KEY === undefined) {
-      throw new Error("INNGEST_API_KEY is not configured");
-    }
     const res = await fetch(`https://api.inngest.com/v1/runs/${parsedInput.runId}/retry`, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${env.INNGEST_API_KEY}`,
+        Authorization: `Bearer ${env.INNGEST_SIGNING_KEY}`,
       },
     });
     if (!res.ok) {

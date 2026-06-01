@@ -85,6 +85,8 @@ async function pollRun(
 ): Promise<void> {
   const res = await fetch(`/api/internal/ingest-runs/${eventId}`);
   if (!res.ok) {
+    cancelInterval();
+    onStatusChange("failed");
     return;
   }
   // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- res.json() returns any; as unknown as T is the accepted safe-assertion idiom

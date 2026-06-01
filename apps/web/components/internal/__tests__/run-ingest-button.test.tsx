@@ -132,4 +132,23 @@ describe("RunIngestButton", () => {
     });
     expect(screen.getByText(RE_FAILED)).toBeInTheDocument();
   });
+
+  it("shows Failed status and stops polling when poll endpoint returns non-2xx", async () => {
+    mocks.fetchFn.mockResolvedValue(new Response(null, { status: 502 }));
+    const { RunIngestButton } = await import("../run-ingest-button");
+    render(<RunIngestButton slug={SLUG} />);
+    fireEvent.click(screen.getByRole("button", { name: RE_RUN }));
+    act(() => {
+      mocks.useActionCallbacks.onSuccess?.({ data: { eventId: EVENT_ID } });
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2001);
+    });
+    expect(screen.getByText(RE_FAILED)).toBeInTheDocument();
+    const callCountAfterFirst = mocks.fetchFn.mock.calls.length;
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2001);
+    });
+    expect(mocks.fetchFn.mock.calls.length).toBe(callCountAfterFirst);
+  });
 });

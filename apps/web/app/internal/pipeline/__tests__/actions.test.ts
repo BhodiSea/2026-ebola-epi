@@ -15,7 +15,7 @@ vi.mock("next/cache", () => ({
 }));
 
 vi.mock("@/lib/env", () => ({
-  env: { INNGEST_API_KEY: "test-api-key", INNGEST_SIGNING_KEY: "test-signing-key" },
+  env: { INNGEST_SIGNING_KEY: "test-signing-key" },
 }));
 
 vi.mock("@/lib/actions/client", () => ({
@@ -57,7 +57,7 @@ describe("retryInngestRunAction", () => {
     );
   });
 
-  it("uses INNGEST_API_KEY as the Bearer token, not INNGEST_SIGNING_KEY", async () => {
+  it("uses INNGEST_SIGNING_KEY as the Bearer token", async () => {
     mockFetch.mockResolvedValue({ ok: true });
     const { retryInngestRunAction } = await import("../actions");
     // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- next-safe-action bindArgsServerAction return is opaque; cast required to call handler in tests
@@ -66,8 +66,8 @@ describe("retryInngestRunAction", () => {
     const [, options] = mockFetch.mock.calls[0] as [string, RequestInit];
     // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- fetch RequestInit.headers narrowed for header inspection
     const headers = options.headers as Record<string, string>;
-    expect(headers.Authorization).toBe("Bearer test-api-key");
-    expect(headers.Authorization).not.toContain("signing");
+    expect(headers.Authorization).toBe("Bearer test-signing-key");
+    expect(headers.Authorization).not.toContain("test-api-key");
   });
 
   it("throws when Inngest returns a non-2xx status", async () => {

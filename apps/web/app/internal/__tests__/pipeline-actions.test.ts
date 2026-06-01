@@ -24,7 +24,6 @@ describe("retryInngestRunAction", () => {
   beforeAll(async () => {
     vi.mock("@/lib/env", () => ({
       env: {
-        INNGEST_API_KEY: "apikey-test-00000000",
         INNGEST_SIGNING_KEY: "signkey-test-00000000",
       },
     }));
@@ -35,7 +34,7 @@ describe("retryInngestRunAction", () => {
     vi.clearAllMocks();
   });
 
-  it("uses INNGEST_API_KEY as the Bearer token, not INNGEST_SIGNING_KEY", async () => {
+  it("uses INNGEST_SIGNING_KEY as the Bearer token", async () => {
     expect(handler).toBeDefined();
     mockFetch.mockResolvedValue({ ok: true });
     await handler!({ parsedInput: { runId: "run-abc123" } });
@@ -44,8 +43,8 @@ describe("retryInngestRunAction", () => {
     expect(url).toContain("run-abc123/retry");
     // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- fetch RequestInit.headers narrowed for header inspection
     const auth = (opts.headers as Record<string, string>).Authorization;
-    expect(auth).toBe("Bearer apikey-test-00000000");
-    expect(auth).not.toContain("signkey");
+    expect(auth).toBe("Bearer signkey-test-00000000");
+    expect(auth).not.toContain("apikey");
   });
 
   it("throws a descriptive error when Inngest returns non-ok", async () => {

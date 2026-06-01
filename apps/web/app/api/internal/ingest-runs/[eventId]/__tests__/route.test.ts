@@ -6,7 +6,7 @@ const { mockGetUser, mockIsInternalUser, mockEnv, mockFetch } = vi.hoisted(() =>
   const getUser = vi.fn();
   const isInternalUser = vi.fn();
   const fetch = vi.fn();
-  const env = { INNGEST_API_KEY: "test-api-key" };
+  const env = { INNGEST_SIGNING_KEY: "test-signing-key" };
   return {
     mockGetUser: getUser,
     mockIsInternalUser: isInternalUser,
@@ -83,6 +83,20 @@ describe("GET /api/internal/ingest-runs/[eventId]", () => {
     expect(res.status).toBe(502);
   });
 
+  it("includes upstreamStatus in the 502 body and x-upstream-status header", async () => {
+    mockGetUser.mockResolvedValue({ data: { user: INTERNAL_USER } });
+    mockIsInternalUser.mockReturnValue(true);
+    mockFetch.mockResolvedValue(new Response("Unauthorized", { status: 401 }));
+    const { GET } = await import("../route");
+    const res = await GET(makeReq(VALID_EVENT_ID), makeCtx(VALID_EVENT_ID));
+    expect(res.status).toBe(502);
+    /* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access -- res.json() returns any */
+    const body = await res.json();
+    expect(body.upstreamStatus).toBe(401);
+    /* eslint-enable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access */
+    expect(res.headers.get("x-upstream-status")).toBe("401");
+  });
+
   it("returns 200 with the runs array from Inngest on success", async () => {
     mockGetUser.mockResolvedValue({ data: { user: INTERNAL_USER } });
     mockIsInternalUser.mockReturnValue(true);
@@ -112,7 +126,7 @@ describe("GET /api/internal/ingest-runs/[eventId]", () => {
     /* eslint-enable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access */
   });
 
-  it("sends the Authorization header with the Inngest API key", async () => {
+  it("sends the Authorization header with the Inngest signing key", async () => {
     mockGetUser.mockResolvedValue({ data: { user: INTERNAL_USER } });
     mockIsInternalUser.mockReturnValue(true);
     mockFetch.mockResolvedValue(new Response(JSON.stringify({ data: [] }), { status: 200 }));
@@ -122,7 +136,7 @@ describe("GET /api/internal/ingest-runs/[eventId]", () => {
       `https://api.inngest.com/v1/events/${VALID_EVENT_ID}/runs`,
       expect.objectContaining({
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- expect.objectContaining() returns any; standard vitest pattern for partial-match assertions
-        headers: expect.objectContaining({ Authorization: "Bearer test-api-key" }),
+        headers: expect.objectContaining({ Authorization: "Bearer test-signing-key" }),
       }),
     );
   });

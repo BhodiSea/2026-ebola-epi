@@ -22,9 +22,7 @@ export default async function PipelinePage() {
       </div>
 
       {runs.length === 0 ? (
-        <p className="font-mono text-fg-muted text-xs">
-          No runs found. Verify INNGEST_API_KEY is set.
-        </p>
+        <p className="font-mono text-fg-muted text-xs">No runs found.</p>
       ) : (
         <>
           <PipelineGantt runs={runs} />
@@ -73,19 +71,13 @@ function computeSuccessRate(runs: InngestRun[]): number {
 }
 
 async function fetchRuns(): Promise<InngestRun[]> {
-  const key = env.INNGEST_API_KEY;
-  if (key === undefined) {
-    console.error("[pipeline] INNGEST_API_KEY is not set; cannot fetch runs from Inngest REST API");
-    return [];
-  }
-
   try {
     const res = await fetch("https://api.inngest.com/v1/runs?limit=100", {
-      headers: { Authorization: `Bearer ${key}` },
+      headers: { Authorization: `Bearer ${env.INNGEST_SIGNING_KEY}` },
       next: { revalidate: 30 },
     });
     if (!res.ok) {
-      console.error(`[pipeline] Inngest API returned ${res.status} — check INNGEST_API_KEY`);
+      console.error(`[pipeline] Inngest API returned ${res.status}`);
       return [];
     }
     // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- res.json() returns any; as unknown as T is the accepted safe-assertion idiom
