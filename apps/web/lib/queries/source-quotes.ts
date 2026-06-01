@@ -4,7 +4,7 @@ import { SourceQuoteId } from "@ituri/shared";
 import { unstable_cache } from "next/cache";
 import { z } from "zod";
 
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createStaticClient } from "@/lib/supabase/server";
 
 /* eslint-disable @typescript-eslint/naming-convention */
 const SourceQuoteRow = z.object({
@@ -116,7 +116,7 @@ export async function getCustodyForQuote(id: SourceQuoteId): Promise<null | Quot
 
 export const getQuotesForMethodsPage = unstable_cache(
   async (): Promise<SourceQuoteRow[]> => {
-    const supabase = await createClient();
+    const supabase = createStaticClient();
     const { data, error } = await supabase
       .from("source_quotes")
       .select(

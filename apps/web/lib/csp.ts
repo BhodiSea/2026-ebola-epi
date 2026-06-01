@@ -2,7 +2,7 @@ export function buildCsp(nonce: string, embedMode = false): string {
   const frameAncestors = embedMode ? "*" : "'self'";
   const directives = [
     "default-src 'self'",
-    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'`,
+    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${process.env.NODE_ENV === "production" ? "" : " 'unsafe-eval'"}`,
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: https:",
     "worker-src 'self' blob:",

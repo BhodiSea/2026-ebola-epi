@@ -69,6 +69,26 @@ export default async function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${sourceSerif4.variable} font-sans antialiased`}
       >
+        <JsonLd
+          schema={{
+            "@context": "https://schema.org",
+            "@type": "WebSite",
+            name: "ituri-sitrep",
+            url: defaultUrl,
+            description:
+              "Public situational-awareness companion for the 2026 Ituri Bundibugyo virus outbreak.",
+            author: {
+              "@type": "Person",
+              name: "Thomas Nicklin",
+              email: "tnicklin@hawaii.edu",
+              affiliation: {
+                "@type": "Organization",
+                name: "University of Western Australia",
+              },
+              sameAs: ["https://github.com/BhodiSea"],
+            },
+          }}
+        />
         <ThemeProvider
           attribute="data-theme"
           defaultTheme="system"
@@ -76,26 +96,6 @@ export default async function RootLayout({
           disableTransitionOnChange
           {...(nonce !== undefined && { nonce })}
         >
-          <JsonLd
-            schema={{
-              "@context": "https://schema.org",
-              "@type": "WebSite",
-              name: "ituri-sitrep",
-              url: defaultUrl,
-              description:
-                "Public situational-awareness companion for the 2026 Ituri Bundibugyo virus outbreak.",
-              author: {
-                "@type": "Person",
-                name: "Thomas Nicklin",
-                email: "tnicklin@hawaii.edu",
-                affiliation: {
-                  "@type": "Organization",
-                  name: "University of Western Australia",
-                },
-                sameAs: ["https://github.com/BhodiSea"],
-              },
-            }}
-          />
           <TooltipProvider>
             <TopBar />
             <div className="flex min-h-[calc(100vh-3.5rem)]">

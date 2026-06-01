@@ -283,7 +283,10 @@ function motionOptions(): AnimationOptions {
 }
 
 function onMapLoad(map: MlMap, opts: InitOpts, refresh: () => void) {
-  addZoneLayers(map, `/api/mvt/${TILE_VERSION}/{z}/{x}/{y}?outbreak_id=${opts.outbreakId}`);
+  addZoneLayers(
+    map,
+    `${globalThis.location.origin}/api/mvt/${TILE_VERSION}/{z}/{x}/{y}?outbreak_id=${opts.outbreakId}`,
+  );
   registerZoneInteractions(map, () => opts.live.current.onSelectZone);
   if (opts.live.current.terrain) {
     addTerrain(map);

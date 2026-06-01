@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { buildCsp } from "@/lib/csp";
 
@@ -47,5 +47,18 @@ describe("buildCsp", () => {
     const embedCsp = buildCsp(nonce, true);
     expect(embedCsp).toContain("frame-ancestors *");
     expect(embedCsp).not.toContain("frame-ancestors 'self'");
+  });
+
+  it("includes unsafe-eval in script-src outside production", () => {
+    // NODE_ENV in vitest is "test" — same non-production category as "development".
+    // React dev runtime requires eval() to reconstruct cross-realm callstacks.
+    expect(csp).toContain("'unsafe-eval'");
+  });
+
+  it("excludes unsafe-eval from script-src in production", () => {
+    vi.stubEnv("NODE_ENV", "production");
+    const prodCsp = buildCsp(nonce);
+    vi.unstubAllEnvs();
+    expect(prodCsp).not.toContain("'unsafe-eval'");
   });
 });

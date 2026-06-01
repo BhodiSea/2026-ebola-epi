@@ -24,6 +24,9 @@ function ThemeIcon({ theme }: Readonly<{ theme: string | undefined }>) {
 
 function ThemeToggle() {
   const { theme, setTheme } = useTheme();
+  if (theme === undefined) {
+    return null;
+  }
 
   return (
     <DropdownMenu>
@@ -33,7 +36,7 @@ function ThemeToggle() {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-32">
-        <DropdownMenuRadioGroup value={theme ?? "system"} onValueChange={setTheme}>
+        <DropdownMenuRadioGroup value={theme} onValueChange={setTheme}>
           <DropdownMenuRadioItem value="light">Light</DropdownMenuRadioItem>
           <DropdownMenuRadioItem value="dark">Dark</DropdownMenuRadioItem>
           <DropdownMenuRadioItem value="system">System</DropdownMenuRadioItem>

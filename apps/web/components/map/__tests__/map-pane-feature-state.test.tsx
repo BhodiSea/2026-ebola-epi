@@ -4,6 +4,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { MapPane } from "../map-pane";
 import { createMapKeyboard } from "@/lib/map/keyboard";
 
+const ABSOLUTE_URL_RE = /^https?:\/\//;
+
 const h = vi.hoisted(() => {
   const handlers: Record<string, ((arg?: unknown) => void)[]> = {};
   const setFeatureState = vi.fn();
@@ -135,5 +137,25 @@ describe("MapPane choropleth feature-state", () => {
       }
     });
     expect(h.setFeatureState.mock.calls.length).toBeGreaterThan(before);
+  });
+
+  it("uses an absolute URL for the MVT tile source (Worker-safe)", () => {
+    act(() => {
+      render(
+        <MapPane
+          outbreakId="d0eebc99-9c0b-4ef8-bb6d-6bb9bd380a01"
+          keyboard={createMapKeyboard()}
+          ariaLabel="Test map"
+        />,
+      );
+    });
+    act(() => {
+      fireLoad();
+    });
+    const sourceCall = h.addSource.mock.calls.find((c) => c[0] === "mvt-zones");
+    expect(sourceCall?.[1]).toMatchObject({
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- arrayContaining returns any by design in vitest's types
+      tiles: expect.arrayContaining([expect.stringMatching(ABSOLUTE_URL_RE)]),
+    });
   });
 });
