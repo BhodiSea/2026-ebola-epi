@@ -93,7 +93,7 @@
 
 /* ── Dark mode — system preference ── */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme]) {
     --color-bg: oklch(14% 0.010 260);
     --color-surface-1: oklch(18% 0.010 260);
     --color-surface-2: oklch(22% 0.010 260);

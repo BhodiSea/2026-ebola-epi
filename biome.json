@@ -184,6 +184,14 @@
       }
     },
     {
+      "includes": ["**/scripts/**/*.ts"],
+      "linter": {
+        "rules": {
+          "suspicious": { "noConsole": "off" }
+        }
+      }
+    },
+    {
       "includes": ["packages/shared/src/**", "packages/extract/src/**"],
       "linter": {
         "rules": {

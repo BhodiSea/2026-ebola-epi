@@ -18,6 +18,7 @@ const config: KnipConfig = {
         "vitest.config.ts",
         "playwright.config.ts",
         "vercel.ts",
+        "scripts/**/*.ts",
       ],
       project: ["**/*.{ts,tsx}!"],
       next: { entry: ["app/**/*.{ts,tsx}"] },

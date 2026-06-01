@@ -1,7 +1,15 @@
+import type { RegisteredSourceSlug } from "@ituri/ingest";
+import { REGISTERED_SOURCE_SLUGS } from "@ituri/ingest";
+
+import { RunIngestButton } from "@/components/internal/run-ingest-button";
 import { SourcePauseButton } from "@/components/internal/source-pause-button";
 import { listSkipCounts24h } from "@/lib/queries/source-skip-counts";
 import type { SourceWithHealth } from "@/lib/queries/sources-with-health";
 import { listSourcesWithHealth } from "@/lib/queries/sources-with-health";
+
+function isRegisteredSlug(s: string): s is RegisteredSourceSlug {
+  return (REGISTERED_SOURCE_SLUGS as readonly string[]).includes(s);
+}
 
 const STATUS_PILL: Record<string, string> = {
   failing: "rounded px-1.5 py-0.5 font-mono text-[10px] bg-emergency/20 text-emergency",
@@ -28,6 +36,7 @@ export default async function SourcesPage() {
               <th className="pr-4 pb-1 text-right">Fails (7d)</th>
               <th className="pr-4 pb-1 text-right">Skipped (24h)</th>
               <th className="pr-4 pb-1">Status</th>
+              <th className="pr-4 pb-1">Run</th>
               <th className="pb-1">Toggle</th>
             </tr>
           </thead>
@@ -45,6 +54,11 @@ export default async function SourcesPage() {
                   <td className="py-1.5 pr-4 text-right tabular-nums">{skipCounts[src.id] ?? 0}</td>
                   <td className="py-1.5 pr-4">
                     <span className={STATUS_PILL[sk]}>{sk}</span>
+                  </td>
+                  <td className="py-1.5 pr-4">
+                    {isRegisteredSlug(src.slug) ? (
+                      <RunIngestButton slug={src.slug} disabled={src.extractionPaused} />
+                    ) : null}
                   </td>
                   <td className="py-1.5">
                     <SourcePauseButton sourceId={src.id} paused={src.extractionPaused} />

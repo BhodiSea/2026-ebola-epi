@@ -8,6 +8,19 @@ import { ugandaMOHAdapter } from "./sources/uganda-moh.js";
 import { whoAFROAdapter } from "./sources/who-afro.js";
 import { whoDONAdapter } from "./sources/who-don.js";
 
+export const REGISTERED_SOURCE_SLUGS = [
+  "acled",
+  "africa-cdc",
+  "ecdc-cdtr",
+  "moh-drc",
+  "reliefweb",
+  "uganda-moh",
+  "who-afro",
+  "who-don",
+] as const;
+
+export type RegisteredSourceSlug = (typeof REGISTERED_SOURCE_SLUGS)[number];
+
 export const ADAPTER_REGISTRY: Record<string, RegisteredAdapter> = {
   acled: acledAdapter,
   "africa-cdc": africaCDCAdapter,

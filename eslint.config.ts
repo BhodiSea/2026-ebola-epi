@@ -631,6 +631,17 @@ export default defineConfig(
     },
   },
 
+  // ---- Scripts (CLI tools — console output is intentional) ----
+  {
+    name: "ituri/scripts",
+    files: ["**/scripts/**/*.ts"],
+    rules: {
+      "no-console": "off",
+      "import-x/no-extraneous-dependencies": "off",
+      "n/no-extraneous-import": "off",
+    },
+  },
+
   // ---- proxy.ts: String.raw banned — Next.js extractExportedConstValue cannot evaluate tagged template literals ----
   {
     name: "ituri/proxy",

@@ -1,7 +1,8 @@
 export type { Adapter, FetchResult, ParseResult, RegisteredAdapter } from "./adapter.js";
 // biome-ignore lint/performance/noBarrelFile: package entry point — consumers import from @ituri/ingest
 export { fetchWithConditionalGet, RateLimitedError, USER_AGENT } from "./fetch-helper.js";
-export { ADAPTER_REGISTRY } from "./registry.js";
+export type { RegisteredSourceSlug } from "./registry.js";
+export { ADAPTER_REGISTRY, REGISTERED_SOURCE_SLUGS } from "./registry.js";
 export { acledAdapter } from "./sources/acled.js";
 export { africaCDCAdapter } from "./sources/africa-cdc.js";
 export { ecdcCDTRAdapter } from "./sources/ecdc-cdtr.js";

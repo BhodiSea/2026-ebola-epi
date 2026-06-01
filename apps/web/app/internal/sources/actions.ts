@@ -1,8 +1,13 @@
 "use server";
 
+import "server-only";
+
+import { REGISTERED_SOURCE_SLUGS } from "@ituri/ingest";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
+import { inngest } from "@/inngest/client";
+import { pollEventName } from "@/inngest/functions/ingest-source-config";
 import { internalAction } from "@/lib/actions/client";
 
 export const toggleSourcePauseAction = internalAction
@@ -18,4 +23,14 @@ export const toggleSourcePauseAction = internalAction
       throw new Error(error.message);
     }
     revalidatePath("/internal/sources");
+  });
+
+export const triggerIngestPollAction = internalAction
+  .inputSchema(z.object({ slug: z.enum(REGISTERED_SOURCE_SLUGS) }))
+  .action(async ({ parsedInput }) => {
+    const result = await inngest.send({
+      name: pollEventName(parsedInput.slug),
+      data: { triggeredBy: "internal-ui" },
+    });
+    return { eventId: result.ids[0] };
   });
