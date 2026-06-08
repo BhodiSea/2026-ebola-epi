@@ -34,6 +34,7 @@ export const ugandaMOHAdapter: RegisteredAdapter = {
   sourceSlug: "uganda-moh",
   throttleKey: "health.go.ug",
   pollInterval: "0 10 * * *",
+  version: "1.0.0",
 
   async poll() {
     const result = await fetchWithConditionalGet(LISTING_URL);

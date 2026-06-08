@@ -7,6 +7,7 @@ vi.stubGlobal("fetch", mockFetch);
 
 vi.mock("@/lib/env", () => ({
   env: {
+    INNGEST_API_KEY: "apikey-test-00000000",
     INNGEST_SIGNING_KEY: "signkey-test-00000000",
   },
 }));
@@ -26,7 +27,7 @@ describe("/internal/pipeline page", () => {
     expect(typeof mod.default).toBe("function");
   });
 
-  it("uses INNGEST_SIGNING_KEY as the Bearer token", async () => {
+  it("uses INNGEST_API_KEY (not signing key) as the Bearer token", async () => {
     mockFetch.mockResolvedValue({
       ok: true,
       json: async () => ({ data: [] }),
@@ -37,8 +38,8 @@ describe("/internal/pipeline page", () => {
     const [, opts] = mockFetch.mock.calls[0] as [string, RequestInit];
     // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- fetch RequestInit.headers narrowed for header inspection
     const headers = opts.headers as Record<string, string>;
-    expect(headers.Authorization).toBe("Bearer signkey-test-00000000");
-    expect(headers.Authorization).not.toContain("apikey");
+    expect(headers.Authorization).toBe("Bearer apikey-test-00000000");
+    expect(headers.Authorization).not.toContain("signkey");
   });
 
   it("renders without throwing when fetch returns non-ok", async () => {

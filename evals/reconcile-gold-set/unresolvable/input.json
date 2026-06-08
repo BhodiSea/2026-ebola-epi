@@ -1,0 +1,20 @@
+{
+  "a": {
+    "id": "e5f6a7b8-c9d0-1234-8f01-345678901234",
+    "publishedAtIso": "2026-04-15T12:00:00Z",
+    "quoteText": "As of 15 April 2026, WHO confirms 64 cases including 22 deaths from Bundibugyo virus disease in Mambasa Health Zone, Ituri Province.",
+    "sourceSlug": "who-don",
+    "trustScore": "0.95",
+    "value": 64
+  },
+  "b": {
+    "id": "f6a7b8c9-d0e1-2345-9012-456789012345",
+    "publishedAtIso": "2026-04-15T18:00:00Z",
+    "quoteText": "Le Ministère de la Santé confirme 48 cas de maladie à virus Bundibugyo au 15 avril 2026 dans la zone de santé de Mambasa.",
+    "sourceSlug": "moh-drc",
+    "trustScore": "0.90",
+    "value": 48
+  },
+  "metric": "confirmed_cases",
+  "asOf": "2026-04-15"
+}

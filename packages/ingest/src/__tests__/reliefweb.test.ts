@@ -77,10 +77,9 @@ describe("reliefwebAdapter.poll()", () => {
     });
     afterEach(() => vi.unstubAllGlobals());
 
-    it("returns [] when RELIEFWEB_APPNAME is absent", async () => {
+    it("throws when RELIEFWEB_APPNAME is absent", async () => {
       const { reliefwebAdapter } = await import("../sources/reliefweb.js");
-      const items = await reliefwebAdapter.poll();
-      expect(items).toEqual([]);
+      await expect(reliefwebAdapter.poll()).rejects.toThrow("RELIEFWEB_APPNAME");
     });
   });
 });

@@ -12,6 +12,9 @@ export const TRIAGE_DOCUMENT_FN_CONFIG = {
   id: "triage-document",
   retries: 3,
   concurrency: { limit: 5 },
+  // Deduplicates concurrent triage runs for the same document within Inngest's
+  // dedup window, preventing double Haiku/Sonnet billing on re-trigger.
+  idempotency: "event.data.documentId",
 } as const;
 
 export const TRIAGE_DOCUMENT_TRIGGER = { event: DOCUMENT_TRIAGE_REQUESTED } as const;
@@ -34,12 +37,6 @@ export const RECONCILE_COUNTS_FN_CONFIG = {
 } as const;
 
 export const RECONCILE_COUNTS_TRIGGER = { event: RECONCILE_REQUESTED } as const;
-
-export const RECONCILE_SWEEP_FN_CONFIG = {
-  id: "reconcile-sweep",
-  retries: 2,
-  concurrency: { limit: 1 },
-} as const;
 
 // Each matchKey (pathogen-country pair) gets one dedicated slot; global cap is high
 // because these are cheap wait steps, not compute-intensive work.

@@ -17,7 +17,7 @@ import { notifySlack } from "@/lib/notify";
 
 const FIXTURE_DIR = path.join(process.cwd(), "../../evals/synthetic/bundibugyo-ituri-sentinel");
 const SYNTHETIC_SOURCE_SLUG = "synthetic-monitor";
-const MAX_POLL_ITERATIONS = 10;
+const MAX_POLL_ITERATIONS = 30;
 
 interface AssertResult {
   diff: unknown[];

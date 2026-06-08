@@ -3,7 +3,8 @@
   "compilerOptions": {
     "lib": ["ES2023"],
     "module": "ESNext",
-    "moduleResolution": "bundler"
+    "moduleResolution": "bundler",
+    "noPropertyAccessFromIndexSignature": false
   },
-  "include": ["lib", "__tests__"]
+  "include": ["**/*.ts"]
 }

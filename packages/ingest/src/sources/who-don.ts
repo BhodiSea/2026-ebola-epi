@@ -120,6 +120,7 @@ export const whoDONAdapter: RegisteredAdapter = {
   sourceSlug: "who-don",
   throttleKey: "who.int",
   pollInterval: "*/30 * * * *",
+  version: "1.0.0",
 
   async poll() {
     const items = await pollWHODON();

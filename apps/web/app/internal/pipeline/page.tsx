@@ -73,7 +73,7 @@ function computeSuccessRate(runs: InngestRun[]): number {
 async function fetchRuns(): Promise<InngestRun[]> {
   try {
     const res = await fetch("https://api.inngest.com/v1/runs?limit=100", {
-      headers: { Authorization: `Bearer ${env.INNGEST_SIGNING_KEY}` },
+      headers: { Authorization: `Bearer ${env.INNGEST_API_KEY ?? ""}` },
       next: { revalidate: 30 },
     });
     if (!res.ok) {

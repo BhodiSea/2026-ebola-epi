@@ -6,7 +6,10 @@ const { mockGetUser, mockIsInternalUser, mockEnv, mockFetch } = vi.hoisted(() =>
   const getUser = vi.fn();
   const isInternalUser = vi.fn();
   const fetch = vi.fn();
-  const env = { INNGEST_SIGNING_KEY: "test-signing-key" };
+  const env: { INNGEST_API_KEY: string | undefined; INNGEST_SIGNING_KEY: string } = {
+    INNGEST_API_KEY: "test-api-key",
+    INNGEST_SIGNING_KEY: "test-signing-key",
+  };
   return {
     mockGetUser: getUser,
     mockIsInternalUser: isInternalUser,
@@ -126,7 +129,7 @@ describe("GET /api/internal/ingest-runs/[eventId]", () => {
     /* eslint-enable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access */
   });
 
-  it("sends the Authorization header with the Inngest signing key", async () => {
+  it("sends the Authorization header with the Inngest API key (not the signing key)", async () => {
     mockGetUser.mockResolvedValue({ data: { user: INTERNAL_USER } });
     mockIsInternalUser.mockReturnValue(true);
     mockFetch.mockResolvedValue(new Response(JSON.stringify({ data: [] }), { status: 200 }));
@@ -136,9 +139,19 @@ describe("GET /api/internal/ingest-runs/[eventId]", () => {
       `https://api.inngest.com/v1/events/${VALID_EVENT_ID}/runs`,
       expect.objectContaining({
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- expect.objectContaining() returns any; standard vitest pattern for partial-match assertions
-        headers: expect.objectContaining({ Authorization: "Bearer test-signing-key" }),
+        headers: expect.objectContaining({ Authorization: "Bearer test-api-key" }),
       }),
     );
+  });
+
+  it("returns 502 when INNGEST_API_KEY is not configured", async () => {
+    mockGetUser.mockResolvedValue({ data: { user: INTERNAL_USER } });
+    mockIsInternalUser.mockReturnValue(true);
+    mockEnv.INNGEST_API_KEY = undefined;
+    const { GET } = await import("../route");
+    const res = await GET(makeReq(VALID_EVENT_ID), makeCtx(VALID_EVENT_ID));
+    expect(res.status).toBe(502);
+    mockEnv.INNGEST_API_KEY = "test-api-key";
   });
 
   it("returns empty runs array when Inngest body has no data field", async () => {

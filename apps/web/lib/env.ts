@@ -3,13 +3,16 @@ import { z } from "zod";
 
 export const env = createEnv({
   server: {
+    // Next.js-managed — set to "nodejs" or "edge" by the framework
+    NEXT_RUNTIME: z.enum(["nodejs", "edge"]).optional(),
     VERCEL_URL: z.string().optional(),
     VERCEL_ENV: z.string().optional(),
-    VERCEL_PROJECT_PRODUCTION_URL: z.string().optional(),
     ANTHROPIC_API_KEY: z.string().min(1),
     ARCJET_KEY: z.string().min(1).optional(),
     INNGEST_EVENT_KEY: z.string().min(1),
     INNGEST_SIGNING_KEY: z.string().min(1),
+    // REST API key for querying run history — separate from signing key; issue from Inngest dashboard
+    INNGEST_API_KEY: z.string().optional(),
     POSTGRES_URL_NON_POOLING: z.url(),
     // Phase 7 — cost kill-switch + notifications
     EDGE_CONFIG: z.string().optional(),
@@ -21,6 +24,10 @@ export const env = createEnv({
     TWILIO_TO_NUMBER: z.string().optional(),
     GITHUB_TOKEN: z.string().optional(),
     GITHUB_REPO: z.string().optional(),
+    // Ingest adapter credentials (optional — adapters throw visibly when missing at runtime)
+    RELIEFWEB_APPNAME: z.string().optional(),
+    ACLED_ACCESS_TOKEN: z.string().optional(),
+    ACLED_EMAIL: z.string().optional(),
     // Phase 7 — Langfuse / OTel
     LANGFUSE_PUBLIC_KEY: z.string().optional(),
     LANGFUSE_SECRET_KEY: z.string().optional(),
@@ -39,13 +46,14 @@ export const env = createEnv({
     NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
     NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
     NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL,
+    NEXT_RUNTIME: process.env.NEXT_RUNTIME,
     VERCEL_URL: process.env.VERCEL_URL,
     VERCEL_ENV: process.env.VERCEL_ENV,
-    VERCEL_PROJECT_PRODUCTION_URL: process.env.VERCEL_PROJECT_PRODUCTION_URL,
     ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
     ARCJET_KEY: process.env.ARCJET_KEY,
     INNGEST_EVENT_KEY: process.env.INNGEST_EVENT_KEY,
     INNGEST_SIGNING_KEY: process.env.INNGEST_SIGNING_KEY,
+    INNGEST_API_KEY: process.env.INNGEST_API_KEY,
     POSTGRES_URL_NON_POOLING: process.env.POSTGRES_URL_NON_POOLING,
     EDGE_CONFIG: process.env.EDGE_CONFIG,
     SLACK_WEBHOOK_URL: process.env.SLACK_WEBHOOK_URL,
@@ -55,6 +63,9 @@ export const env = createEnv({
     TWILIO_TO_NUMBER: process.env.TWILIO_TO_NUMBER,
     GITHUB_TOKEN: process.env.GITHUB_TOKEN,
     GITHUB_REPO: process.env.GITHUB_REPO,
+    RELIEFWEB_APPNAME: process.env.RELIEFWEB_APPNAME,
+    ACLED_ACCESS_TOKEN: process.env.ACLED_ACCESS_TOKEN,
+    ACLED_EMAIL: process.env.ACLED_EMAIL,
     LANGFUSE_PUBLIC_KEY: process.env.LANGFUSE_PUBLIC_KEY,
     LANGFUSE_SECRET_KEY: process.env.LANGFUSE_SECRET_KEY,
     LANGFUSE_BASE_URL: process.env.LANGFUSE_BASE_URL,

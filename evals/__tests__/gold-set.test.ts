@@ -1,6 +1,7 @@
 // @vitest-environment node
 // Offline gold-set evaluation — no API calls, no DB. Uses pre-recorded
 // tool_use response fixtures to deterministically assert F1 ≥ 0.90.
+// (knip.config.ts adds tsx to ignoreDependencies/ignoreBinaries — no test needed for config changes)
 // Set PERSIST_EVAL_SCORES=1 to write scores to public.extraction_eval_scores.
 // WS1: schema now uses admin_name (renamed from admin1_name); F1 scoring is admin-blind.
 // Regen fixtures: pnpm --filter=@ituri/evals regen (uses runExtraction — same code path as extract-document.ts).
@@ -15,11 +16,11 @@ import type { ExtractionTuple } from "../lib/f1";
 import { computeF1 } from "../lib/f1";
 
 async function persistEvalScore(sourceSlug: string, metric: string, score: number) {
-  if (process.env["PERSIST_EVAL_SCORES"] !== "1") {
+  if (process.env.PERSIST_EVAL_SCORES !== "1") {
     return;
   }
-  const supabaseUrl = process.env["SUPABASE_URL"];
-  const serviceKey = process.env["SUPABASE_SERVICE_ROLE_KEY"];
+  const supabaseUrl = process.env.SUPABASE_URL;
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (supabaseUrl === undefined || serviceKey === undefined) {
     console.warn(
       "[evals] PERSIST_EVAL_SCORES=1 but SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY missing — skipping persist",

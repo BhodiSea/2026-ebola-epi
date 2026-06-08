@@ -37,6 +37,7 @@ export const africaCDCAdapter: RegisteredAdapter = {
   sourceSlug: "africa-cdc",
   throttleKey: "africacdc.org",
   pollInterval: "0 8 * * *",
+  version: "1.0.0",
 
   async poll() {
     const parser = new RSSParser();

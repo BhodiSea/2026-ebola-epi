@@ -35,6 +35,7 @@ export default defineConfig(
       "**/next-env.d.ts",
       "supabase/.branches/**",
       "coverage/**",
+      "packages/ingest/bin/**",
     ],
   },
 
@@ -86,6 +87,7 @@ export default defineConfig(
         },
       },
       react: { version: "detect" },
+      n: { version: ">=22.0.0" },
     },
     linterOptions: { reportUnusedDisableDirectives: "error" },
     rules: {

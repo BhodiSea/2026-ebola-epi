@@ -30,4 +30,6 @@ export interface RegisteredAdapter extends Adapter {
   pollInterval: string;
   /** Hostname used as a CEL string-literal throttle key in Inngest: `"${throttleKey}"` */
   throttleKey: string;
+  /** Semver string written to sources.parser_version after each successful poll. */
+  version: string;
 }

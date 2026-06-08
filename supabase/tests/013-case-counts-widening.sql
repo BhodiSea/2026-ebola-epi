@@ -72,13 +72,14 @@ begin
 
   insert into public.outbreaks (pathogen_icd11, country_iso3, onset_date)
     values ('1D60.2', 'COD', '2026-01-01')
-    on conflict (pathogen_icd11, country_iso3, onset_date) do nothing;
+    on conflict (pathogen_icd11, country_iso3) do nothing;
   select id into v_outbreak_id from public.outbreaks
     where pathogen_icd11 = '1D60.2' and country_iso3 = 'COD' limit 1;
 
   foreach v_metric in array v_metrics loop
     insert into public.source_quotes (document_id, char_start, char_end, quote_text)
       values (v_doc_id, 5, 13, 'document')
+      on conflict (document_id, char_start, char_end) do update set quote_text = excluded.quote_text
       returning id into v_sq_id;
 
     insert into public.case_counts
@@ -92,6 +93,7 @@ begin
   -- admin_name + is_new_in_period round-trip row
   insert into public.source_quotes (document_id, char_start, char_end, quote_text)
     values (v_doc_id, 5, 13, 'document')
+    on conflict (document_id, char_start, char_end) do update set quote_text = excluded.quote_text
     returning id into v_sq_id;
 
   insert into public.case_counts

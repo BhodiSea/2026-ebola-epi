@@ -1,59 +1,233 @@
-# promptfoo evaluation config for the ituri-sitrep extraction prompt.
+# promptfoo evaluation config for the ituri-sitrep extraction and triage prompts.
 # Run offline (fixtures only): pnpm --filter @ituri/evals test
 # Run live (Anthropic API, nightly CI): pnpm --filter @ituri/evals eval
 
-description: "Extraction prompt F1 evaluation — multi-pathogen gold set (7 contexts)"
+description: "Extraction F1 + triage accuracy evaluation — multi-pathogen gold sets"
 
 providers:
-  - id: anthropic:messages:claude-sonnet-4-6
+  - id: extraction
+    label: extraction
     config:
+      provider: anthropic:messages:claude-sonnet-4-6
       cache: true
       max_tokens: 4096
       tool_choice:
         type: tool
         name: extract_case_counts
 
-prompts:
-  - file://../packages/extract/src/prompt.ts:STATIC_INSTRUCTIONS
+  - id: triage
+    label: triage
+    config:
+      provider: anthropic:messages:claude-haiku-4-5-20251001
+      cache: true
+      max_tokens: 256
+      tool_choice:
+        type: tool
+        name: classify_document
 
-defaultTest:
-  assert:
-    - type: javascript
-      value: |
-        const { computeF1 } = require('./lib/f1.js');
-        const expected = JSON.parse(require('fs').readFileSync(
-          `gold-set/${context.vars.fixture}/ground-truth.json`, 'utf8'
-        ));
-        const rows = output.extractions ?? [];
-        const actual = rows.map(r => ({
-          pathogen_icd11: r.pathogen_icd11,
-          country_iso3: r.country_iso3,
-          metric: r.metric,
-          value: r.value,
-          as_of: r.as_of,
-        }));
-        const { f1 } = computeF1(expected, actual);
-        return { pass: f1 >= 0.95, score: f1, reason: `F1=${f1.toFixed(3)}` };
+prompts:
+  - id: extraction-prompt
+    label: extraction
+    provider: extraction
+    file: file://../packages/extract/src/prompt.ts:STATIC_INSTRUCTIONS
+
+  - id: triage-prompt
+    label: triage
+    provider: triage
+    file: file://../packages/extract/src/agents/triage-prompt.ts:TRIAGE_SYSTEM
 
 tests:
+  # ── Extraction gold set (7 fixtures) ────────────────────────────────────────
   - vars:
       fixture: bundibugyo-ituri-2026-04-20
       document: file://gold-set/bundibugyo-ituri-2026-04-20/source.txt
+    provider: extraction
+    assert:
+      - type: javascript
+        value: |
+          const { computeF1 } = require('./lib/f1.js');
+          const expected = JSON.parse(require('fs').readFileSync(
+            `gold-set/${context.vars.fixture}/ground-truth.json`, 'utf8'
+          ));
+          const rows = output.extractions ?? [];
+          const actual = rows.map(r => ({
+            pathogen_icd11: r.pathogen_icd11, country_iso3: r.country_iso3,
+            metric: r.metric, value: r.value, as_of: r.as_of,
+          }));
+          const { f1 } = computeF1(expected, actual);
+          return { pass: f1 >= 0.95, score: f1, reason: `F1=${f1.toFixed(3)}` };
+
   - vars:
       fixture: no-confirmed-figures
       document: file://gold-set/no-confirmed-figures/source.txt
+    provider: extraction
+    assert:
+      - type: javascript
+        value: |
+          const { computeF1 } = require('./lib/f1.js');
+          const expected = JSON.parse(require('fs').readFileSync(
+            `gold-set/${context.vars.fixture}/ground-truth.json`, 'utf8'
+          ));
+          const rows = output.extractions ?? [];
+          const actual = rows.map(r => ({
+            pathogen_icd11: r.pathogen_icd11, country_iso3: r.country_iso3,
+            metric: r.metric, value: r.value, as_of: r.as_of,
+          }));
+          const { f1 } = computeF1(expected, actual);
+          return { pass: f1 >= 0.95, score: f1, reason: `F1=${f1.toFixed(3)}` };
+
   - vars:
       fixture: cholera-cod-2024
       document: file://gold-set/cholera-cod-2024/source.txt
+    provider: extraction
+    assert:
+      - type: javascript
+        value: |
+          const { computeF1 } = require('./lib/f1.js');
+          const expected = JSON.parse(require('fs').readFileSync(
+            `gold-set/${context.vars.fixture}/ground-truth.json`, 'utf8'
+          ));
+          const rows = output.extractions ?? [];
+          const actual = rows.map(r => ({
+            pathogen_icd11: r.pathogen_icd11, country_iso3: r.country_iso3,
+            metric: r.metric, value: r.value, as_of: r.as_of,
+          }));
+          const { f1 } = computeF1(expected, actual);
+          return { pass: f1 >= 0.95, score: f1, reason: `F1=${f1.toFixed(3)}` };
+
   - vars:
       fixture: ebola-sudan-ssd-2022
       document: file://gold-set/ebola-sudan-ssd-2022/source.txt
+    provider: extraction
+    assert:
+      - type: javascript
+        value: |
+          const { computeF1 } = require('./lib/f1.js');
+          const expected = JSON.parse(require('fs').readFileSync(
+            `gold-set/${context.vars.fixture}/ground-truth.json`, 'utf8'
+          ));
+          const rows = output.extractions ?? [];
+          const actual = rows.map(r => ({
+            pathogen_icd11: r.pathogen_icd11, country_iso3: r.country_iso3,
+            metric: r.metric, value: r.value, as_of: r.as_of,
+          }));
+          const { f1 } = computeF1(expected, actual);
+          return { pass: f1 >= 0.95, score: f1, reason: `F1=${f1.toFixed(3)}` };
+
   - vars:
       fixture: ebola-zaire-cod-2019
       document: file://gold-set/ebola-zaire-cod-2019/source.txt
+    provider: extraction
+    assert:
+      - type: javascript
+        value: |
+          const { computeF1 } = require('./lib/f1.js');
+          const expected = JSON.parse(require('fs').readFileSync(
+            `gold-set/${context.vars.fixture}/ground-truth.json`, 'utf8'
+          ));
+          const rows = output.extractions ?? [];
+          const actual = rows.map(r => ({
+            pathogen_icd11: r.pathogen_icd11, country_iso3: r.country_iso3,
+            metric: r.metric, value: r.value, as_of: r.as_of,
+          }));
+          const { f1 } = computeF1(expected, actual);
+          return { pass: f1 >= 0.95, score: f1, reason: `F1=${f1.toFixed(3)}` };
+
   - vars:
       fixture: marburg-tz-2026-05-01
       document: file://gold-set/marburg-tz-2026-05-01/source.txt
+    provider: extraction
+    assert:
+      - type: javascript
+        value: |
+          const { computeF1 } = require('./lib/f1.js');
+          const expected = JSON.parse(require('fs').readFileSync(
+            `gold-set/${context.vars.fixture}/ground-truth.json`, 'utf8'
+          ));
+          const rows = output.extractions ?? [];
+          const actual = rows.map(r => ({
+            pathogen_icd11: r.pathogen_icd11, country_iso3: r.country_iso3,
+            metric: r.metric, value: r.value, as_of: r.as_of,
+          }));
+          const { f1 } = computeF1(expected, actual);
+          return { pass: f1 >= 0.95, score: f1, reason: `F1=${f1.toFixed(3)}` };
+
   - vars:
       fixture: mpox-cod-2023
       document: file://gold-set/mpox-cod-2023/source.txt
+    provider: extraction
+    assert:
+      - type: javascript
+        value: |
+          const { computeF1 } = require('./lib/f1.js');
+          const expected = JSON.parse(require('fs').readFileSync(
+            `gold-set/${context.vars.fixture}/ground-truth.json`, 'utf8'
+          ));
+          const rows = output.extractions ?? [];
+          const actual = rows.map(r => ({
+            pathogen_icd11: r.pathogen_icd11, country_iso3: r.country_iso3,
+            metric: r.metric, value: r.value, as_of: r.as_of,
+          }));
+          const { f1 } = computeF1(expected, actual);
+          return { pass: f1 >= 0.95, score: f1, reason: `F1=${f1.toFixed(3)}` };
+
+  # ── Triage gold set (4 fixtures) ─────────────────────────────────────────────
+  - vars:
+      triage_fixture: who-don-bundibugyo
+      document: file://triage-gold-set/who-don-bundibugyo/source.txt
+    provider: triage
+    assert:
+      - type: javascript
+        value: |
+          const gt = JSON.parse(require('fs').readFileSync(
+            `triage-gold-set/${context.vars.triage_fixture}/ground-truth.json`, 'utf8'
+          ));
+          const pass = output.is_outbreak === gt.is_outbreak &&
+            (!gt.is_outbreak || output.pathogen_icd11 === gt.pathogen_icd11);
+          return { pass, score: pass ? 1 : 0,
+            reason: `is_outbreak=${output.is_outbreak} pathogen=${output.pathogen_icd11 ?? 'n/a'}` };
+
+  - vars:
+      triage_fixture: who-routine-policy
+      document: file://triage-gold-set/who-routine-policy/source.txt
+    provider: triage
+    assert:
+      - type: javascript
+        value: |
+          const gt = JSON.parse(require('fs').readFileSync(
+            `triage-gold-set/${context.vars.triage_fixture}/ground-truth.json`, 'utf8'
+          ));
+          const pass = output.is_outbreak === gt.is_outbreak;
+          return { pass, score: pass ? 1 : 0,
+            reason: `is_outbreak=${output.is_outbreak}` };
+
+  - vars:
+      triage_fixture: who-afro-french-bulletin
+      document: file://triage-gold-set/who-afro-french-bulletin/source.txt
+    provider: triage
+    assert:
+      - type: javascript
+        value: |
+          const gt = JSON.parse(require('fs').readFileSync(
+            `triage-gold-set/${context.vars.triage_fixture}/ground-truth.json`, 'utf8'
+          ));
+          const pass = output.is_outbreak === gt.is_outbreak &&
+            (!gt.is_outbreak || output.pathogen_icd11 === gt.pathogen_icd11);
+          return { pass, score: pass ? 1 : 0,
+            reason: `is_outbreak=${output.is_outbreak} pathogen=${output.pathogen_icd11 ?? 'n/a'}` };
+
+  - vars:
+      triage_fixture: novel-pathogen-country
+      document: file://triage-gold-set/novel-pathogen-country/source.txt
+    provider: triage
+    assert:
+      - type: javascript
+        value: |
+          const gt = JSON.parse(require('fs').readFileSync(
+            `triage-gold-set/${context.vars.triage_fixture}/ground-truth.json`, 'utf8'
+          ));
+          const pass = output.is_outbreak === gt.is_outbreak &&
+            (!gt.is_outbreak || output.pathogen_icd11 === gt.pathogen_icd11) &&
+            output.novelty === gt.novelty;
+          return { pass, score: pass ? 1 : 0,
+            reason: `is_outbreak=${output.is_outbreak} pathogen=${output.pathogen_icd11 ?? 'n/a'} novelty=${output.novelty}` };

@@ -1,0 +1,22 @@
+{
+  "content": [
+    {
+      "type": "tool_use",
+      "id": "toolu_04NovelMarburg",
+      "name": "classify_document",
+      "input": {
+        "is_outbreak": true,
+        "novelty": "new",
+        "confidence": 0.93,
+        "pathogen_icd11": "1C90.0",
+        "country_iso3": "RWA"
+      }
+    }
+  ],
+  "usage": {
+    "input_tokens": 756,
+    "output_tokens": 58,
+    "cache_read_input_tokens": 756,
+    "cache_creation_input_tokens": 0
+  }
+}

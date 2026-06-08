@@ -26,35 +26,40 @@ offsets being correct.
 
 2. **Per claim (the LLM tool-use output names them):**
    - Take the LLM-returned `char_start`, `char_end`, and `text`.
-   - Verify `canonicalText.substring(char_start, char_end) === text`
-     (exact match preferred).
-   - On exact mismatch, fall back to Levenshtein distance ≤ 5; allow
-     and log the small drift.
-   - On larger mismatch, **reject the extraction**. Do not insert a
-     `source_quotes` row. Mark the `extraction_runs` row with the rejected
-     count for downstream alerting.
+   - **Exact check:** verify `canonicalText.slice(char_start, char_end) === text`.
+   - **`indexOf` fallback:** if the exact check fails, run
+     `canonicalText.indexOf(text)`. If found, derive the corrected
+     `char_start`/`char_end` from that position.
+   - **Reject:** if `indexOf` returns -1, the `text` is not verbatim in the
+     document. Do not insert a `source_quotes` row. Increment the
+     `substring_verify_fail` counter on the `extraction_runs` row.
+   - A second consecutive `substring_verify_fail` on the same document
+     opens a GitHub issue (implemented in `extract-document.ts`) for
+     manual review.
 
 3. **Insert `source_quotes`.**
    ```sql
    insert into public.source_quotes (document_id, char_start, char_end, text)
    values ($1, $2, $3, $4)
-   on conflict (document_id, char_start, char_end) do update set text = excluded.text
+   on conflict (document_id, char_start, char_end) do nothing
    returning id;
    ```
 
 4. **Return** the resulting `source_quote_id` to the runner so it can stamp
    the fact row.
 
+## Double-layer enforcement
+
+The application-side check in step 2 is the primary guard. A DB trigger
+(`source_quotes_verify_substring`) provides a second layer: it raises an
+exception if `documents.text` does not contain the inserted quote at the
+claimed offsets. The two layers together prevent provenance drift if the
+application check is ever bypassed.
+
 ## Gotchas
 
-- **Mojibake.** Some WHO PDFs are encoded with non-Latin replacements for
-  accented characters. Normalize with NFKC before hashing AND before
-  offset comparison.
 - **Multi-page numbers.** A figure split across two pages can produce two
   candidate spans; the LLM must pick one. Accept the longer.
-- **Images / scanned tables.** Some sitreps embed tables as images; those
-  need OCR (Claude vision or `tesseract.js`). Mark the extraction with
-  `extraction_method = 'vision'` in `extraction_runs`.
 - **Never trust LLM-returned offsets without the substring check.** That
   rule alone catches ~90% of provenance regressions in the wild.
 
@@ -65,8 +70,10 @@ offsets being correct.
   texts — enforce uniqueness in the schema.
 - Mutating canonical text after the `sha256` is computed (sha256 lives on
   `public.documents`, not on `source_quotes`).
+- Fuzzy/approximate matching (Levenshtein, NFKC normalisation, OCR
+  fallback) — those are aspirations tracked in
+  [docs/ingest/03-future-work-ocr.md](docs/ingest/03-future-work-ocr.md).
 
 ## References
 
 - `references/pdf-extraction.md` — `unpdf` + column-handling notes.
-- `references/ocr.md` — vision and tesseract fallback patterns.

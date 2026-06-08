@@ -17,6 +17,8 @@ export {
   computePromptVersionHash,
   computeToolSchemaHash,
 } from "./hash.js";
+export type { PathogenCode } from "./icd11.js";
+export { PATHOGEN_ICD11, PATHOGEN_SLUG } from "./icd11.js";
 export { MODEL_HAIKU, MODEL_OPUS, MODEL_SONNET } from "./models.js";
 export type { ComputeCostOptions, ModelPrice } from "./pricing.js";
 export { computeCost, MODEL_PRICES } from "./pricing.js";

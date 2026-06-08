@@ -1,0 +1,3 @@
+Scenario: WHO DON (trust 0.95) vs MoH DRC (trust 0.90) — same day, same health zone, 16-case gap.
+Both sources are highly authoritative. The 25% discrepancy (64 vs 48) on the same date with
+high-trust sources suggests different case definitions or counting methodology. Escalation expected.

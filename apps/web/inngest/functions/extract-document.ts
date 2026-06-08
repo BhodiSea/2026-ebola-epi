@@ -16,11 +16,7 @@ import {
   isAlreadyExtracted,
   persistExtraction,
 } from "../lib/persist-extraction";
-import {
-  ESCALATION_CREATED,
-  RECONCILE_REQUESTED,
-  SHADOW_RUN_TRIGGER,
-} from "./pipeline-events-config";
+import { RECONCILE_REQUESTED, SHADOW_RUN_TRIGGER } from "./pipeline-events-config";
 import { EXTRACT_DOCUMENT_FN_CONFIG, EXTRACT_DOCUMENT_TRIGGER } from "./pipeline-fn-config";
 import { makePairKey } from "./reconcile-counts";
 import { db } from "@/lib/db";
@@ -33,12 +29,13 @@ export const extractDocument = inngest.createFunction(
   // eslint-disable-next-line max-lines-per-function, max-statements -- Inngest handler orchestrates multiple steps; complexity is in coordination, not logic
   async ({ event, step, attempt }) => {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
-    const { documentId, sourceSlug, fullText, publishedAtIso } = event.data as {
+    const { documentId, sourceSlug, fullText, publishedAtIso, triageHash } = event.data as {
       documentId: string;
       fullText: string;
       publishedAtIso: string;
       sha256: string;
       sourceSlug: string;
+      triageHash?: string;
     };
 
     const pvHash = computePromptVersionHash();
@@ -80,6 +77,7 @@ export const extractDocument = inngest.createFunction(
       publishedAtIso,
       pvHash,
       sourceSlug,
+      ...(triageHash === undefined ? {} : { triageHash }),
     };
 
     // Class 2: substring_verify_fail twice → open GitHub issue and give up.
@@ -126,13 +124,6 @@ export const extractDocument = inngest.createFunction(
       );
       await step.run("notify-anomaly", async () =>
         Promise.all(escalations.map(async (esc) => notifyAnomaly(esc.outbreakId, esc.signals))),
-      );
-      await step.sendEvent(
-        "emit-escalation",
-        escalations.map((esc) => ({
-          name: ESCALATION_CREATED,
-          data: { caseCountId: esc.caseCountId, outbreakId: esc.outbreakId, documentId },
-        })),
       );
     }
 

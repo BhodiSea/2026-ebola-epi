@@ -1,5 +1,6 @@
 // @vitest-environment node
 // WS1: AnomalyParams.metric narrowed from string → MetricLiteral; existing tests cover computeZScore/computeCfrRatio.
+// WS4: no change to anomaly logic — tests remain as coverage baseline.
 import { describe, expect, it, vi } from "vitest";
 
 import { computeCfrRatio, computeZScore } from "../anomaly";

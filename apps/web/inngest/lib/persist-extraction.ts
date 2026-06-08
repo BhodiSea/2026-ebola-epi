@@ -15,16 +15,18 @@ import {
   sourceQuotes,
   sources,
 } from "@ituri/db";
-import type { ExtractionRow, ExtractionUsage } from "@ituri/extract";
-import { computeCost, MODEL, parseExtractionResponse } from "@ituri/extract";
+import type { ExtractionRow, ExtractionUsage, PathogenCode } from "@ituri/extract";
+// eslint-disable-next-line perfectionist/sort-named-imports -- Biome organizeImports uses uppercase-first; perfectionist uses natural (case-insensitive); these two conflict
+import { computeCost, MODEL, PATHOGEN_SLUG, parseExtractionResponse } from "@ituri/extract";
 import { ExtractionRunId } from "@ituri/shared";
-import { and, asc, eq, isNull, ne, sql } from "drizzle-orm";
+import { and, eq, isNull, ne, sql } from "drizzle-orm";
 
 import type { AnomalyEscalation } from "@/inngest/lib/anomaly";
 import { detectAnomalies } from "@/inngest/lib/anomaly";
 import type { Tx } from "@/lib/db";
 import { db } from "@/lib/db";
 import { env } from "@/lib/env";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 // ─── types ────────────────────────────────────────────────────────────────────
 
@@ -41,6 +43,7 @@ export interface DocumentParams {
   readonly language?: string;
   readonly mimeType?: string;
   readonly publishedAt: Date;
+  readonly rawBytes?: Uint8Array;
   readonly sha256: Buffer;
   readonly sourceId: string;
   readonly url: string;
@@ -54,6 +57,7 @@ export interface FetchedDocument {
   readonly publishedAtIso: string;
   readonly pvHash: string;
   readonly sourceSlug: string;
+  readonly triageHash?: string;
 }
 
 export interface TxParams {
@@ -194,21 +198,14 @@ export async function insertExtractionInTransaction(
     // eslint-disable-next-line no-await-in-loop
     const admin2Code = await resolveAndLogAdmin2(tx, row, params.sourceSlug);
     // eslint-disable-next-line no-await-in-loop
-    const sqRows: { id: string }[] = await tx
-      .insert(sourceQuotes)
-      .values({
-        documentId: params.documentId,
-        charStart: row.source_quote.char_start,
-        charEnd: row.source_quote.char_end,
-        quoteText: row.source_quote.quote_text,
-      })
-      .returning({ id: sourceQuotes.id });
-    const sq = sqRows[0];
-    if (!sq) {
-      throw new Error("source_quote insert returned no row");
-    }
-    sqIds.push(sq.id);
-    intermediates.push({ outbreakId, sqId: sq.id, admin2Code, row });
+    const sqId = await upsertSourceQuote(tx, {
+      charEnd: row.source_quote.char_end,
+      charStart: row.source_quote.char_start,
+      documentId: params.documentId,
+      quoteText: row.source_quote.quote_text,
+    });
+    sqIds.push(sqId);
+    intermediates.push({ outbreakId, sqId, admin2Code, row });
   }
 
   await tx.insert(extractionRuns).values({
@@ -326,6 +323,7 @@ export async function persistExtraction(
     inputTokens: usage.input_tokens,
     outputTokens: usage.output_tokens,
     durationMs: null,
+    attributes: doc.triageHash === undefined ? {} : { triageHash: doc.triageHash },
   });
   return { extractionRunId, escalations };
 }
@@ -400,6 +398,9 @@ export async function upsertDocument(params: DocumentParams): Promise<string> {
     .onConflictDoNothing()
     .returning({ id: documents.id });
   if (insRows[0]) {
+    if (params.rawBytes !== undefined) {
+      await uploadRawBytes(params.sha256, params.mimeType, params.rawBytes);
+    }
     return insRows[0].id;
   }
   const fallbackRows: { id: string }[] = await db
@@ -414,42 +415,68 @@ export async function upsertDocument(params: DocumentParams): Promise<string> {
 }
 
 export async function upsertOutbreak(tx: Tx, row: ExtractionRow, onsetDate: Date): Promise<string> {
-  const byPair = and(
-    eq(outbreaks.pathogenIcd11, row.pathogen_icd11),
-    eq(outbreaks.countryIso3, row.country_iso3),
-  );
-  const existingRows: { id: string; onsetDate: Date }[] = await tx
-    .select({ id: outbreaks.id, onsetDate: outbreaks.onsetDate })
-    .from(outbreaks)
-    .where(byPair)
-    .orderBy(asc(outbreaks.onsetDate))
-    .limit(1);
-  if (existingRows[0]) {
-    if (onsetDate < existingRows[0].onsetDate) {
-      await tx.update(outbreaks).set({ onsetDate }).where(eq(outbreaks.id, existingRows[0].id));
-    }
-    return existingRows[0].id;
-  }
-  const insRows: { id: string }[] = await tx
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- hasOwnProperty on next line validates key; unknown codes return null
+  const pathogenCode = row.pathogen_icd11 as PathogenCode;
+  const pathogenSlug = Object.hasOwn(PATHOGEN_SLUG, pathogenCode)
+    ? PATHOGEN_SLUG[pathogenCode]
+    : null;
+
+  const rows = await tx
     .insert(outbreaks)
-    .values({ pathogenIcd11: row.pathogen_icd11, countryIso3: row.country_iso3, onsetDate })
-    .onConflictDoNothing()
+    .values({
+      countryIso3: row.country_iso3,
+      onsetDate,
+      pathogenIcd11: row.pathogen_icd11,
+      pathogenSlug,
+      severityLevel: "alert",
+    })
+    .onConflictDoUpdate({
+      target: [outbreaks.pathogenIcd11, outbreaks.countryIso3],
+      set: {
+        onsetDate: sql`LEAST(${outbreaks.onsetDate}, EXCLUDED.onset_date)`,
+        pathogenSlug: sql`COALESCE(EXCLUDED.pathogen_slug, ${outbreaks.pathogenSlug})`,
+      },
+    })
     .returning({ id: outbreaks.id });
-  if (insRows[0]) {
-    return insRows[0].id;
-  }
-  const fallbackRows: { id: string; onsetDate: Date }[] = await tx
-    .select({ id: outbreaks.id, onsetDate: outbreaks.onsetDate })
-    .from(outbreaks)
-    .where(byPair)
-    .orderBy(asc(outbreaks.onsetDate))
-    .limit(1);
-  const found = fallbackRows[0];
+
+  const found: undefined | { id: string } = rows[0];
   if (!found) {
-    throw new Error("outbreak missing after conflict-safe upsert");
+    throw new Error("upsertOutbreak: returning clause yielded no row");
   }
-  if (onsetDate < found.onsetDate) {
-    await tx.update(outbreaks).set({ onsetDate }).where(eq(outbreaks.id, found.id));
+  return found.id;
+}
+
+export async function upsertSourceQuote(
+  tx: Tx,
+  params: { charEnd: number; charStart: number; documentId: string; quoteText: string },
+): Promise<string> {
+  const { charEnd, charStart, documentId, quoteText } = params;
+  const inserted: { id: string }[] = await tx
+    .insert(sourceQuotes)
+    .values({ documentId, charStart, charEnd, quoteText })
+    .onConflictDoNothing()
+    .returning({ id: sourceQuotes.id });
+
+  if (inserted[0]) {
+    return inserted[0].id;
+  }
+
+  // Conflict — row exists; fetch its id.
+  const existing: { id: string }[] = await tx
+    .select({ id: sourceQuotes.id })
+    .from(sourceQuotes)
+    .where(
+      and(
+        eq(sourceQuotes.documentId, documentId),
+        eq(sourceQuotes.charStart, charStart),
+        eq(sourceQuotes.charEnd, charEnd),
+      ),
+    )
+    .limit(1);
+
+  const found: undefined | { id: string } = existing[0];
+  if (!found) {
+    throw new Error("source_quote not found after conflict on (documentId, charStart, charEnd)");
   }
   return found.id;
 }
@@ -496,4 +523,25 @@ async function resolveAndLogAdmin2(
     });
   }
   return admin2Code;
+}
+
+// G-11: upload raw bytes to source-bytes Storage bucket for long-term archival.
+// Best-effort: logs on error rather than failing the ingest step.
+async function uploadRawBytes(
+  sha256: Buffer,
+  mimeType: string | undefined,
+  rawBytes: Uint8Array,
+): Promise<void> {
+  const sha256hex = sha256.toString("hex");
+  const ext = mimeType?.includes("pdf") === true ? "pdf" : "html";
+  const client = createAdminClient();
+  const { error } = await client.storage
+    .from("source-bytes")
+    .upload(`${sha256hex}.${ext}`, rawBytes, {
+      contentType: mimeType ?? "text/html",
+      upsert: true,
+    });
+  if (error !== null) {
+    console.error(`[source-bytes] upload failed for ${sha256hex}:`, error);
+  }
 }

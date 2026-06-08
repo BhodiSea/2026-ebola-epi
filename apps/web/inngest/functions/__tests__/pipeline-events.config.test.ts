@@ -1,10 +1,12 @@
 // @vitest-environment node
 // Tests for Phase 6 pipeline event-name constants and function configs.
 // These import only the non-server-only config modules (no Drizzle/Anthropic/server-only).
+// Coverage also guards NEW-P1j/k/l (idempotency + concurrency limits) and persist-extraction triageHash wiring.
 import { describe, expect, it } from "vitest";
 
 import { ACLED_FN_CONFIG } from "../acled-config.js";
 import { AFRICA_CDC_FN_CONFIG } from "../africa-cdc-config.js";
+import { BACK_FILL_FN_CONFIG } from "../back-fill-config.js";
 import { ECDC_CDTR_FN_CONFIG } from "../ecdc-cdtr-config.js";
 import { buildIngestConfig, pollEventName } from "../ingest-source-config.js";
 import { MOH_DRC_FN_CONFIG } from "../moh-drc-config.js";
@@ -12,7 +14,6 @@ import {
   DOCUMENT_EXTRACTION_REQUESTED,
   DOCUMENT_TRIAGE_REQUESTED,
   ESCALATION_CONFIRMED,
-  ESCALATION_CONFLICT_UNRESOLVABLE,
   ESCALATION_NOVEL_PATHOGEN_COUNTRY,
   RECONCILE_REQUESTED,
 } from "../pipeline-events-config.js";
@@ -22,6 +23,7 @@ import {
   TRIAGE_DOCUMENT_FN_CONFIG,
 } from "../pipeline-fn-config.js";
 import { RELIEFWEB_FN_CONFIG } from "../reliefweb-config.js";
+import { SHADOW_EXTRACTION_FN_CONFIG } from "../shadow-extraction-config.js";
 import { UGANDA_MOH_FN_CONFIG } from "../uganda-moh-config.js";
 import { WHO_AFRO_FN_CONFIG } from "../who-afro-config.js";
 import { WHO_DON_FN_CONFIG } from "../who-don-config.js";
@@ -43,10 +45,6 @@ describe("pipeline event names", () => {
 
   it("ESCALATION_NOVEL_PATHOGEN_COUNTRY matches the spec", () => {
     expect(ESCALATION_NOVEL_PATHOGEN_COUNTRY).toBe("escalation.novel_pathogen_country");
-  });
-
-  it("ESCALATION_CONFLICT_UNRESOLVABLE matches the spec", () => {
-    expect(ESCALATION_CONFLICT_UNRESOLVABLE).toBe("escalation.conflict_unresolvable");
   });
 
   it("ESCALATION_CONFIRMED matches the spec", () => {
@@ -122,6 +120,30 @@ describe("TRIAGE_DOCUMENT_FN_CONFIG", () => {
 
   it("retries > 0", () => {
     expect(TRIAGE_DOCUMENT_FN_CONFIG.retries).toBeGreaterThan(0);
+  });
+
+  it("idempotency key deduplicates on documentId to prevent double Haiku billing", () => {
+    expect(TRIAGE_DOCUMENT_FN_CONFIG.idempotency).toBe("event.data.documentId");
+  });
+});
+
+describe("SHADOW_EXTRACTION_FN_CONFIG", () => {
+  it("has an id of shadow-extraction", () => {
+    expect(SHADOW_EXTRACTION_FN_CONFIG.id).toBe("shadow-extraction");
+  });
+
+  it("concurrency limit is 2 (lower priority than production limit of 3)", () => {
+    expect(SHADOW_EXTRACTION_FN_CONFIG.concurrency.limit).toBe(2);
+  });
+});
+
+describe("BACK_FILL_FN_CONFIG", () => {
+  it("has an id of back-fill-extraction", () => {
+    expect(BACK_FILL_FN_CONFIG.id).toBe("back-fill-extraction");
+  });
+
+  it("concurrency limit is 1 to serialize Anthropic batch creations", () => {
+    expect(BACK_FILL_FN_CONFIG.concurrency.limit).toBe(1);
   });
 });
 

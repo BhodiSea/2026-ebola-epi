@@ -105,7 +105,7 @@ values (
   'Bundibugyo virus disease — Ituri Province, DRC',
   'active',
   'emergency'
-) on conflict (pathogen_icd11, country_iso3, onset_date) do nothing;
+) on conflict (pathogen_icd11, country_iso3) do nothing;
 
 -- Documents:
 -- doc1 — WHO DON 603 (24 May 2026)

@@ -107,6 +107,12 @@ describe("schema type inference", () => {
     expectTypeOf<Row["extractionPaused"]>().toEqualTypeOf<boolean>();
   });
 
+  it("sources.$inferSelect has lastFetchedAt and parserVersion (G-4 health columns)", () => {
+    type Row = typeof sources.$inferSelect;
+    expectTypeOf<Row["lastFetchedAt"]>().toEqualTypeOf<Date | null>();
+    expectTypeOf<Row["parserVersion"]>().toEqualTypeOf<null | string>();
+  });
+
   it("documents.$inferSelect has conditional-GET columns (phase6)", () => {
     type Row = typeof documents.$inferSelect;
     expectTypeOf<Row["etag"]>().toEqualTypeOf<null | string>();

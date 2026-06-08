@@ -1,0 +1,7 @@
+{
+  "is_outbreak": true,
+  "novelty": "new",
+  "confidence": 0.93,
+  "pathogen_icd11": "1C90.0",
+  "country_iso3": "RWA"
+}

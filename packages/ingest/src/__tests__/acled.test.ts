@@ -95,10 +95,9 @@ describe("acledAdapter.poll()", () => {
   });
 
   describe("with env vars absent", () => {
-    it("returns [] when ACLED_ACCESS_TOKEN is absent", async () => {
+    it("throws when ACLED_ACCESS_TOKEN is absent", async () => {
       const { acledAdapter } = await import("../sources/acled.js");
-      const items = await acledAdapter.poll();
-      expect(items).toEqual([]);
+      await expect(acledAdapter.poll()).rejects.toThrow("ACLED_ACCESS_TOKEN");
     });
   });
 });

@@ -14,6 +14,7 @@ export const mohDRCAdapter: RegisteredAdapter = {
   sourceSlug: "moh-drc",
   throttleKey: "sante.gouv.cd",
   pollInterval: "0 10 * * *",
+  version: "1.0.0",
 
   async poll() {
     const result = await fetchWithConditionalGet(LISTING_URL);

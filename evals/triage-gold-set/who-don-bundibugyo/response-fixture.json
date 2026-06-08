@@ -1,0 +1,22 @@
+{
+  "content": [
+    {
+      "type": "tool_use",
+      "id": "toolu_01BuNDiTriage",
+      "name": "classify_document",
+      "input": {
+        "is_outbreak": true,
+        "novelty": "known",
+        "confidence": 0.97,
+        "pathogen_icd11": "1D60.2",
+        "country_iso3": "COD"
+      }
+    }
+  ],
+  "usage": {
+    "input_tokens": 743,
+    "output_tokens": 52,
+    "cache_read_input_tokens": 743,
+    "cache_creation_input_tokens": 0
+  }
+}

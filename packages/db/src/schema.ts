@@ -74,6 +74,8 @@ export const sources = pgTable("sources", {
   postureAttribution: text("posture_attribution").notNull(),
   metadata: jsonb("metadata").notNull().default(sql`'{}'::jsonb`),
   createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
+  lastFetchedAt: timestamp("last_fetched_at", { withTimezone: true, mode: "date" }),
+  parserVersion: text("parser_version"),
 });
 
 export const documents = pgTable("documents", {

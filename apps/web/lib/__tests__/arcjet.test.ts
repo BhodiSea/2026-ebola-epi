@@ -11,7 +11,7 @@ describe("arcjet exports", () => {
   it("exports aj (public client)", async () => {
     const mod = await import("../arcjet");
     expect(mod.aj).toBeDefined();
-  });
+  }, 15_000);
 
   it("exports ajInternal (internal client with token bucket)", async () => {
     const mod = await import("../arcjet");

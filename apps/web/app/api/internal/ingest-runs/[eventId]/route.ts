@@ -26,8 +26,12 @@ export async function GET(_req: Request, ctx: { params: Promise<{ eventId: strin
     return NextResponse.json({ error: "BAD_ID" }, { status: 400 });
   }
 
+  if (env.INNGEST_API_KEY === undefined) {
+    return NextResponse.json({ error: "INNGEST_API_KEY not configured" }, { status: 502 });
+  }
+
   const res = await fetch(`https://api.inngest.com/v1/events/${eventId}/runs`, {
-    headers: { Authorization: `Bearer ${env.INNGEST_SIGNING_KEY}` },
+    headers: { Authorization: `Bearer ${env.INNGEST_API_KEY}` },
     cache: "no-store",
   });
 

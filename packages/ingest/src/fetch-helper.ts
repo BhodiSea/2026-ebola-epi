@@ -61,8 +61,7 @@ export async function fetchWithConditionalGet(
   }
 
   const rawContent = await res.text();
-  const sha256 = createHash("sha256").update(rawContent).digest();
-  return { skipped: false, rawContent, sha256, mimeType };
+  return buildTextFetchResult(rawContent, mimeType);
 }
 
 export async function getRobots(origin: string): Promise<ReturnType<typeof robotsParser>> {
@@ -88,6 +87,12 @@ function buildRequestHeaders(ua: string, opts: ConditionalGetOpts): Record<strin
     headers["If-Modified-Since"] = opts.lastModified.toUTCString();
   }
   return headers;
+}
+
+function buildTextFetchResult(rawContent: string, mimeType: string): FetchResult {
+  const rawBytes = Buffer.from(rawContent);
+  const sha256 = createHash("sha256").update(rawContent).digest();
+  return { skipped: false, rawContent, rawBytes, sha256, mimeType };
 }
 
 async function fetchPdfResult(res: Response): Promise<FetchResult> {

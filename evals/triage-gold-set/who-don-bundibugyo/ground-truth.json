@@ -1,0 +1,7 @@
+{
+  "is_outbreak": true,
+  "novelty": "known",
+  "confidence": 0.97,
+  "pathogen_icd11": "1D60.2",
+  "country_iso3": "COD"
+}

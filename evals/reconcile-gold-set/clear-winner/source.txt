@@ -1,0 +1,3 @@
+Scenario: WHO DON (trust 0.95) vs WHO AFRO (trust 0.80) — same metric, same outbreak, same day.
+The two rows disagree on confirmed case count. WHO DON is the primary outbreak notification
+channel and outranks WHO AFRO as a reliable figure source for the same event.

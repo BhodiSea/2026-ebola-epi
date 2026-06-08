@@ -44,4 +44,27 @@ describe("env validation", () => {
     const { siteUrl } = await import("../lib/env");
     expect(siteUrl()).toBe("https://ituri-epi.com");
   });
+
+  it("RELIEFWEB_APPNAME is optional — env loads without it", async () => {
+    vi.stubEnv("ANTHROPIC_API_KEY", "test-key");
+    vi.stubEnv("INNGEST_EVENT_KEY", "test-key");
+    vi.stubEnv("INNGEST_SIGNING_KEY", "test-key");
+    vi.stubEnv("POSTGRES_URL_NON_POOLING", "postgresql://localhost/test");
+    vi.stubEnv("NEXT_PUBLIC_SITE_URL", "https://ituri-epi.com");
+    vi.resetModules();
+    const { env } = await import("../lib/env");
+    expect(env.RELIEFWEB_APPNAME).toBeUndefined();
+  });
+
+  it("ACLED_ACCESS_TOKEN and ACLED_EMAIL are optional — env loads without them", async () => {
+    vi.stubEnv("ANTHROPIC_API_KEY", "test-key");
+    vi.stubEnv("INNGEST_EVENT_KEY", "test-key");
+    vi.stubEnv("INNGEST_SIGNING_KEY", "test-key");
+    vi.stubEnv("POSTGRES_URL_NON_POOLING", "postgresql://localhost/test");
+    vi.stubEnv("NEXT_PUBLIC_SITE_URL", "https://ituri-epi.com");
+    vi.resetModules();
+    const { env } = await import("../lib/env");
+    expect(env.ACLED_ACCESS_TOKEN).toBeUndefined();
+    expect(env.ACLED_EMAIL).toBeUndefined();
+  });
 });

@@ -33,6 +33,7 @@ export const whoAFROAdapter: RegisteredAdapter = {
   sourceSlug: "who-afro",
   throttleKey: "afro.who.int",
   pollInterval: "0 6 * * *",
+  version: "1.0.0",
 
   async poll() {
     const parser = new RSSParser();

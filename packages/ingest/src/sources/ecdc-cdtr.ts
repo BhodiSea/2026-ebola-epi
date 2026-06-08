@@ -30,6 +30,7 @@ export const ecdcCDTRAdapter: RegisteredAdapter = {
   sourceSlug: "ecdc-cdtr",
   throttleKey: "www.ecdc.europa.eu",
   pollInterval: "0 8 * * 5",
+  version: "1.0.0",
 
   async poll() {
     const parser = new RSSParser();

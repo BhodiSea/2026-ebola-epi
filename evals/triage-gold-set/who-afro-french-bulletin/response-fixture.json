@@ -1,0 +1,22 @@
+{
+  "content": [
+    {
+      "type": "tool_use",
+      "id": "toolu_03FrenchBulletin",
+      "name": "classify_document",
+      "input": {
+        "is_outbreak": true,
+        "novelty": "known",
+        "confidence": 0.96,
+        "pathogen_icd11": "1D60.2",
+        "country_iso3": "COD"
+      }
+    }
+  ],
+  "usage": {
+    "input_tokens": 701,
+    "output_tokens": 55,
+    "cache_read_input_tokens": 701,
+    "cache_creation_input_tokens": 0
+  }
+}

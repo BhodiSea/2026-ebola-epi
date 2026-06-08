@@ -1,3 +1,4 @@
+// Tests: idle → queued → running → done | failed | timeout; exponential backoff (2 s→4 s); Inngest link on timeout
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -39,6 +40,8 @@ const RE_QUEUED = /queued/i;
 const RE_RUNNING = /running/i;
 const RE_DONE = /done/i;
 const RE_FAILED = /failed/i;
+const RE_TIMEOUT = /timed out/i;
+const RE_INNGEST = /inngest/i;
 
 describe("RunIngestButton", () => {
   beforeEach(() => {
@@ -150,5 +153,60 @@ describe("RunIngestButton", () => {
       await vi.advanceTimersByTimeAsync(2001);
     });
     expect(mocks.fetchFn.mock.calls.length).toBe(callCountAfterFirst);
+  });
+
+  it("doubles the poll interval on each tick (2s → 4s)", async () => {
+    // Use mockImplementation so each fetch call gets a fresh Response (body not re-consumed).
+    mocks.fetchFn.mockImplementation(() =>
+      Promise.resolve(
+        new Response(JSON.stringify({ runs: [{ run_id: "r1", status: "Running" }] }), {
+          status: 200,
+        }),
+      ),
+    );
+    const { RunIngestButton } = await import("../run-ingest-button");
+    render(<RunIngestButton slug={SLUG} />);
+    fireEvent.click(screen.getByRole("button", { name: RE_RUN }));
+    act(() => {
+      mocks.useActionCallbacks.onSuccess?.({ data: { eventId: EVENT_ID } });
+    });
+    // First poll fires at 2s
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2001);
+    });
+    expect(mocks.fetchFn.mock.calls.length).toBe(1);
+    // Next poll fires at 2+4=6s total; advancing another 3s should not trigger it yet
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2999);
+    });
+    expect(mocks.fetchFn.mock.calls.length).toBe(1);
+    // Advancing the last 1ms fires the second poll at the 4s mark
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1001);
+    });
+    expect(mocks.fetchFn.mock.calls.length).toBe(2);
+  });
+
+  it("shows Timed out and an Inngest link after 15 minutes of Running", async () => {
+    // Use mockImplementation so each fetch call gets a fresh Response (body not re-consumed).
+    mocks.fetchFn.mockImplementation(() =>
+      Promise.resolve(
+        new Response(JSON.stringify({ runs: [{ run_id: "r1", status: "Running" }] }), {
+          status: 200,
+        }),
+      ),
+    );
+    const { RunIngestButton } = await import("../run-ingest-button");
+    render(<RunIngestButton slug={SLUG} />);
+    fireEvent.click(screen.getByRole("button", { name: RE_RUN }));
+    act(() => {
+      mocks.useActionCallbacks.onSuccess?.({ data: { eventId: EVENT_ID } });
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(15 * 60 * 1000 + 5000);
+    });
+    expect(screen.getByText(RE_TIMEOUT)).toBeInTheDocument();
+    const link = screen.getByRole("link", { name: RE_INNGEST });
+    expect(link).toHaveAttribute("href", expect.stringContaining(EVENT_ID));
   });
 });

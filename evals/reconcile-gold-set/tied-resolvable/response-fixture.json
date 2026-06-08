@@ -1,0 +1,22 @@
+{
+  "content": [
+    {
+      "type": "tool_use",
+      "id": "toolu_TiedResolvable",
+      "name": "resolve_conflict",
+      "input": {
+        "winner_id": "d4e5f6a7-b8c9-1023-aef0-234567890123",
+        "loser_id": "c3d4e5f6-a7b8-4012-8def-123456789012",
+        "reason": "Both sources have identical trust scores (0.75). Row B was published 4 days later (2026-04-22) and reflects more recent surveillance data; cumulative case counts are expected to rise.",
+        "confidence": 0.88,
+        "escalate": false
+      }
+    }
+  ],
+  "usage": {
+    "input_tokens": 695,
+    "output_tokens": 72,
+    "cache_read_input_tokens": 695,
+    "cache_creation_input_tokens": 0
+  }
+}

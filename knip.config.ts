@@ -27,6 +27,13 @@ const config: KnipConfig = {
       entry: ["src/index.ts", "drizzle.config.ts"],
       project: ["src/**/*.ts"],
     },
+    "packages/ingest": {
+      entry: ["src/index.ts", "src/bin/backfill.ts"],
+      project: ["src/**/*.ts"],
+      // tsx is the script runner for src/bin/backfill.ts; invoked as a binary
+      // in package.json scripts, not imported as a TS module.
+      ignoreBinaries: ["tsx"],
+    },
   },
   ignoreDependencies: [
     "@types/node",
@@ -40,6 +47,9 @@ const config: KnipConfig = {
     // PostCSS ecosystem: postcss-load-config is used by PostCSS to find
     // postcss.config.mjs; it's a transitive runtime dep, not a TS import
     "postcss-load-config",
+    // Script runner for packages/ingest/src/bin/backfill.ts — used in npm scripts,
+    // not imported in any TS file so knip cannot detect the dep relationship.
+    "tsx",
   ],
   ignoreFiles: [
     // Scaffolded components not yet wired into any page; tracked as future work

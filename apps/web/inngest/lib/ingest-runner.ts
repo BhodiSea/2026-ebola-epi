@@ -1,7 +1,7 @@
 import "server-only";
 import { createHash } from "node:crypto";
 
-import { agentActions } from "@ituri/db";
+import { agentActions, sources } from "@ituri/db";
 import type { RegisteredAdapter } from "@ituri/ingest";
 import { and, count, eq, gte } from "drizzle-orm";
 import type { GetStepTools } from "inngest";
@@ -103,6 +103,7 @@ export async function runPerSourceIngest(
           language: parseResult.language,
           mimeType: fetchResult.mimeType,
           publishedAt: new Date(item.publishedAt),
+          ...(fetchResult.rawBytes !== undefined && { rawBytes: fetchResult.rawBytes }),
           sha256: fetchResult.sha256,
           sourceId,
           url: item.url,
@@ -134,6 +135,13 @@ export async function runPerSourceIngest(
       },
     });
   }
+
+  await step.run("update-source-health", async () => {
+    await db
+      .update(sources)
+      .set({ lastFetchedAt: new Date(), parserVersion: adapter.version })
+      .where(eq(sources.slug, adapter.sourceSlug));
+  });
 }
 
 async function runChromiumFallback(opts: {

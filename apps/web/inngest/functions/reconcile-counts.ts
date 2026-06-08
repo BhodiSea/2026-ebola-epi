@@ -24,7 +24,6 @@ import { and, eq, isNull, ne } from "drizzle-orm";
 import { inngest } from "../client";
 import { evaluateCapacity } from "../lib/capacity-guard";
 import { logAnthropicUsage } from "../lib/usage-log";
-import { ESCALATION_CONFLICT_UNRESOLVABLE } from "./pipeline-events-config";
 import { RECONCILE_COUNTS_FN_CONFIG, RECONCILE_COUNTS_TRIGGER } from "./pipeline-fn-config";
 import { db } from "@/lib/db";
 import { env } from "@/lib/env";
@@ -203,7 +202,7 @@ async function writeReconcileAudit(params: AuditParams): Promise<void> {
 export const reconcileCounts = inngest.createFunction(
   RECONCILE_COUNTS_FN_CONFIG,
   RECONCILE_COUNTS_TRIGGER,
-  // eslint-disable-next-line max-lines-per-function, max-statements -- Inngest handler orchestrates multiple steps; complexity is in coordination, not logic
+  // eslint-disable-next-line max-statements -- Inngest handler orchestrates multiple steps; complexity is in coordination, not logic
   async ({ event, step }) => {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
     const data = event.data as ReconcileRequestedData;
@@ -240,17 +239,6 @@ export const reconcileCounts = inngest.createFunction(
     );
 
     if (decision.escalate) {
-      await step.sendEvent("emit-conflict", {
-        name: ESCALATION_CONFLICT_UNRESOLVABLE,
-        data: {
-          outbreakId: data.outbreakId,
-          metric: data.metric,
-          asOf: data.asOf,
-          rowAId: data.rowAId,
-          rowBId: data.rowBId,
-          reason: decision.reason,
-        },
-      });
       await step.run("write-incident-conflict", () =>
         db
           .insert(incidents)

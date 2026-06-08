@@ -1,0 +1,7 @@
+WHO Technical Guidance: Strengthening Integrated Disease Surveillance and Response
+
+This document provides updated technical guidance for Member States on strengthening their Integrated Disease Surveillance and Response (IDSR) systems in the WHO African Region. The guidance covers data management, laboratory capacity building, and community event-based surveillance.
+
+The 2023 revision incorporates lessons learned from the COVID-19 pandemic response and aligns with the updated International Health Regulations (IHR) monitoring and evaluation framework. Implementation tools including training curricula, supervision checklists, and data collection forms are available in the annexes.
+
+Member States are encouraged to adapt these guidelines to their national contexts and integrate them into existing public health emergency plans.

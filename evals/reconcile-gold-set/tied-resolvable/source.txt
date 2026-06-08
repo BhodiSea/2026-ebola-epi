@@ -1,0 +1,3 @@
+Scenario: Two ReliefWeb reports with identical trust scores (0.75), different publication dates.
+Row A is from 2026-04-18 (35 cases); Row B from 2026-04-22 (41 cases).
+Same trust → recency is the tiebreaker; the later publication reflects updated surveillance.

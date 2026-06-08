@@ -1,0 +1,22 @@
+{
+  "content": [
+    {
+      "type": "tool_use",
+      "id": "toolu_Unresolvable0",
+      "name": "resolve_conflict",
+      "input": {
+        "winner_id": "e5f6a7b8-c9d0-1234-8f01-345678901234",
+        "loser_id": "f6a7b8c9-d0e1-2345-9012-456789012345",
+        "reason": "Both published same day; WHO DON has slightly higher trust but a 16-case discrepancy on the same date from two high-authority sources suggests different case definitions. Cannot rank with confidence.",
+        "confidence": 0.72,
+        "escalate": true
+      }
+    }
+  ],
+  "usage": {
+    "input_tokens": 712,
+    "output_tokens": 81,
+    "cache_read_input_tokens": 712,
+    "cache_creation_input_tokens": 0
+  }
+}

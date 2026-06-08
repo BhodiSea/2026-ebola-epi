@@ -1,4 +1,5 @@
 // @vitest-environment node
+// G-11: rawBytes threaded from fetchResult into upsertDocument (exactOptionalPropertyTypes: conditional spread).
 // Tests cover runPerSourceIngest orchestration (fetch→parse→persist→emit).
 // WS2: parse() now receives ParseInput; rawBytes conditional spread avoids exactOptionalPropertyTypes error.
 // WS2 §2.2: chromium fallback path — kill-switch gate, daily cap, fetchJsRendered, re-parse.
@@ -15,7 +16,13 @@ const mockSelectWhere = vi.fn().mockResolvedValue([{ cnt: 0 }]);
 const mockSelectFrom = vi.fn().mockReturnValue({ where: mockSelectWhere });
 const mockSelect = vi.fn().mockReturnValue({ from: mockSelectFrom });
 
-vi.mock("@/lib/db", () => ({ db: { insert: mockInsert, select: mockSelect } }));
+const mockUpdateWhere = vi.fn().mockResolvedValue(undefined);
+const mockUpdateSet = vi.fn().mockReturnValue({ where: mockUpdateWhere });
+const mockUpdate = vi.fn().mockReturnValue({ set: mockUpdateSet });
+
+vi.mock("@/lib/db", () => ({
+  db: { insert: mockInsert, select: mockSelect, update: mockUpdate },
+}));
 
 const mockChromiumFallbackEnabled = vi.fn().mockResolvedValue(false);
 vi.mock("@/lib/kill-switch", () => ({ chromiumFallbackEnabled: mockChromiumFallbackEnabled }));
@@ -39,6 +46,9 @@ function makeAdapter(overrides: {
 }) {
   return {
     sourceSlug: "africa-cdc",
+    throttleKey: "africacdc.org",
+    pollInterval: "0 8 * * *",
+    version: "1.0.0",
     poll: vi
       .fn()
       .mockResolvedValue([{ url: "https://africacdc.org/sitrep", publishedAt: "2026-05-01" }]),
@@ -83,7 +93,7 @@ describe("runPerSourceIngest — fetch skip telemetry", () => {
       fetch: vi.fn().mockResolvedValue({ skipped: true, reason: "chromium_required" }),
     });
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- IngestAdapter and InngestStep have deep generics; cast required for vitest mock args
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion, @typescript-eslint/no-unsafe-type-assertion -- vitest mock types resolve to any; step does not satisfy GetStepTools
     await runPerSourceIngest(adapter as never, step as never);
 
     expect(mockInsert).toHaveBeenCalled();
@@ -104,7 +114,7 @@ describe("runPerSourceIngest — fetch skip telemetry", () => {
       fetch: vi.fn().mockResolvedValue({ skipped: true, reason: "chromium_required" }),
     });
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- IngestAdapter and InngestStep have deep generics; cast required for vitest mock args
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion, @typescript-eslint/no-unsafe-type-assertion -- vitest mock types resolve to any; step does not satisfy GetStepTools
     await runPerSourceIngest(adapter as never, step as never);
 
     expect(step.sendEvent).not.toHaveBeenCalled();
@@ -132,7 +142,7 @@ describe("runPerSourceIngest — parse skip telemetry", () => {
       parse: vi.fn().mockResolvedValue({ skipped: true, reason: "no_table_found" }),
     });
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- IngestAdapter and InngestStep have deep generics; cast required for vitest mock args
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion, @typescript-eslint/no-unsafe-type-assertion -- vitest mock types resolve to any; step does not satisfy GetStepTools
     await runPerSourceIngest(adapter as never, step as never);
 
     expect(mockInsert).toHaveBeenCalled();
@@ -166,7 +176,7 @@ describe("runPerSourceIngest — chromium fallback", () => {
       fetch: vi.fn().mockResolvedValue({ skipped: true, reason: "chromium_required" }),
     });
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- cast required for vitest mock args
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion, @typescript-eslint/no-unsafe-type-assertion -- vitest mock types resolve to any; step does not satisfy GetStepTools
     await runPerSourceIngest(adapter as never, step as never);
 
     expect(mockFetchJsRendered).toHaveBeenCalledWith("https://africacdc.org/sitrep");
@@ -182,7 +192,7 @@ describe("runPerSourceIngest — chromium fallback", () => {
       fetch: vi.fn().mockResolvedValue({ skipped: true, reason: "chromium_required" }),
     });
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- cast required for vitest mock args
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion, @typescript-eslint/no-unsafe-type-assertion -- vitest mock types resolve to any; step does not satisfy GetStepTools
     await runPerSourceIngest(adapter as never, step as never);
 
     expect(mockFetchJsRendered).not.toHaveBeenCalled();
@@ -201,7 +211,7 @@ describe("runPerSourceIngest — chromium fallback", () => {
       fetch: vi.fn().mockResolvedValue({ skipped: true, reason: "chromium_required" }),
     });
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- cast required for vitest mock args
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion, @typescript-eslint/no-unsafe-type-assertion -- vitest mock types resolve to any; step does not satisfy GetStepTools
     await runPerSourceIngest(adapter as never, step as never);
 
     expect(mockFetchJsRendered).not.toHaveBeenCalled();
@@ -219,7 +229,7 @@ describe("runPerSourceIngest — chromium fallback", () => {
       fetch: vi.fn().mockResolvedValue({ skipped: true, reason: "chromium_required" }),
     });
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- cast required for vitest mock args
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion, @typescript-eslint/no-unsafe-type-assertion -- vitest mock types resolve to any; step does not satisfy GetStepTools
     await runPerSourceIngest(adapter as never, step as never);
 
     // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- cast to read action field
@@ -235,9 +245,48 @@ describe("runPerSourceIngest — chromium fallback", () => {
       parse: vi.fn().mockResolvedValue({ skipped: false, fullText: "rendered full text" }),
     });
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- cast required for vitest mock args
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion, @typescript-eslint/no-unsafe-type-assertion -- vitest mock types resolve to any; step does not satisfy GetStepTools
     await runPerSourceIngest(adapter as never, step as never);
 
     expect(step.sendEvent).toHaveBeenCalled();
+  });
+});
+
+describe("runPerSourceIngest — source health update (G-4)", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockInsert.mockReturnValue({ values: mockInsertValues });
+    mockInsertValues.mockResolvedValue(undefined);
+    mockUpdate.mockReturnValue({ set: mockUpdateSet });
+    mockUpdateSet.mockReturnValue({ where: mockUpdateWhere });
+    mockUpdateWhere.mockResolvedValue(undefined);
+    mockChromiumFallbackEnabled.mockResolvedValue(false);
+    mockSelectWhere.mockResolvedValue([{ cnt: 0 }]);
+    mockSelectFrom.mockReturnValue({ where: mockSelectWhere });
+    mockSelect.mockReturnValue({ from: mockSelectFrom });
+  });
+
+  it("calls db.update(sources) after a successful poll run", async () => {
+    const { runPerSourceIngest } = await import("@/inngest/lib/ingest-runner");
+    const step = makeStep();
+    const adapter = makeAdapter({});
+
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion, @typescript-eslint/no-unsafe-type-assertion -- vitest mock types resolve to any; step does not satisfy GetStepTools
+    await runPerSourceIngest(adapter as never, step as never);
+
+    expect(mockUpdate).toHaveBeenCalled();
+  });
+
+  it("sets parserVersion to adapter.version on the health update", async () => {
+    const { runPerSourceIngest } = await import("@/inngest/lib/ingest-runner");
+    const step = makeStep();
+    const adapter = makeAdapter({});
+
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion, @typescript-eslint/no-unsafe-type-assertion -- vitest mock types resolve to any; step does not satisfy GetStepTools
+    await runPerSourceIngest(adapter as never, step as never);
+
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- vitest mock.calls typed any[]; cast to inspect the set() argument
+    const setArg = mockUpdateSet.mock.calls[0]?.[0] as undefined | { parserVersion: string };
+    expect(setArg?.parserVersion).toBe("1.0.0");
   });
 });

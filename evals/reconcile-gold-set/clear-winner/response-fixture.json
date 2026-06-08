@@ -1,0 +1,22 @@
+{
+  "content": [
+    {
+      "type": "tool_use",
+      "id": "toolu_ClearWinner01",
+      "name": "resolve_conflict",
+      "input": {
+        "winner_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+        "loser_id": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+        "reason": "WHO DON (trust 0.95) is the primary outbreak notification source and outranks WHO AFRO (trust 0.80) for case count verification.",
+        "confidence": 0.96,
+        "escalate": false
+      }
+    }
+  ],
+  "usage": {
+    "input_tokens": 687,
+    "output_tokens": 68,
+    "cache_read_input_tokens": 687,
+    "cache_creation_input_tokens": 0
+  }
+}
