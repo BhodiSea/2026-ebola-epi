@@ -12,13 +12,10 @@ export default async function SitrepPage({
   const source = typeof params.source === "string" ? params.source : undefined;
   const page = typeof params.page === "string" ? Number(params.page) : 1;
 
-  const sitreps = await listSitreps({
-    ...(source !== undefined && { source }),
-    page,
-  });
-
+  const sitreps = await listSitreps({ ...(source !== undefined && { source }), page });
   const groups = groupByDate(sitreps);
   const sourceParam = source === undefined ? "" : `&source=${encodeURIComponent(source)}`;
+  const chips = source === undefined ? deriveSourceChips(sitreps) : [];
 
   return (
     <main className="mx-auto max-w-4xl space-y-6 px-4 py-8">
@@ -27,21 +24,7 @@ export default async function SitrepPage({
         <span className="font-mono text-[12px] text-fg-muted">{sitreps.length} documents</span>
       </div>
 
-      <div className="flex flex-wrap gap-2" data-sitrep-filters>
-        {source === undefined ? null : (
-          <span className="rounded border bg-card px-2 py-1 font-mono text-[12px]">
-            source: {source}
-          </span>
-        )}
-        {source === undefined ? null : (
-          <a
-            href="/sitreps"
-            className="font-mono text-[12px] text-accent underline-offset-2 hover:underline"
-          >
-            Clear filters
-          </a>
-        )}
-      </div>
+      <SourceFilterBar source={source} chips={chips} />
 
       {sitreps.length === 0 ? (
         <p className="font-mono text-[13px] text-fg-muted">
@@ -90,6 +73,18 @@ function DateGroup({ dateKey, docs }: Readonly<{ dateKey: string; docs: Document
       </div>
     </section>
   );
+}
+
+function deriveSourceChips(docs: Document[]): { name: string; slug: string }[] {
+  const seen = new Set<string>();
+  const chips: { name: string; slug: string }[] = [];
+  for (const doc of docs) {
+    if (!seen.has(doc.source.slug)) {
+      seen.add(doc.source.slug);
+      chips.push({ slug: doc.source.slug, name: doc.source.name });
+    }
+  }
+  return chips.sort((a, b) => a.name.localeCompare(b.name));
 }
 
 function formatDateGroup(iso: string): string {
@@ -147,6 +142,38 @@ function SitrepRow({ doc }: Readonly<{ doc: Document }>) {
           </span>
         )}
       </div>
+    </div>
+  );
+}
+
+function SourceFilterBar({
+  source,
+  chips,
+}: Readonly<{ chips: { name: string; slug: string }[]; source: string | undefined }>) {
+  return (
+    <div className="flex flex-wrap gap-2" data-sitrep-filters>
+      {chips.map(({ slug, name }) => (
+        <a
+          key={slug}
+          href={`/sitreps?source=${encodeURIComponent(slug)}`}
+          className="rounded border border-border px-2 py-1 font-mono text-[12px] text-fg-muted transition-colors hover:bg-surface-3 hover:text-fg"
+        >
+          {name}
+        </a>
+      ))}
+      {source === undefined ? null : (
+        <span className="rounded border bg-card px-2 py-1 font-mono text-[12px]">
+          source: {source}
+        </span>
+      )}
+      {source === undefined ? null : (
+        <a
+          href="/sitreps"
+          className="font-mono text-[12px] text-accent underline-offset-2 hover:underline"
+        >
+          Clear filters
+        </a>
+      )}
     </div>
   );
 }

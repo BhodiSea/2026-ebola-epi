@@ -8,7 +8,7 @@ vi.mock("next/navigation", () => ({
   useSearchParams: () => new URLSearchParams(),
 }));
 
-// Root carries data-vaul-drawer plus the testable attributes (snapPoints, modal).
+// Root carries data-vaul-drawer plus the testable attributes (snapPoints, modal, defaultOpen).
 // Content is a transparent pass-through so aria-hidden on the drag handle is visible.
 vi.mock("vaul", () => ({
   Drawer: {
@@ -16,8 +16,10 @@ vi.mock("vaul", () => ({
       children,
       snapPoints,
       modal,
+      defaultOpen,
     }: {
       children: React.ReactNode;
+      defaultOpen?: boolean;
       modal: boolean;
       snapPoints: number[];
     }) => (
@@ -25,6 +27,7 @@ vi.mock("vaul", () => ({
         data-vaul-drawer=""
         data-snap-points={JSON.stringify(snapPoints)}
         data-modal={String(modal)}
+        data-default-open={String(defaultOpen ?? false)}
       >
         {children}
       </div>
@@ -71,6 +74,14 @@ describe("MobileInspector", () => {
     );
     const handle = container.querySelector("[aria-hidden='true']");
     expect(handle).not.toBeNull();
+  });
+
+  it("sets defaultOpen={true} so vaul mounts content without user interaction", () => {
+    const { container } = render(
+      <MobileInspector outbreakId="d0eebc99-9c0b-4ef8-bb6d-6bb9bd380a01" />,
+    );
+    const drawer = container.querySelector("[data-vaul-drawer]");
+    expect(drawer?.getAttribute("data-default-open")).toBe("true");
   });
 
   it("renders InspectorTabs inside the drawer", () => {

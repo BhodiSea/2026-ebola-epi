@@ -44,4 +44,14 @@ describe("TodayPage (integration)", () => {
     const str = JSON.stringify(jsx);
     expect(str).toContain("a2eebc99-9c0b-4ef8-bb6d-6bb9bd380a01");
   });
+
+  it("renders Recent Documents section with seeded document titles", async () => {
+    const jsx = await TodayPage({ searchParams: Promise.resolve({}) });
+    const str = JSON.stringify(jsx);
+    // RecentDocsSection is a non-async child; its rendered heading is not in the
+    // JSON tree, but props.sitreps (the Document array) is serialised in full.
+    expect(str).toContain('"sitreps"');
+    // Seeded WHO DON 603 document — source.name is in the serialised prop data
+    expect(str).toContain("WHO Disease Outbreak News");
+  });
 });

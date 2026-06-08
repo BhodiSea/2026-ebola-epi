@@ -1,6 +1,5 @@
 import { ImageResponse } from "@vercel/og";
 
-import { siteUrl } from "@/lib/env";
 import { OG_SIZE } from "@/lib/og/config";
 import { getOgFonts } from "@/lib/og/fonts";
 import { SeverityBadge } from "@/lib/og/severity-badge";
@@ -21,7 +20,7 @@ export default async function BriefOgImage({
   const headline: string = data?.headline ?? "Daily Brief";
   const severity: string = data?.severity ?? "info";
   const firstBullet = (data?.body ?? "").split("\n\n")[0] ?? "";
-  const fonts = await getOgFonts(siteUrl());
+  const fonts = await getOgFonts();
 
   return new ImageResponse(
     <div
@@ -45,7 +44,7 @@ export default async function BriefOgImage({
             fontFamily: "monospace",
           }}
         >
-          DAILY BRIEF · {date}
+          {`DAILY BRIEF · ${date}`}
         </div>
         <div style={{ fontSize: 56, fontWeight: 700, color: "#111827", lineHeight: 1.15 }}>
           {headline}

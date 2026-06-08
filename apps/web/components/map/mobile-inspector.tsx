@@ -20,7 +20,7 @@ export function MobileInspector({
   timeWindow,
 }: Readonly<MobileInspectorProps>) {
   return (
-    <Drawer.Root snapPoints={SNAP_POINTS} modal={false}>
+    <Drawer.Root snapPoints={SNAP_POINTS} modal={false} defaultOpen={true}>
       <Drawer.Portal>
         {/* Overlay intentionally omitted: modal={false} keeps the map pannable behind the sheet. */}
         <Drawer.Content

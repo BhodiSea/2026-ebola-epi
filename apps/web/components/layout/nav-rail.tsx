@@ -44,6 +44,7 @@ function NavRail() {
             <TooltipTrigger asChild>
               <Link
                 href={item.href}
+                aria-label={item.label}
                 className={cn(
                   "relative flex h-11 items-center gap-3 px-4 font-sans text-sm transition-colors",
                   "hover:bg-surface-3 hover:text-fg",
@@ -71,7 +72,7 @@ function NavRail() {
       <button
         type="button"
         onClick={toggle}
-        className="mt-auto flex h-10 items-center justify-center text-fg-subtle transition-colors hover:text-fg"
+        className="mt-auto flex h-10 items-center justify-center text-fg-muted transition-colors hover:text-fg"
         aria-label={expanded ? "Collapse navigation" : "Expand navigation"}
         title="[ to toggle"
       >

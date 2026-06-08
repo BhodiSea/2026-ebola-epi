@@ -129,7 +129,6 @@ async function provisionAdminUser(): Promise<void> {
   }
 }
 
-/* eslint-disable @typescript-eslint/naming-convention */
 async function saveAdminStorageState(): Promise<void> {
   const anon = createClient(SUPABASE_URL, LOCAL_ANON_JWT, {
     auth: { autoRefreshToken: false, persistSession: false },
@@ -144,17 +143,17 @@ async function saveAdminStorageState(): Promise<void> {
     throw new Error(`Failed to sign in e2e admin user: ${error?.message ?? "no session"}`);
   }
 
-  const { access_token, refresh_token } = data.session;
-
   const storageState = {
-    cookies: [makeCookie("sb-127-auth-token", JSON.stringify([access_token, refresh_token]))],
+    // @supabase/ssr reads the cookie value as JSON.parse(cookieValue) → full session object.
+    // The old [access_token, refresh_token] array format was invalid; pass the full session.
+    cookies: [makeCookie("sb-127-auth-token", JSON.stringify(data.session))],
     origins: [
       {
-        origin: "http://localhost:3000",
+        origin: "http://localhost:3001",
         localStorage: [
           {
             name: "sb-127-auth-token",
-            value: JSON.stringify({ access_token, refresh_token }),
+            value: JSON.stringify(data.session),
           },
         ],
       },
@@ -168,4 +167,3 @@ async function saveAdminStorageState(): Promise<void> {
   // eslint-disable-next-line security/detect-non-literal-fs-filename
   writeFileSync(path.join(authDir, "admin.json"), JSON.stringify(storageState, null, 2));
 }
-/* eslint-enable @typescript-eslint/naming-convention */

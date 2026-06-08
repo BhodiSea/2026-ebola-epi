@@ -15,7 +15,8 @@
       "!**/node_modules",
       "!**/*.generated.*",
       "!supabase/functions",
-      "!apps/web/app/globals.css"
+      "!apps/web/app/globals.css",
+      "!**/test-results"
     ]
   },
   "formatter": {

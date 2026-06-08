@@ -1,6 +1,5 @@
 import { ImageResponse } from "@vercel/og";
 
-import { siteUrl } from "@/lib/env";
 import { OG_SIZE } from "@/lib/og/config";
 import { getOgFonts } from "@/lib/og/fonts";
 import { Wordmark } from "@/lib/og/wordmark";
@@ -17,7 +16,7 @@ export default async function TodayOgImage() {
   const totals = outbreak === null ? null : await getStatTotals(outbreak.id);
   const confirmed = totals?.confirmed.value ?? 0;
   const deaths = totals?.deaths.value ?? 0;
-  const fonts = await getOgFonts(siteUrl());
+  const fonts = await getOgFonts();
 
   return new ImageResponse(
     <div
@@ -44,7 +43,7 @@ export default async function TodayOgImage() {
           ITURI BUNDIBUGYO VIRUS — SITREP
         </div>
         <div style={{ fontSize: 64, fontWeight: 700, color: "#111827", lineHeight: 1.1 }}>
-          Today&#39;s Situation
+          Today&apos;s Situation
         </div>
       </div>
 
@@ -59,7 +58,7 @@ export default async function TodayOgImage() {
               color: "#111827",
             }}
           >
-            {confirmed}
+            {`${confirmed}`}
           </div>
         </div>
         <div style={{ display: "flex", flexDirection: "column" }}>
@@ -72,7 +71,7 @@ export default async function TodayOgImage() {
               color: "#111827",
             }}
           >
-            {deaths}
+            {`${deaths}`}
           </div>
         </div>
       </div>

@@ -1,6 +1,5 @@
 import { ImageResponse } from "@vercel/og";
 
-import { siteUrl } from "@/lib/env";
 import { OG_SIZE } from "@/lib/og/config";
 import { getOgFonts } from "@/lib/og/fonts";
 import { SeverityBadge } from "@/lib/og/severity-badge";
@@ -24,7 +23,7 @@ export default async function ZoneOgImage({
   const confirmed = stats?.confirmed.value ?? 0;
   const deaths = stats?.deaths.value ?? 0;
   const severity = outbreak?.severityLevel ?? "info";
-  const fonts = await getOgFonts(siteUrl());
+  const fonts = await getOgFonts();
 
   return new ImageResponse(
     <div
@@ -67,7 +66,7 @@ export default async function ZoneOgImage({
               color: "#111827",
             }}
           >
-            {confirmed}
+            {`${confirmed}`}
           </div>
         </div>
         <div style={{ display: "flex", flexDirection: "column" }}>
@@ -80,7 +79,7 @@ export default async function ZoneOgImage({
               color: "#111827",
             }}
           >
-            {deaths}
+            {`${deaths}`}
           </div>
         </div>
       </div>

@@ -50,7 +50,7 @@ function TopBar() {
 
         {/* Live pulse indicator */}
         <div
-          className="flex items-center gap-1.5 font-mono text-fg-subtle text-xs"
+          className="flex items-center gap-1.5 font-mono text-fg-muted text-xs"
           title="Data updated regularly from source documents"
         >
           <span

@@ -1,7 +1,8 @@
 // @vitest-environment node
 /**
- * /methods and /evidence/* are public (no auth required) — they are indexed by
- * search engines and must be accessible without a session cookie.
+ * ituri-sitrep is a public situational-awareness tool. Only /internal/* routes
+ * require authentication. All public-facing pages must be accessible without a
+ * session cookie so they are indexable and reachable by the general public.
  */
 
 import { NextRequest } from "next/server";
@@ -39,21 +40,41 @@ function makeRequest(pathname: string): NextRequest {
   return new NextRequest(new URL(`http://localhost:3000${pathname}`));
 }
 
-describe("proxy public-route allowlist", () => {
-  it("does NOT redirect unauthenticated /methods — public editorial page", async () => {
-    const req = makeRequest("/methods");
+const PUBLIC_ROUTES = [
+  "/",
+  "/today",
+  "/map",
+  "/sitreps",
+  "/outbreaks",
+  "/methods",
+  "/evidence/00000000-0000-0000-0000-000000000001",
+  "/about/data-sources",
+  "/brief/2026-05-28",
+  "/zone/COD-IT-IR",
+  "/auth/login",
+  "/auth/callback",
+  "/api/inngest",
+];
+
+describe("proxy public-route allowlist — no redirect for unauthenticated users", () => {
+  for (const route of PUBLIC_ROUTES) {
+    it(`does NOT redirect unauthenticated ${route}`, async () => {
+      const req = makeRequest(route);
+      const res = await updateSession(req, "nonce");
+      expect(res.status).not.toBe(307);
+    });
+  }
+});
+
+describe("proxy auth guard — /internal/* requires authentication", () => {
+  it("redirects unauthenticated /internal/pipeline to /auth/login", async () => {
+    const req = makeRequest("/internal/pipeline");
     const res = await updateSession(req, "nonce");
-    expect(res.status).not.toBe(307);
+    expect(res.status).toBe(307);
   });
 
-  it("does NOT redirect unauthenticated /evidence/some-uuid — public permalink", async () => {
-    const req = makeRequest("/evidence/00000000-0000-0000-0000-000000000001");
-    const res = await updateSession(req, "nonce");
-    expect(res.status).not.toBe(307);
-  });
-
-  it("still redirects unauthenticated /protected", async () => {
-    const req = makeRequest("/protected");
+  it("redirects unauthenticated /internal/sources to /auth/login", async () => {
+    const req = makeRequest("/internal/sources");
     const res = await updateSession(req, "nonce");
     expect(res.status).toBe(307);
   });

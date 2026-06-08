@@ -1,6 +1,5 @@
 import { ImageResponse } from "@vercel/og";
 
-import { siteUrl } from "@/lib/env";
 import { OG_SIZE } from "@/lib/og/config";
 import { getOgFonts } from "@/lib/og/fonts";
 import { SeverityBadge } from "@/lib/og/severity-badge";
@@ -32,7 +31,7 @@ Readonly<{ params: Promise<{ "quote-id": string }> }>) {
   const sourceArr = (data as null | { source?: { name?: string }[] })?.source;
   const sourceName: string = sourceArr?.[0]?.name ?? "Unknown source";
 
-  const fonts = await getOgFonts(siteUrl());
+  const fonts = await getOgFonts();
 
   return new ImageResponse(
     <div
@@ -75,7 +74,7 @@ Readonly<{ params: Promise<{ "quote-id": string }> }>) {
           {`“${text}”`}
         </div>
         <div style={{ fontSize: 14, color: "#6b7280", fontFamily: "monospace" }}>
-          — {sourceName}
+          {`— ${sourceName}`}
         </div>
       </div>
 

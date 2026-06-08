@@ -47,6 +47,17 @@ describe("TabularView", () => {
     expect(container.textContent).toContain("20");
   });
 
+  it("th headers use text-fg-muted (not text-fg-subtle) for WCAG AA contrast", async () => {
+    const jsx = await TabularView({ outbreakId: OUTBREAK_ID });
+    const { container } = render(jsx);
+    const headers = container.querySelectorAll("th");
+    expect(headers.length).toBeGreaterThan(0);
+    for (const th of headers) {
+      expect(th.className).not.toContain("fg-subtle");
+      expect(th.className).toContain("fg-muted");
+    }
+  });
+
   it("uses FigureOrMissing (not Figure with empty string) when quoteId is absent", async () => {
     vi.mocked(getEpiCurveSeries).mockResolvedValue({
       confirmed: [{ date: "2026-05-01", value: 42, quoteId: null }],

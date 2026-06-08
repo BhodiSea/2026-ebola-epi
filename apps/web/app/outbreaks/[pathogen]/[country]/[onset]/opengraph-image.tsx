@@ -1,6 +1,5 @@
 import { ImageResponse } from "@vercel/og";
 
-import { siteUrl } from "@/lib/env";
 import { OG_SIZE } from "@/lib/og/config";
 import { getOgFonts } from "@/lib/og/fonts";
 import { SeverityBadge } from "@/lib/og/severity-badge";
@@ -26,7 +25,7 @@ export default async function OutbreakOgImage({
   const confirmed = totals?.confirmed.value ?? 0;
   const deaths = totals?.deaths.value ?? 0;
   const sourceLabel = outbreak === null ? "" : await fetchSourceLabel(outbreak.id);
-  const fonts = await getOgFonts(siteUrl());
+  const fonts = await getOgFonts();
 
   return new ImageResponse(
     <div
@@ -50,7 +49,7 @@ export default async function OutbreakOgImage({
             fontFamily: "monospace",
           }}
         >
-          {country.toUpperCase()} · {onset}
+          {`${country.toUpperCase()} · ${onset}`}
         </div>
         <div style={{ fontSize: 64, fontWeight: 700, color: "#111827", lineHeight: 1.1 }}>
           {name}
@@ -111,7 +110,7 @@ function OgStats({ confirmed, deaths }: Readonly<{ confirmed: number; deaths: nu
             color: "#111827",
           }}
         >
-          {confirmed}
+          {`${confirmed}`}
         </div>
       </div>
       <div style={{ display: "flex", flexDirection: "column" }}>
@@ -124,7 +123,7 @@ function OgStats({ confirmed, deaths }: Readonly<{ confirmed: number; deaths: nu
             color: "#111827",
           }}
         >
-          {deaths}
+          {`${deaths}`}
         </div>
       </div>
     </div>

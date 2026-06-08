@@ -8,13 +8,24 @@ export default defineConfig({
   reporter: "html",
   globalSetup: "./e2e/global-setup.ts",
   webServer: {
-    command: "pnpm dev",
-    url: "http://localhost:3000",
+    command: "PORT=3001 pnpm dev",
+    url: "http://localhost:3001",
     reuseExistingServer: process.env.CI !== "true",
     timeout: 120_000,
+    // Override to local Supabase stack so e2e tests hit seeded data.
+    // These are the standard local-dev demo credentials (not production secrets).
+    /* eslint-disable no-secrets/no-secrets */
+    env: {
+      NEXT_PUBLIC_SUPABASE_URL: "http://127.0.0.1:54321",
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY:
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0",
+      POSTGRES_URL_NON_POOLING: "postgresql://postgres:postgres@127.0.0.1:54322/postgres",
+      NEXT_PUBLIC_SITE_URL: "http://localhost:3001",
+    },
+    /* eslint-enable no-secrets/no-secrets */
   },
   use: {
-    baseURL: process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:3000",
+    baseURL: process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:3001",
     trace: "on-first-retry",
   },
   projects: [

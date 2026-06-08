@@ -210,7 +210,14 @@ function RecentDocsSection({ sitreps }: Readonly<{ sitreps: Document[] }>) {
             className="flex min-w-[80vw] shrink-0 snap-start flex-col gap-1 rounded-md border border-border p-3 font-mono text-[13px] md:min-w-0 md:shrink md:flex-row md:items-baseline md:gap-2 md:rounded-none md:border-0 md:p-0"
           >
             <span className="shrink-0 text-fg-muted">{doc.source.name}</span>
-            <span className="truncate">{doc.title ?? doc.url}</span>
+            <a
+              href={doc.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="truncate underline-offset-2 hover:underline"
+            >
+              {doc.title ?? doc.url}
+            </a>
             {doc.publishedAt === null ? null : (
               <span className="ml-auto shrink-0 text-fg-muted">
                 {new Date(doc.publishedAt).toLocaleDateString("en", {

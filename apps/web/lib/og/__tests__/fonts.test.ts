@@ -1,36 +1,52 @@
-import { describe, expect, it, vi } from "vitest";
+// @vitest-environment node
+// Covers: getOgFonts() fs-based implementation with TTF/WOFF2 filtering
+import { readFile } from "node:fs/promises";
+
+import { afterEach, describe, expect, it, vi } from "vitest";
+
+vi.mock("node:fs/promises", () => ({ readFile: vi.fn() }));
+
+afterEach(() => {
+  vi.clearAllMocks();
+});
+
+// TTF: first byte is NUL (0x00) — not the WOFF/WOFF2 prefix "wOF"
+function makeTtfBuf(): Buffer {
+  return Buffer.alloc(8); // alloc zero-fills; byte 0 = 0x00
+}
+
+// WOFF2: starts with "wOF2" — rejected by satori
+function makeWoff2Buf(): Buffer {
+  return Buffer.from("wOF2", "ascii");
+}
 
 describe("getOgFonts", () => {
-  it("returns at least two font entries with non-empty data on success", async () => {
-    const mockBuffer = new ArrayBuffer(8);
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ arrayBuffer: () => mockBuffer }));
+  it("returns TTF font entries and filters out WOFF2", async () => {
+    // FONT_FILES has 2 entries; first → TTF kept, second → WOFF2 filtered
+    vi.mocked(readFile as (path: string) => Promise<Buffer>)
+      .mockResolvedValueOnce(makeTtfBuf())
+      .mockResolvedValueOnce(makeWoff2Buf());
 
     const { getOgFonts } = await import("../fonts");
-    const fonts = await getOgFonts("http://localhost:3000");
+    const fonts = await getOgFonts();
 
-    const VALID_WEIGHTS = new Set([100, 200, 300, 400, 500, 600, 700, 800, 900]);
-    expect(fonts.length).toBeGreaterThanOrEqual(2);
-    const names = new Set(fonts.map((f) => f.name));
-    expect(names.has("Geist Sans")).toBe(true);
-    expect(names.has("Source Serif 4")).toBe(true);
-    for (const f of fonts) {
-      expect(f.data).toBe(mockBuffer);
-      expect(typeof f.name).toBe("string");
-      expect(f.name.length).toBeGreaterThan(0);
-      expect(f.weight === undefined || VALID_WEIGHTS.has(f.weight)).toBe(true);
-    }
-
-    vi.unstubAllGlobals();
+    expect(fonts.length).toBe(1);
+    const first = fonts[0];
+    expect(first).toBeDefined();
+    expect(new DataView(first!.data).getUint8(0)).toBe(0x00);
   });
 
-  it("returns empty array if fetch throws", async () => {
-    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("network")));
+  it("returns empty array if readFile throws", async () => {
+    vi.mocked(readFile as (path: string) => Promise<Buffer>).mockRejectedValue(new Error("ENOENT"));
 
     const { getOgFonts } = await import("../fonts");
-    const fonts = await getOgFonts("http://localhost:3000");
+    expect(await getOgFonts()).toEqual([]);
+  });
 
-    expect(fonts).toEqual([]);
+  it("returns empty array if all fonts are WOFF2", async () => {
+    vi.mocked(readFile as (path: string) => Promise<Buffer>).mockResolvedValue(makeWoff2Buf());
 
-    vi.unstubAllGlobals();
+    const { getOgFonts } = await import("../fonts");
+    expect(await getOgFonts()).toEqual([]);
   });
 });

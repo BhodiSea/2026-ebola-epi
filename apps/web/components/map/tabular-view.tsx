@@ -18,13 +18,13 @@ export async function TabularView({ outbreakId }: Readonly<TabularViewProps>) {
       <table className="w-full border-collapse text-sm">
         <thead>
           <tr className="border-[var(--color-border)] border-b">
-            <th className="py-2 pr-4 text-left font-mono text-[11px] text-[var(--color-fg-subtle)] uppercase tracking-wide">
+            <th className="py-2 pr-4 text-left font-mono text-(--color-fg-muted) text-[11px] uppercase tracking-wide">
               Date
             </th>
-            <th className="py-2 pr-4 text-right font-mono text-[11px] text-[var(--color-fg-subtle)] uppercase tracking-wide">
+            <th className="py-2 pr-4 text-right font-mono text-(--color-fg-muted) text-[11px] uppercase tracking-wide">
               Confirmed
             </th>
-            <th className="py-2 text-right font-mono text-[11px] text-[var(--color-fg-subtle)] uppercase tracking-wide">
+            <th className="py-2 text-right font-mono text-(--color-fg-muted) text-[11px] uppercase tracking-wide">
               Deaths
             </th>
           </tr>

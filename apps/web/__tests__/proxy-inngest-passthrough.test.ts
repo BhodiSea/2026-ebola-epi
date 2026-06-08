@@ -41,8 +41,8 @@ function makeRequest(pathname: string): NextRequest {
 }
 
 describe("proxy auth redirect", () => {
-  it("redirects unauthenticated requests to /protected to /auth/login", async () => {
-    const req = makeRequest("/protected");
+  it("redirects unauthenticated /internal/pipeline to /auth/login", async () => {
+    const req = makeRequest("/internal/pipeline");
     const res = await updateSession(req, "nonce");
     expect(res.status).toBe(307);
     expect(res.headers.get("location")).toContain("/auth/login");

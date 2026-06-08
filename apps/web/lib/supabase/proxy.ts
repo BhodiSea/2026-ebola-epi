@@ -54,15 +54,11 @@ export async function updateSession(request: NextRequest, nonce: string) {
   const user = data?.claims;
 
   const { pathname } = request.nextUrl;
-  const isPublic =
-    pathname === "/" ||
-    pathname.startsWith("/methods") ||
-    pathname.startsWith("/evidence") ||
-    pathname.startsWith("/login") ||
-    pathname.startsWith("/auth") ||
-    pathname.startsWith("/api/inngest");
+  // Only the internal admin dashboard requires authentication.
+  // All public-facing outbreak data pages are openly accessible.
+  const requiresAuth = pathname.startsWith("/internal");
 
-  if (!(user || isPublic)) {
+  if (requiresAuth && !user) {
     return NextResponse.redirect(new URL("/auth/login", request.url));
   }
 
