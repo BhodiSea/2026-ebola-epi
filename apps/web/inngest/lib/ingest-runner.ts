@@ -64,6 +64,17 @@ export async function runPerSourceIngest(
         });
         return null;
       }
+      await db.insert(agentActions).values({
+        agent: AGENT_SLUG,
+        action: "ingest_failed",
+        subjectTable: "sources",
+        subjectId: sourceId,
+        payload: {
+          sourceSlug: adapter.sourceSlug,
+          stage: "poll",
+          reason: error instanceof Error ? error.message : String(error),
+        },
+      });
       throw error;
     }
   });

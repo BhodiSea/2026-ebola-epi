@@ -45,9 +45,22 @@ const SparkRow = z.object({
 });
 
 const StatRow = z.object({
+  as_of: z.string(),
   metric: z.string(),
   source_quote_id: z.string().nullable(),
   value: z.number(),
+});
+
+const InternationalStatRow = z.object({
+  as_of: z.string(),
+  metric: z.string(),
+  outbreak_id: z.string(),
+  source_quote_id: z.string().nullable(),
+  value: z.number(),
+});
+
+const OutbreakIdRow = z.object({
+  id: z.string(),
 });
 
 const ZoneRow = z.object({
@@ -55,23 +68,72 @@ const ZoneRow = z.object({
 });
 /* eslint-enable @typescript-eslint/naming-convention */
 
+interface InternationalAccumulator {
+  confirmedBest: number;
+  confirmedQuote: null | string;
+  confirmedTotal: number;
+  deathsBest: number;
+  deathsQuote: null | string;
+  deathsTotal: number;
+}
+
+type InternationalStatRowType = z.infer<typeof InternationalStatRow>;
+
 type StatRowType = z.infer<typeof StatRow>;
 
 /* --- helpers ----------------------------------------------------------------- */
 
-function accumulate(
+/**
+ * Returns the value and quoteId from the first row matching `metric`.
+ * Rows must be ordered by as_of DESC so the first match is the latest snapshot.
+ */
+function pickLatest(
   rows: StatRowType[],
   metric: string,
 ): { quoteId: null | string; value: number } {
-  let total = 0;
-  let quoteId: null | string = null;
+  const row = rows.find((r) => r.metric === metric);
+  return row === undefined
+    ? { value: 0, quoteId: null }
+    : { value: row.value, quoteId: row.source_quote_id };
+}
+
+/**
+ * Given rows ordered by as_of DESC, picks the latest snapshot per (outbreak_id, metric)
+ * and sums values across all countries.
+ */
+function sumLatestPerCountry(rows: InternationalStatRowType[]): InternationalAccumulator {
+  const seen = new Set<string>();
+  const acc: InternationalAccumulator = {
+    confirmedTotal: 0,
+    deathsTotal: 0,
+    confirmedQuote: null,
+    deathsQuote: null,
+    confirmedBest: -1,
+    deathsBest: -1,
+  };
+
   for (const row of rows) {
-    if (row.metric === metric) {
-      total += row.value;
-      quoteId ??= row.source_quote_id;
+    const key = `${row.outbreak_id}:${row.metric}`;
+    if (seen.has(key)) {
+      continue;
+    }
+    seen.add(key);
+    if (row.metric === "confirmed") {
+      acc.confirmedTotal += row.value;
+      if (row.value > acc.confirmedBest) {
+        acc.confirmedBest = row.value;
+        acc.confirmedQuote = row.source_quote_id;
+      }
+    } else if (row.metric === "deaths") {
+      acc.deathsTotal += row.value;
+      if (row.value > acc.deathsBest) {
+        acc.deathsBest = row.value;
+        acc.deathsQuote = row.source_quote_id;
+      }
     }
   }
-  return { value: total, quoteId };
+
+  return acc;
 }
 
 const EMPTY_TOTALS: StatTotals = {
@@ -97,7 +159,10 @@ export async function getEpiCurveSeries(outbreakId: string): Promise<{
     .eq("outbreak_id", outbreakId)
     .eq("status", "published")
     .is("superseded_by", null)
+    .is("admin_name", null)
+    .is("admin2_code", null)
     .in("metric", ["confirmed", "deaths"])
+    .or("is_new_in_period.is.null,is_new_in_period.eq.false")
     .order("as_of", { ascending: true });
 
   if (data === null) {
@@ -112,6 +177,66 @@ export async function getEpiCurveSeries(outbreakId: string): Promise<{
   return {
     confirmed: buildEpiSeries(rows.data, "confirmed"),
     deaths: buildEpiSeries(rows.data, "deaths"),
+  };
+}
+
+/**
+ * Returns headline stats summed across ALL active outbreaks for a pathogen.
+ * Use this for the /today dashboard where the outbreak spans multiple countries.
+ * Per country: picks the latest national cumulative snapshot for each metric.
+ * The quoteId returned is from the highest-value contributing country.
+ */
+export async function getInternationalStatTotals(pathogenIcd11: string): Promise<StatTotals> {
+  const supabase = await createClient();
+
+  const { data: outbreakData } = await supabase
+    .from("outbreaks")
+    .select("id")
+    .eq("pathogen_icd11", pathogenIcd11)
+    .eq("status", "active");
+
+  if (outbreakData === null || outbreakData.length === 0) {
+    return EMPTY_TOTALS;
+  }
+
+  const parsedOutbreaks = z.array(OutbreakIdRow).safeParse(outbreakData);
+  if (!parsedOutbreaks.success) {
+    return EMPTY_TOTALS;
+  }
+
+  const ids = parsedOutbreaks.data.map((r) => r.id);
+
+  const { data } = await supabase
+    .from("case_counts")
+    .select("outbreak_id, as_of, metric, value, source_quote_id")
+    .in("outbreak_id", ids)
+    .eq("status", "published")
+    .is("superseded_by", null)
+    .is("admin_name", null)
+    .is("admin2_code", null)
+    .in("metric", ["confirmed", "deaths"])
+    .or("is_new_in_period.is.null,is_new_in_period.eq.false")
+    .order("as_of", { ascending: false });
+
+  if (data === null) {
+    return EMPTY_TOTALS;
+  }
+
+  const rows = z.array(InternationalStatRow).safeParse(data);
+  if (!rows.success) {
+    return EMPTY_TOTALS;
+  }
+
+  const acc = sumLatestPerCountry(rows.data);
+  const cfr =
+    acc.confirmedTotal > 0 ? Math.round((acc.deathsTotal / acc.confirmedTotal) * 1000) / 10 : null;
+  const zonesAffected = await countZonesAffected(ids);
+
+  return {
+    confirmed: { value: acc.confirmedTotal, quoteId: acc.confirmedQuote },
+    deaths: { value: acc.deathsTotal, quoteId: acc.deathsQuote },
+    cfr,
+    zonesAffected,
   };
 }
 
@@ -131,6 +256,9 @@ export async function getSparkline14d(
     .eq("metric", metric)
     .eq("status", "published")
     .is("superseded_by", null)
+    .is("admin_name", null)
+    .is("admin2_code", null)
+    .or("is_new_in_period.is.null,is_new_in_period.eq.false")
     .gte("as_of", cutoff.toISOString().slice(0, 10))
     .order("as_of", { ascending: true });
 
@@ -151,16 +279,25 @@ export async function getSparkline14d(
   return [...byDate.entries()].map(([date, value]) => ({ date, value }));
 }
 
+/**
+ * Returns headline stats for a single outbreak (country-scoped detail pages).
+ * Picks the latest national cumulative snapshot per metric — does NOT sum
+ * across weekly snapshots or zone-level rows.
+ */
 export async function getStatTotals(outbreakId: string): Promise<StatTotals> {
   const supabase = await createClient();
 
   const { data } = await supabase
     .from("case_counts")
-    .select("metric, value, source_quote_id")
+    .select("as_of, metric, value, source_quote_id")
     .eq("outbreak_id", outbreakId)
     .eq("status", "published")
     .is("superseded_by", null)
-    .in("metric", ["confirmed", "deaths"]);
+    .is("admin_name", null)
+    .is("admin2_code", null)
+    .in("metric", ["confirmed", "deaths"])
+    .or("is_new_in_period.is.null,is_new_in_period.eq.false")
+    .order("as_of", { ascending: false });
 
   if (data === null) {
     return EMPTY_TOTALS;
@@ -171,16 +308,15 @@ export async function getStatTotals(outbreakId: string): Promise<StatTotals> {
     return EMPTY_TOTALS;
   }
 
-  const confirmed = accumulate(rows.data, "confirmed");
-  const deaths = accumulate(rows.data, "deaths");
+  const confirmed = pickLatest(rows.data, "confirmed");
+  const deaths = pickLatest(rows.data, "deaths");
   const cfr = confirmed.value > 0 ? Math.round((deaths.value / confirmed.value) * 1000) / 10 : null;
-  const zonesAffected = await countZonesAffected(outbreakId);
+  const zonesAffected = await countZonesAffected([outbreakId]);
 
   return { confirmed, deaths, cfr, zonesAffected };
 }
 
-/** Group one metric's rows by date, summing values and keeping the first row's quote id as a
- *  representative provenance link (matches the accumulate() convention for headline figures). */
+/** Group one metric's rows by date, summing values and keeping the first quoteId as provenance. */
 function buildEpiSeries(rows: EpiRowType[], metric: string): SparklinePoint[] {
   const byDate = new Map<string, SparklinePoint>();
   for (const row of rows) {
@@ -197,12 +333,12 @@ function buildEpiSeries(rows: EpiRowType[], metric: string): SparklinePoint[] {
   return [...byDate.values()];
 }
 
-async function countZonesAffected(outbreakId: string): Promise<number> {
+async function countZonesAffected(outbreakIds: string[]): Promise<number> {
   const supabase = await createClient();
   const { data } = await supabase
     .from("case_counts")
     .select("admin2_code")
-    .eq("outbreak_id", outbreakId)
+    .in("outbreak_id", outbreakIds)
     .eq("metric", "confirmed")
     .eq("status", "published")
     .is("superseded_by", null)

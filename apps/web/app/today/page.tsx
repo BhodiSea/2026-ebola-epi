@@ -8,7 +8,11 @@ import { OutbreakChoropleth } from "@/components/outbreak/outbreak-choropleth";
 import { StatCard } from "@/components/outbreak/stat-card";
 import { AiGeneratedLabel } from "@/components/provenance/ai-generated-label";
 import type { DisagreementEntry, DisagreementsMap } from "@/lib/queries/case-counts";
-import { getDisagreements, getSparkline14d, getStatTotals } from "@/lib/queries/case-counts";
+import {
+  getDisagreements,
+  getInternationalStatTotals,
+  getSparkline14d,
+} from "@/lib/queries/case-counts";
 import { getDailyBriefByDate } from "@/lib/queries/daily-briefs";
 import type { Document } from "@/lib/queries/documents";
 import { listRecentDocuments } from "@/lib/queries/documents";
@@ -48,6 +52,7 @@ export default async function TodayPage({
 
   const { stats, sparkline, sitreps, allOutbreaks, disagreements, brief } = await loadTodayData(
     outbreak.id,
+    outbreak.pathogenIcd11,
   );
   const sparklineValues = sparkline.map((p) => p.value);
   const confirmedQuoteId = stats.confirmed.quoteId ?? null;
@@ -171,10 +176,10 @@ function InlineOutbreakRow({ outbreak }: Readonly<{ outbreak: Outbreak }>) {
   );
 }
 
-async function loadTodayData(outbreakId: string) {
+async function loadTodayData(outbreakId: string, pathogenIcd11: string) {
   const today = new Date().toISOString().slice(0, 10);
   const [stats, sparkline, sitreps, allOutbreaks, disagreements, brief] = await Promise.all([
-    getStatTotals(outbreakId),
+    getInternationalStatTotals(pathogenIcd11),
     getSparkline14d(outbreakId, "confirmed"),
     listRecentDocuments(5),
     listOutbreaks({ status: "active" }),

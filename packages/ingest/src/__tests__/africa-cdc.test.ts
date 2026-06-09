@@ -90,11 +90,10 @@ describe("africaCDCAdapter.poll()", () => {
     expect(items[0]?.url).toContain("ebola-bundibugyo");
   });
 
-  it("returns [] on RSS parse error", async () => {
+  it("throws when RSS parseURL fails", async () => {
     mockParseURL.mockRejectedValueOnce(new Error("network error"));
     const { africaCDCAdapter } = await import("../sources/africa-cdc.js");
-    const items = await africaCDCAdapter.poll();
-    expect(items).toEqual([]);
+    await expect(africaCDCAdapter.poll()).rejects.toThrow("africa-cdc RSS feed unavailable");
   });
 
   it("does not match articles whose title/link contain only 'disease' with no specific outbreak keyword", async () => {

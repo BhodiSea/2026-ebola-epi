@@ -46,7 +46,7 @@ export const ugandaMOHAdapter: RegisteredAdapter = {
     const anchors = dom.window.document.querySelectorAll<HTMLAnchorElement>("article a");
 
     if (anchors.length === 0) {
-      return [];
+      throw new Error("uganda_moh_selector_empty — site structure may have changed");
     }
 
     return [...anchors].flatMap((a) => {

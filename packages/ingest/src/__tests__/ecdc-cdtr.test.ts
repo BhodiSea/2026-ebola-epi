@@ -1,14 +1,26 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { ecdcCDTRAdapter } from "../sources/ecdc-cdtr.js";
+
+const mockEcdcParseURL = vi.fn().mockResolvedValue({ items: [] });
+vi.mock("rss-parser", () => ({
+  default: vi.fn().mockImplementation(() => ({ parseURL: mockEcdcParseURL })),
+}));
 
 const FIXTURE = readFileSync(
   path.resolve(import.meta.dirname, "./fixtures/ecdc-cdtr.html"),
   "utf8",
 );
+
+describe("ecdcCDTRAdapter.poll()", () => {
+  it("throws when RSS parseURL fails", async () => {
+    mockEcdcParseURL.mockRejectedValueOnce(new Error("ECONNREFUSED"));
+    await expect(ecdcCDTRAdapter.poll()).rejects.toThrow("ecdc-cdtr RSS feed unavailable");
+  });
+});
 
 describe("ecdcCDTRAdapter", () => {
   it("has correct sourceSlug", () => {

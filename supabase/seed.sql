@@ -258,6 +258,11 @@ values
   ('cc000000-0000-0000-0000-000000000009',
    'd0eebc99-9c0b-4ef8-bb6d-6bb9bd380a01', '2026-05-22', null, 'suspected', 347,
    'a4eebc99-9c0b-4ef8-bb6d-6bb9bd380a01', 'f0eebc99-9c0b-4ef8-bb6d-6bb9bd380a01',
+   'claude-sonnet-4-6', 'seed-v1-phase4', 'published'),
+  -- confirmed national aggregate (admin2_code=null) — for national-only stat filter
+  ('cc000000-0000-0000-0000-00000000000a',
+   'd0eebc99-9c0b-4ef8-bb6d-6bb9bd380a01', '2026-05-24', null, 'confirmed', 189,
+   'a1eebc99-9c0b-4ef8-bb6d-6bb9bd380a01', 'f0eebc99-9c0b-4ef8-bb6d-6bb9bd380a01',
    'claude-sonnet-4-6', 'seed-v1-phase4', 'published')
 on conflict (id) do nothing;
 

@@ -4,6 +4,11 @@ import { fileURLToPath } from "node:url";
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+const mockWhoAfroParseURL = vi.fn().mockResolvedValue({ items: [] });
+vi.mock("rss-parser", () => ({
+  default: vi.fn().mockImplementation(() => ({ parseURL: mockWhoAfroParseURL })),
+}));
+
 const dirnameLocal = path.dirname(fileURLToPath(import.meta.url));
 const fixture = readFileSync(path.join(dirnameLocal, "fixtures/who-afro.html"), "utf8");
 
@@ -69,6 +74,14 @@ describe("whoAFROAdapter.fetch + parse", () => {
       "https://www.afro.who.int/publications/sitrep-bvd-drc-21",
     );
     expect(result.skipped).toBe(false);
+  });
+});
+
+describe("whoAFROAdapter.poll()", () => {
+  it("throws when RSS parseURL fails", async () => {
+    mockWhoAfroParseURL.mockRejectedValueOnce(new Error("connection refused"));
+    const { whoAFROAdapter } = await import("../sources/who-afro.js");
+    await expect(whoAFROAdapter.poll()).rejects.toThrow("who-afro RSS feed unavailable");
   });
 });
 

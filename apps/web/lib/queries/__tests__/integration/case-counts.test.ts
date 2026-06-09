@@ -20,7 +20,7 @@ afterEach(resetFixtures);
 describe("getStatTotals (integration)", () => {
   it("returns seeded confirmed and deaths totals", async () => {
     const result = await getStatTotals(OUTBREAK_ID);
-    // Seed has 5 confirmed zone rows: IR=98+MB=45+BU=23+KO=15+MA=8 = 189 minimum
+    // Seed has 1 national confirmed row (value=189, admin2_code=null) — admin2_code IS NULL filter required
     expect(result.confirmed.value).toBeGreaterThanOrEqual(189);
     // Seed has 1 deaths row: national value=37 minimum
     expect(result.deaths.value).toBeGreaterThanOrEqual(1);

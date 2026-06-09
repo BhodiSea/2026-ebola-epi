@@ -259,6 +259,38 @@ describe("runPerSourceIngest — chromium fallback", () => {
   });
 });
 
+describe("runPerSourceIngest — poll error telemetry", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockInsert.mockReturnValue({ values: mockInsertValues });
+    mockInsertValues.mockResolvedValue(undefined);
+    mockChromiumFallbackEnabled.mockResolvedValue(false);
+  });
+
+  it("inserts ingest_failed action and rethrows when poll throws a non-ConfiguredSkipError", async () => {
+    const { runPerSourceIngest } = await import("@/inngest/lib/ingest-runner");
+    mockInsert.mockClear();
+    mockInsertValues.mockClear();
+
+    const step = makeStep();
+    const adapter = {
+      ...makeAdapter({}),
+      poll: vi
+        .fn()
+        .mockRejectedValue(new Error("who-afro RSS feed unavailable: connection refused")),
+    };
+
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- vitest mock types resolve to any
+    await expect(runPerSourceIngest(adapter as never, step as never)).rejects.toThrow(
+      "who-afro RSS feed unavailable",
+    );
+
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- cast to inspect action field
+    const actions = mockInsertValues.mock.calls.map((c) => (c[0] as { action: string }).action);
+    expect(actions).toContain("ingest_failed");
+  });
+});
+
 describe("runPerSourceIngest — ConfiguredSkipError (A1)", () => {
   beforeEach(() => {
     vi.clearAllMocks();

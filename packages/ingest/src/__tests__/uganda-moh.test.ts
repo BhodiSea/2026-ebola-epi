@@ -106,6 +106,15 @@ describe("ugandaMOHAdapter.poll()", () => {
     }
   });
 
+  it("throws when listing HTML has no article elements (selector empty — site structure change)", async () => {
+    vi.stubGlobal(
+      "fetch",
+      makeHtmlFetchMock(`<!DOCTYPE html><html><body><p>No articles here.</p></body></html>`),
+    );
+    const { ugandaMOHAdapter } = await import("../sources/uganda-moh.js");
+    await expect(ugandaMOHAdapter.poll()).rejects.toThrow("uganda_moh_selector_empty");
+  });
+
   it("returns [] when listing has no outbreak keyword matches", async () => {
     vi.stubGlobal(
       "fetch",

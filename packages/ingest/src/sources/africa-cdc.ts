@@ -44,8 +44,10 @@ export const africaCDCAdapter: RegisteredAdapter = {
     let feed: Awaited<ReturnType<typeof parser.parseURL>>;
     try {
       feed = await parser.parseURL(AFRICA_CDC_RSS_URL);
-    } catch {
-      return [];
+    } catch (error) {
+      throw new Error(
+        `africa-cdc RSS feed unavailable: ${error instanceof Error ? error.message : String(error)}`,
+      );
     }
     return feed.items.flatMap((item) => {
       if (item.link == null || item.link === "" || item.pubDate == null || item.pubDate === "") {
