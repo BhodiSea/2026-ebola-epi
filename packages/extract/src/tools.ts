@@ -2,12 +2,14 @@
 import type Anthropic from "@anthropic-ai/sdk";
 import { toJSONSchema, z } from "zod/v4";
 
+import { PATHOGEN_ICD11 } from "./icd11.js";
+
+// PATHOGEN_ICD11 is a compile-time const with 7 hardcoded entries — never empty at runtime
+// eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
+const PATHOGEN_ICD11_VALUES = Object.values(PATHOGEN_ICD11) as [string, ...string[]];
+
 export const ExtractionRowSchema = z.object({
-  pathogen_icd11: z
-    .string()
-    .regex(/^[A-Z0-9.]+$/)
-    .min(4)
-    .max(12),
+  pathogen_icd11: z.enum(PATHOGEN_ICD11_VALUES),
   country_iso3: z.string().length(3),
   // Most specific geographic name the document provides: zone de santé preferred,
   // province/region as fallback when zone is not named.

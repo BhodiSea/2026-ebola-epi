@@ -1,13 +1,13 @@
 [
   {
-    "pathogen_icd11": "1D61",
+    "pathogen_icd11": "1C90.0",
     "country_iso3": "TZA",
     "metric": "confirmed",
     "value": 5,
     "as_of": "2026-05-01"
   },
   {
-    "pathogen_icd11": "1D61",
+    "pathogen_icd11": "1C90.0",
     "country_iso3": "TZA",
     "metric": "deaths",
     "value": 2,

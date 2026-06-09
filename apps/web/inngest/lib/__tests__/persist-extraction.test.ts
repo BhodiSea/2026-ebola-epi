@@ -107,6 +107,7 @@ const BUNDIBUGYO_ROW: ExtractionRow = {
 function makeOutbreakTx(returnedId = "aaaaaaaa-0000-0000-0000-000000000001"): {
   capturedValues: Record<string, unknown>[];
   insertSpy: ReturnType<typeof vi.fn>;
+  onConflictDoUpdateSpy: ReturnType<typeof vi.fn>;
   selectSpy: ReturnType<typeof vi.fn>;
   tx: Tx;
 } {
@@ -127,7 +128,7 @@ function makeOutbreakTx(returnedId = "aaaaaaaa-0000-0000-0000-000000000001"): {
 
   // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- partial mock
   const tx = { insert: insertSpy, select: selectSpy } as unknown as Tx;
-  return { tx, insertSpy, selectSpy, capturedValues };
+  return { tx, insertSpy, onConflictDoUpdateSpy, selectSpy, capturedValues };
 }
 
 describe("upsertOutbreak", () => {
@@ -156,6 +157,14 @@ describe("upsertOutbreak", () => {
     const { tx } = makeOutbreakTx(expectedId);
     const result = await upsertOutbreak(tx, BUNDIBUGYO_ROW, onsetDate);
     expect(result).toBe(expectedId);
+  });
+
+  it("backfills null severity_level on conflict — set clause includes severityLevel (P0b)", async () => {
+    const { tx, onConflictDoUpdateSpy } = makeOutbreakTx();
+    await upsertOutbreak(tx, BUNDIBUGYO_ROW, onsetDate);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- test mock; vi.fn() call args typed as unknown[][]
+    const conflictArg = onConflictDoUpdateSpy.mock.calls[0] as [{ set: Record<string, unknown> }];
+    expect(conflictArg[0].set).toHaveProperty("severityLevel");
   });
 
   it("unknown ICD-11 code produces null pathogen_slug (graceful degradation)", async () => {

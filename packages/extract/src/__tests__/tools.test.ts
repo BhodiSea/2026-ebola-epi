@@ -38,7 +38,7 @@ describe("ExtractionBatchSchema", () => {
     const input = {
       extractions: [
         {
-          pathogen_icd11: "1D60.00",
+          pathogen_icd11: "1D60.2",
           country_iso3: "COD",
           metric: "confirmed",
           value: 42,
@@ -52,10 +52,38 @@ describe("ExtractionBatchSchema", () => {
     // We only check structure here — char/quote correctness is verified by verifySubstring
     expect(result.success).toBe(true);
   });
+});
+
+describe("ExtractionRowSchema", () => {
+  it("rejects hallucinated sub-code 1D60.00 — not in PATHOGEN_ICD11 enum", () => {
+    // 1D60.00 is a real-world model hallucination that created phantom outbreaks in prod.
+    // The enum constraint prevents it reaching the DB.
+    const result = ExtractionRowSchema.safeParse({
+      pathogen_icd11: "1D60.00",
+      country_iso3: "COD",
+      metric: "confirmed",
+      value: 42,
+      as_of: "2026-03-15",
+      source_quote: { char_start: 0, char_end: 5, quote_text: "hello" },
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects hallucinated sub-code 1D60.1Y — not in PATHOGEN_ICD11 enum", () => {
+    const result = ExtractionRowSchema.safeParse({
+      pathogen_icd11: "1D60.1Y",
+      country_iso3: "UGA",
+      metric: "confirmed",
+      value: 5,
+      as_of: "2026-03-15",
+      source_quote: { char_start: 0, char_end: 5, quote_text: "hello" },
+    });
+    expect(result.success).toBe(false);
+  });
 
   it("rejects invalid metric", () => {
     const result = ExtractionRowSchema.safeParse({
-      pathogen_icd11: "1D60.00",
+      pathogen_icd11: "1D60.2",
       country_iso3: "COD",
       metric: "hospitalised", // not in enum
       value: 5,
@@ -67,7 +95,7 @@ describe("ExtractionBatchSchema", () => {
 
   it("rejects negative value", () => {
     const result = ExtractionRowSchema.safeParse({
-      pathogen_icd11: "1D60.00",
+      pathogen_icd11: "1D60.2",
       country_iso3: "COD",
       metric: "cases",
       value: -1,
@@ -79,7 +107,7 @@ describe("ExtractionBatchSchema", () => {
 
   it("rejects empty string admin_name (H4)", () => {
     const result = ExtractionRowSchema.safeParse({
-      pathogen_icd11: "1D60.00",
+      pathogen_icd11: "1D60.2",
       country_iso3: "COD",
       admin_name: "",
       metric: "cases",
@@ -92,7 +120,7 @@ describe("ExtractionBatchSchema", () => {
 
   it("accepts undefined admin_name (H4)", () => {
     const result = ExtractionRowSchema.safeParse({
-      pathogen_icd11: "1D60.00",
+      pathogen_icd11: "1D60.2",
       country_iso3: "COD",
       metric: "cases",
       value: 5,
@@ -198,9 +226,9 @@ describe("ExtractionBatchSchema", () => {
     expect(result.success).toBe(false);
   });
 
-  it("accepts a valid pathogen_icd11 (M4)", () => {
+  it("accepts canonical Bundibugyo ICD-11 code 1D60.2 (M4)", () => {
     const result = ExtractionRowSchema.safeParse({
-      pathogen_icd11: "1D60.00",
+      pathogen_icd11: "1D60.2",
       country_iso3: "COD",
       metric: "cases",
       value: 5,

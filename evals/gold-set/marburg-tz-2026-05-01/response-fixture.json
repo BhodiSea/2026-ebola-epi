@@ -7,7 +7,7 @@
       "input": {
         "extractions": [
           {
-            "pathogen_icd11": "1D61",
+            "pathogen_icd11": "1C90.0",
             "country_iso3": "TZA",
             "metric": "confirmed",
             "value": 5,
@@ -19,7 +19,7 @@
             }
           },
           {
-            "pathogen_icd11": "1D61",
+            "pathogen_icd11": "1C90.0",
             "country_iso3": "TZA",
             "metric": "deaths",
             "value": 2,

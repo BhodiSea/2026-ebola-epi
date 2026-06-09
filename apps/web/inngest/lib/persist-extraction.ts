@@ -435,6 +435,8 @@ export async function upsertOutbreak(tx: Tx, row: ExtractionRow, onsetDate: Date
       set: {
         onsetDate: sql`LEAST(${outbreaks.onsetDate}, EXCLUDED.onset_date)`,
         pathogenSlug: sql`COALESCE(EXCLUDED.pathogen_slug, ${outbreaks.pathogenSlug})`,
+        // Backfill null severity_level from phantom/pre-autonomy rows without downgrading.
+        severityLevel: sql`COALESCE(${outbreaks.severityLevel}, EXCLUDED.severity_level)`,
       },
     })
     .returning({ id: outbreaks.id });

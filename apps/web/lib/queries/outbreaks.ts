@@ -2,6 +2,7 @@ import "server-only";
 
 import { z } from "zod";
 
+import { selectPrimaryOutbreak } from "./select-primary-outbreak.js";
 import { createClient } from "@/lib/supabase/server";
 
 /* ─── schema ────────────────────────────────────────────────────────────────── */
@@ -31,59 +32,10 @@ export type OutbreakRow = z.infer<typeof OutbreakRow>;
 
 /* ─── queries ───────────────────────────────────────────────────────────────── */
 
-export async function listOutbreaks(filter: ListOutbreaksFilter): Promise<Outbreak[]> {
-  const supabase = await createClient();
-
-  let query = supabase
-    .from("outbreaks")
-    .select(
-      "id, pathogen_icd11, pathogen_slug, country_iso3, onset_date, name, status, severity_level, created_at",
-    )
-    .order("onset_date", { ascending: false });
-
-  if (filter.status !== undefined && filter.status !== "") {
-    query = query.eq("status", filter.status);
-  }
-  if (filter.pathogen !== undefined && filter.pathogen !== "") {
-    query = query.eq("pathogen_slug", filter.pathogen);
-  }
-
-  // biome-ignore lint/nursery/useAwaitThenable: Supabase query builder is a PromiseLike thenable
-  const { data } = await query;
-
-  if (data === null) {
-    return [];
-  }
-
-  const rows = z.array(OutbreakRow).safeParse(data);
-  return rows.success ? rows.data.map((r) => toOutbreak(r)) : [];
-}
-
-function toOutbreak(row: OutbreakRow) {
-  return {
-    id: row.id,
-    pathogenIcd11: row.pathogen_icd11,
-    pathogenSlug: row.pathogen_slug,
-    countryIso3: row.country_iso3,
-    onsetDate: row.onset_date,
-    name: row.name,
-    status: row.status,
-    severityLevel: row.severity_level,
-    createdAt: row.created_at,
-  };
-}
-
-const SEVERITY_RANK: Record<string, number> = {
-  emergency: 0,
-  alert: 1,
-  warn: 2,
-  info: 3,
-};
-
 export async function getActiveOutbreak(): Promise<null | Outbreak> {
   const supabase = await createClient();
 
-  // Single query; sort by severity client-side to avoid N sequential roundtrips.
+  // Single query; selectPrimaryOutbreak sorts by severity + COD preference client-side.
   const { data } = await supabase
     .from("outbreaks")
     .select(
@@ -101,10 +53,7 @@ export async function getActiveOutbreak(): Promise<null | Outbreak> {
     return null;
   }
 
-  const best = [...rows.data].sort(
-    (a, b) => severityRank(a.severity_level) - severityRank(b.severity_level),
-  )[0];
-  return best === undefined ? null : toOutbreak(best);
+  return selectPrimaryOutbreak(rows.data.map((r) => toOutbreak(r)));
 }
 
 export async function getOutbreakById(id: string): Promise<null | Outbreak> {
@@ -151,8 +100,46 @@ export async function getOutbreakBySlug(
   return parsed.success ? toOutbreak(parsed.data) : null;
 }
 
-function severityRank(level: null | string): number {
-  return SEVERITY_RANK[level ?? "info"] ?? 3;
+export async function listOutbreaks(filter: ListOutbreaksFilter): Promise<Outbreak[]> {
+  const supabase = await createClient();
+
+  let query = supabase
+    .from("outbreaks")
+    .select(
+      "id, pathogen_icd11, pathogen_slug, country_iso3, onset_date, name, status, severity_level, created_at",
+    )
+    .order("onset_date", { ascending: false });
+
+  if (filter.status !== undefined && filter.status !== "") {
+    query = query.eq("status", filter.status);
+  }
+  if (filter.pathogen !== undefined && filter.pathogen !== "") {
+    query = query.eq("pathogen_slug", filter.pathogen);
+  }
+
+  // biome-ignore lint/nursery/useAwaitThenable: Supabase query builder is a PromiseLike thenable
+  const { data } = await query;
+
+  if (data === null) {
+    return [];
+  }
+
+  const rows = z.array(OutbreakRow).safeParse(data);
+  return rows.success ? rows.data.map((r) => toOutbreak(r)) : [];
+}
+
+function toOutbreak(row: OutbreakRow) {
+  return {
+    id: row.id,
+    pathogenIcd11: row.pathogen_icd11,
+    pathogenSlug: row.pathogen_slug,
+    countryIso3: row.country_iso3,
+    onsetDate: row.onset_date,
+    name: row.name,
+    status: row.status,
+    severityLevel: row.severity_level,
+    createdAt: row.created_at,
+  };
 }
 
 /* eslint-disable @typescript-eslint/naming-convention */

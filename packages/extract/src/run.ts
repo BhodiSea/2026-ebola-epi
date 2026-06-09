@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import type Anthropic from "@anthropic-ai/sdk";
+import { z } from "zod/v4";
 
 import {
   computeCandidatePromptVersionHash,
@@ -14,7 +15,7 @@ import {
   STATIC_INSTRUCTIONS,
 } from "./prompt.js";
 import type { ExtractionRow } from "./tools.js";
-import { ExtractionBatchSchema, extractionTool } from "./tools.js";
+import { ExtractionRowSchema, extractionTool } from "./tools.js";
 import { resolveSubstring } from "./verify.js";
 
 // Same tools block for every prompt variant. Variable assignment bypasses the excess-property
@@ -102,8 +103,15 @@ export function parseExtractionResponse(
   if (toolUse?.type !== "tool_use") {
     throw new Error("no tool_use block in response");
   }
-  const { extractions } = ExtractionBatchSchema.parse(toolUse.input);
-  const resolvedRows = extractions.map((row) => {
+  // Loose outer parse: reject the call only if extractions is not an array.
+  // Per-row filtering with ExtractionRowSchema prevents one hallucinated ICD-11 code
+  // (e.g. 1D60.00) from throwing and losing all valid rows in the same document.
+  const outer = z.object({ extractions: z.array(z.unknown()) }).parse(toolUse.input);
+  const validRows = outer.extractions
+    .map((r) => ExtractionRowSchema.safeParse(r))
+    .filter((r): r is { data: ExtractionRow; success: true } => r.success)
+    .map((r) => r.data);
+  const resolvedRows = validRows.map((row) => {
     const resolved = resolveSubstring(documentText, row.source_quote);
     if (resolved === null) {
       throw new Error(`substring_verify_fail: char_start=${row.source_quote.char_start}`);
