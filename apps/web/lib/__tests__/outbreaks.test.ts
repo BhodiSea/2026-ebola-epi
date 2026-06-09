@@ -2,7 +2,7 @@
 // selectPrimaryOutbreak — unit tests for severity + country-preference sort (outbreaks.ts integration)
 import { describe, expect, it } from "vitest";
 
-import { selectPrimaryOutbreak } from "../queries/select-primary-outbreak.js";
+import { selectPrimaryOutbreak } from "../queries/select-primary-outbreak";
 
 const BASE = {
   pathogenIcd11: "1D60.2",

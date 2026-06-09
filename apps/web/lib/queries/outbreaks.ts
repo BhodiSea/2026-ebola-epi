@@ -2,7 +2,7 @@ import "server-only";
 
 import { z } from "zod";
 
-import { selectPrimaryOutbreak } from "./select-primary-outbreak.js";
+import { selectPrimaryOutbreak } from "./select-primary-outbreak";
 import { createClient } from "@/lib/supabase/server";
 
 /* --- schema ------------------------------------------------------------------ */
