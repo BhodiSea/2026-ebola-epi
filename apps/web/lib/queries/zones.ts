@@ -4,7 +4,7 @@ import { z } from "zod";
 
 import { createStaticClient } from "@/lib/supabase/server";
 
-/* ─── schema ────────────────────────────────────────────────────────────────── */
+/* --- schema ------------------------------------------------------------------ */
 
 /* eslint-disable @typescript-eslint/naming-convention */
 const ZoneCodeRow = z.object({
@@ -16,7 +16,7 @@ const ZoneCodeRow = z.object({
 
 export type ZoneCode = z.infer<typeof ZoneCodeRow>;
 
-/* ─── queries ───────────────────────────────────────────────────────────────── */
+/* --- queries ----------------------------------------------------------------- */
 
 /** All health zones exposed via the public.zone_codes view (geo.admin2 projection). */
 export async function listAdmin2Codes(): Promise<ZoneCode[]> {

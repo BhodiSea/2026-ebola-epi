@@ -67,7 +67,7 @@ interface MapPaneProps {
   theme?: string;
 }
 
-/* ─── map mutation helpers (top-level so the component stays small) ──────────── */
+/* --- map mutation helpers (top-level so the component stays small) ------------ */
 
 interface RefreshCtx {
   live: LiveProps;

@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, expect, it, vi } from "vitest";
 
-// ── Config assertions ────────────────────────────────────────────────────────
+// -- Config assertions --------------------------------------------------------
 // Importing non-server-only config — no Drizzle/Anthropic pulled in.
 
 import { MAINTENANCE_CRON, MAINTENANCE_FN_CONFIG } from "../maintenance-config.js";
@@ -24,7 +24,7 @@ describe("MAINTENANCE_CRON", () => {
   });
 });
 
-// ── openGithubPR smoke test (no-op path) ─────────────────────────────────────
+// -- openGithubPR smoke test (no-op path) -------------------------------------
 // Verifies the function exists in notify.ts and is a no-op when env vars unset.
 
 const mockFetch = vi.fn();

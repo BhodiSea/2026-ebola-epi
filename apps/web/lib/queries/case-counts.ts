@@ -4,7 +4,7 @@ import { z } from "zod";
 
 import { createClient } from "@/lib/supabase/server";
 
-// ─── Disagreement types ────────────────────────────────────────────────────────
+// --- Disagreement types --------------------------------------------------------
 
 export interface DisagreementEntry {
   quoteId: null | string;
@@ -57,7 +57,7 @@ const ZoneRow = z.object({
 
 type StatRowType = z.infer<typeof StatRow>;
 
-/* ─── helpers ───────────────────────────────────────────────────────────────── */
+/* --- helpers ----------------------------------------------------------------- */
 
 function accumulate(
   rows: StatRowType[],
@@ -81,7 +81,7 @@ const EMPTY_TOTALS: StatTotals = {
   zonesAffected: 0,
 };
 
-/* ─── queries ───────────────────────────────────────────────────────────────── */
+/* --- queries ----------------------------------------------------------------- */
 
 type EpiRowType = z.infer<typeof EpiRow>;
 

@@ -4,7 +4,7 @@ import { z } from "zod";
 
 import { createClient } from "@/lib/supabase/server";
 
-/* ─── schema ────────────────────────────────────────────────────────────────── */
+/* --- schema ------------------------------------------------------------------ */
 
 /* eslint-disable @typescript-eslint/naming-convention */
 const DocumentRow = z.object({
@@ -47,7 +47,7 @@ function toDocument(row: DocumentRow) {
 const SELECT_COLS =
   "id, title, url, published_at, ingested_at, source:sources(id, slug, name, trust_score, license_tier)";
 
-/* ─── queries ───────────────────────────────────────────────────────────────── */
+/* --- queries ----------------------------------------------------------------- */
 
 export interface ListSitrepsFilter {
   page?: number;

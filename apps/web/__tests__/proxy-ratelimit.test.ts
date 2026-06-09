@@ -6,7 +6,7 @@
 import { NextRequest } from "next/server";
 import { describe, expect, it, vi } from "vitest";
 
-// ── Stubs ──────────────────────────────────────────────────────────────────
+// -- Stubs ------------------------------------------------------------------
 
 vi.mock("server-only", () => ({}));
 

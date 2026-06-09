@@ -26,7 +26,7 @@ vi.mock("@slack/webhook", () => ({
   IncomingWebhook: vi.fn(() => ({ send: vi.fn() })),
 }));
 
-// ── capture the Inngest handler ───────────────────────────────────────────────
+// -- capture the Inngest handler -----------------------------------------------
 
 type HandlerFn = (args: {
   step: {
@@ -48,7 +48,7 @@ vi.mock("../../client", () => ({
   },
 }));
 
-// ── dependency mocks ──────────────────────────────────────────────────────────
+// -- dependency mocks ----------------------------------------------------------
 
 // "../../lib/maintenance" from __tests__/ → inngest/lib/maintenance.ts
 vi.mock("../../lib/maintenance", () => ({
@@ -77,7 +77,7 @@ vi.mock("@/lib/queries/provenance-stats", () => ({
   getProvenanceCoverageStats: mockGetProvenanceCoverageStats,
 }));
 
-// ── test setup ────────────────────────────────────────────────────────────────
+// -- test setup ----------------------------------------------------------------
 
 // Import maintenance.ts so inngest.createFunction is called, capturing the handler.
 // vi.mock factories above run first (hoisted), so mocks are in place.
@@ -103,7 +103,7 @@ beforeEach(() => {
   mockDbInsert.mockReturnValue({ values: mockDbValuesInsert });
 });
 
-// ── tests ─────────────────────────────────────────────────────────────────────
+// -- tests ---------------------------------------------------------------------
 
 describe("maintenanceAgent — provenance coverage steps", () => {
   it("sends DOCUMENT_BACKFILL_REQUESTED when documents are missing provenance", async () => {

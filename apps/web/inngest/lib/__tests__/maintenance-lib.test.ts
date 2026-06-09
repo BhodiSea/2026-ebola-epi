@@ -55,7 +55,7 @@ vi.mock("drizzle-orm", () => ({
   inArray: vi.fn(),
 }));
 
-// ─── computeLineDiff (multiset diff) ─────────────────────────────────────────
+// --- computeLineDiff (multiset diff) -----------------------------------------
 // The old Set-based implementation deduplicates lines before diffing, so a line
 // that appears 3× in old and 2× in new produces an empty diff. The multiset
 // implementation correctly shows one removal.
@@ -88,7 +88,7 @@ describe("computeLineDiff (multiset diff)", () => {
   });
 });
 
-// ─── checkAndFixLinkRot — fetch timeout ──────────────────────────────────────
+// --- checkAndFixLinkRot — fetch timeout --------------------------------------
 // headAllSources got AbortSignal.timeout(10_000) in the first red-team pass;
 // checkAndFixLinkRot was missed. The HEAD request can hang indefinitely.
 

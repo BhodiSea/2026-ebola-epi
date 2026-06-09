@@ -10,7 +10,7 @@ import { z } from "zod";
 import { anthropic } from "./persist-extraction";
 import { db } from "@/lib/db";
 
-// ─── types ────────────────────────────────────────────────────────────────────
+// --- types --------------------------------------------------------------------
 
 export interface HealthCheckResult {
   failureCount: number;
@@ -24,7 +24,7 @@ export interface SourceRow {
   url: string;
 }
 
-// ─── module-level constants ───────────────────────────────────────────────────
+// --- module-level constants ---------------------------------------------------
 
 const PATH_REF_REGEX = /`([a-z][a-z0-9/_-]+\.[a-z]{2,5})`/g;
 
@@ -32,7 +32,7 @@ const PATH_REF_REGEX = /`([a-z][a-z0-9/_-]+\.[a-z]{2,5})`/g;
 // eslint-disable-next-line unicorn/prefer-top-level-await -- Zod .catch() is not a Promise chain
 const SOURCE_META_SCHEMA = z.record(z.string(), z.unknown()).catch({});
 
-// ─── computeLineDiff ─────────────────────────────────────────────────────────
+// --- computeLineDiff ---------------------------------------------------------
 
 /**
  * HEAD each source with redirect:manual. On a permanent redirect (301/308),
@@ -83,7 +83,7 @@ export async function checkAndFixLinkRot(): Promise<string[]> {
   return updated;
 }
 
-// ─── headAllSources ───────────────────────────────────────────────────────────
+// --- headAllSources -----------------------------------------------------------
 
 /**
  * Best-effort: read CLAUDE.md, extract referenced paths, verify they exist on disk.
@@ -116,7 +116,7 @@ export async function checkDocDrift(): Promise<{ changed: string[] } | { skipped
   return { changed };
 }
 
-// ─── diffLastKnownGoodVsCurrent ───────────────────────────────────────────────
+// --- diffLastKnownGoodVsCurrent -----------------------------------------------
 
 /**
  * Multiset line-diff: counts occurrences of each line in old and new, emitting
@@ -150,7 +150,7 @@ export function computeLineDiff(oldText: string, newText: string): string {
   return [...removed.slice(0, 50), ...added.slice(0, 50)].join("\n").slice(0, 4000);
 }
 
-// ─── suggestParserFix ─────────────────────────────────────────────────────────
+// --- suggestParserFix ---------------------------------------------------------
 
 /**
  * Line-diff the most recent ingested document text against the current live response.
@@ -183,7 +183,7 @@ export async function diffLastKnownGoodVsCurrent(source: SourceRow): Promise<str
   return computeLineDiff(lastKnown, current);
 }
 
-// ─── checkAndFixLinkRot ───────────────────────────────────────────────────────
+// --- checkAndFixLinkRot -------------------------------------------------------
 
 /**
  * HEAD each source URL, increment a failure counter in sources.metadata on 4xx/5xx,
@@ -226,7 +226,7 @@ export async function headAllSources(): Promise<HealthCheckResult[]> {
   return unhealthy;
 }
 
-// ─── checkDocDrift ────────────────────────────────────────────────────────────
+// --- checkDocDrift ------------------------------------------------------------
 
 /** Ask Sonnet for a minimal parser fix given a line diff. */
 export async function suggestParserFix(diff: string): Promise<string> {

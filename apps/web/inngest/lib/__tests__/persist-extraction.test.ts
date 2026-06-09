@@ -17,7 +17,7 @@ vi.mock("server-only", () => ({}));
 // Mock env before any module that reads it is imported.
 vi.mock("@/lib/env", () => ({ env: { ANTHROPIC_API_KEY: "test-key" } }));
 
-// ─── db + admin mocks (vi.hoisted so factories can reference them) ─────────────
+// --- db + admin mocks (vi.hoisted so factories can reference them) -------------
 const { mockDbInsert, mockDbSelect, mockStorageFrom, mockStorageUpload } = vi.hoisted(() => {
   const mockStorageUploadHoisted = vi.fn();
   const mockStorageFromHoisted = vi.fn();
@@ -35,7 +35,7 @@ vi.mock("@/lib/supabase/admin", () => ({
   createAdminClient: vi.fn().mockReturnValue({ storage: { from: mockStorageFrom } }),
 }));
 
-// ─── resolveAdminCode ─────────────────────────────────────────────────────────
+// --- resolveAdminCode ---------------------------------------------------------
 
 function makeTx(
   admin2Result: { admin1Code: string; code: string }[],
@@ -84,7 +84,7 @@ describe("resolveAdminCode", () => {
   });
 });
 
-// ─── upsertOutbreak ───────────────────────────────────────────────────────────
+// --- upsertOutbreak -----------------------------------------------------------
 // The implementation must be a single atomic INSERT … ON CONFLICT (pathogen_icd11, country_iso3)
 // DO UPDATE RETURNING id — no prior SELECT, no separate UPDATE statement.
 // Migration 20260608120000 changes the constraint from triple to pair to match.
@@ -178,7 +178,7 @@ describe("upsertOutbreak", () => {
   });
 });
 
-// ─── upsertSourceQuote ────────────────────────────────────────────────────────
+// --- upsertSourceQuote --------------------------------------------------------
 // NEW-P2q: source_quotes (document_id, char_start, char_end) unique index.
 // When the INSERT conflicts, falls back to SELECT for the existing row id.
 
@@ -233,7 +233,7 @@ describe("upsertSourceQuote (NEW-P2q)", () => {
   });
 });
 
-// ─── upsertDocument — rawBytes storage (G-11) ────────────────────────────────
+// --- upsertDocument — rawBytes storage (G-11) --------------------------------
 // upsertDocument uploads rawBytes to the source-bytes Storage bucket when:
 //   - rawBytes is provided
 //   - the document INSERT succeeds (not a dupe)

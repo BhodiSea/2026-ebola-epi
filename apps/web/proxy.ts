@@ -5,7 +5,7 @@ import { env } from "@/lib/env";
 import { buildNonce } from "@/lib/nonce";
 import { updateSession } from "@/lib/supabase/proxy";
 
-// ─── rate-limit types ─────────────────────────────────────────────────────────
+// --- rate-limit types ---------------------------------------------------------
 
 interface Limiter {
   limit(identifier: string): Promise<RateLimitResult>;
@@ -19,7 +19,7 @@ interface RateLimitResult {
   success: boolean;
 }
 
-// ─── module-level singletons ──────────────────────────────────────────────────
+// --- module-level singletons --------------------------------------------------
 // Reused across warm Fluid Compute invocations; lazily initialised.
 
 let generalLimiter: Limiter | null = null;
@@ -54,7 +54,7 @@ export async function proxy(request: NextRequest) {
   return await updateSession(request, nonce);
 }
 
-// ─── proxy ────────────────────────────────────────────────────────────────────
+// --- proxy --------------------------------------------------------------------
 
 async function getOrInitLimiters(): Promise<{ general: Limiter | null; tile: Limiter | null }> {
   const url = env.UPSTASH_REDIS_REST_URL;

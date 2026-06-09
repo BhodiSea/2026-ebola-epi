@@ -56,7 +56,7 @@ vi.mock("drizzle-orm", () => ({
   inArray: vi.fn(),
 }));
 
-// ─── persistBatchResults — publishedAt null guard ─────────────────────────────
+// --- persistBatchResults — publishedAt null guard -----------------------------
 // `documents.published_at` is nullable. The old code used `publishedAt ?? new Date()`
 // as a fallback, silently stamping today as the publication date, corrupting every
 // time-series query that touches back-filled rows. The fix is to skip documents

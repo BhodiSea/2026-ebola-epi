@@ -36,7 +36,7 @@ export default async function globalSetup(): Promise<void> {
   process.env.PHASE3_DEMO_QUOTE_ID = PHASE3_DEMO_QUOTE_ID;
 }
 
-// ─── helpers (alphabetical) ───────────────────────────────────────────────────
+// --- helpers (alphabetical) ---------------------------------------------------
 
 function bootLocalStack(): void {
   try {

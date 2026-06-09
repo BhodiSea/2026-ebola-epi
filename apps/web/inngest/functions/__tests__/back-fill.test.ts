@@ -2,7 +2,7 @@
 // BatchResultItem.type now includes "canceled" to match SDK MessageBatchResult union.
 import { describe, expect, it, vi } from "vitest";
 
-// ── Config assertions ────────────────────────────────────────────────────────
+// -- Config assertions --------------------------------------------------------
 
 import { BACK_FILL_FN_CONFIG, BACK_FILL_TRIGGER } from "../back-fill-config.js";
 import { DOCUMENT_BACKFILL_REQUESTED } from "../pipeline-events-config.js";
@@ -34,7 +34,7 @@ describe("DOCUMENT_BACKFILL_REQUESTED", () => {
   });
 });
 
-// ── buildBatchRequests ────────────────────────────────────────────────────────
+// -- buildBatchRequests --------------------------------------------------------
 // Tests that buildBatchRequests maps documentIds to correctly-shaped batch requests.
 
 const mockDocRows = [

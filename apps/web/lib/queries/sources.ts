@@ -4,7 +4,7 @@ import { z } from "zod";
 
 import { createClient } from "@/lib/supabase/server";
 
-/* ─── schema ────────────────────────────────────────────────────────────────── */
+/* --- schema ------------------------------------------------------------------ */
 
 const LICENSE_TIERS = ["open", "noncommercial_verified", "display_only", "excluded"] as const;
 
@@ -77,7 +77,7 @@ export async function getSourceBySlug(slug: string): Promise<null | Source> {
   return parsed.success ? toSource(parsed.data) : null;
 }
 
-/* ─── queries ───────────────────────────────────────────────────────────────── */
+/* --- queries ----------------------------------------------------------------- */
 
 export async function listSources(): Promise<Source[]> {
   const supabase = await createClient();

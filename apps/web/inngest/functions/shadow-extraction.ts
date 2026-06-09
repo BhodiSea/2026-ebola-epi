@@ -22,7 +22,7 @@ async function createMessage(
   return anthropic.messages.create(params);
 }
 
-// ─── Inngest function ─────────────────────────────────────────────────────────
+// --- Inngest function ---------------------------------------------------------
 
 export const shadowExtraction = inngest.createFunction(
   SHADOW_EXTRACTION_FN_CONFIG,

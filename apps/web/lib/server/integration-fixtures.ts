@@ -2,7 +2,7 @@ import "server-only";
 
 import postgres from "postgres";
 
-// ─── Types and interfaces (mixed alphabetical — perfectionist/sort-modules) ───
+// --- Types and interfaces (mixed alphabetical — perfectionist/sort-modules) ---
 
 interface AgentActionInput {
   action: string;
@@ -62,7 +62,7 @@ interface ShadowResultInput {
   promoted?: boolean;
 }
 
-// ─── Export functions (alphabetical: insert* then reset*) ─────────────────────
+// --- Export functions (alphabetical: insert* then reset*) ---------------------
 
 export async function insertAgentAction(input: AgentActionInput): Promise<{ id: number }> {
   const sql = getSql();
@@ -212,7 +212,7 @@ export async function resetFixtures(): Promise<void> {
   }
 }
 
-// ─── Private function ─────────────────────────────────────────────────────────
+// --- Private function ---------------------------------------------------------
 
 function getSql(): ReturnType<typeof postgres> {
   if (_sql) {
@@ -231,7 +231,7 @@ function getSql(): ReturnType<typeof postgres> {
   return _sql;
 }
 
-// ─── Module-level state ───────────────────────────────────────────────────────
+// --- Module-level state -------------------------------------------------------
 // Declared last per perfectionist/sort-modules group order (variable < function).
 // Functions above reference these via closure; they are initialized before any
 // test runs since JS modules fully execute before the test runner calls them.

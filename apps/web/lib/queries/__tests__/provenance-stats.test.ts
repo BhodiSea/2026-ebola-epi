@@ -53,7 +53,7 @@ function makeCountChain(countValue: number) {
   });
 }
 
-// ── getDocumentsWithoutProvenance ─────────────────────────────────────────────
+// -- getDocumentsWithoutProvenance ---------------------------------------------
 
 describe("getDocumentsWithoutProvenance", () => {
   it("returns mapped rows when the DB returns documents", async () => {
@@ -94,7 +94,7 @@ describe("getDocumentsWithoutProvenance", () => {
   });
 });
 
-// ── getProvenanceCoverageStats ────────────────────────────────────────────────
+// -- getProvenanceCoverageStats ------------------------------------------------
 
 describe("getProvenanceCoverageStats", () => {
   it("returns correct stats when DB has mixed data", async () => {

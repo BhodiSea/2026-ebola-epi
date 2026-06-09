@@ -1,6 +1,6 @@
 import type { ExtractionRow } from "@ituri/extract";
 
-// ─── types ────────────────────────────────────────────────────────────────────
+// --- types --------------------------------------------------------------------
 
 export interface FieldVariances {
   divergingMetrics: string[];
@@ -67,7 +67,7 @@ export function computeFieldVariances(
   };
 }
 
-// ─── pure comparison ──────────────────────────────────────────────────────────
+// --- pure comparison ----------------------------------------------------------
 
 function rowKey(row: RowInput): RowKey {
   return `${row.metric}|${row.as_of}`;

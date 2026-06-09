@@ -7,7 +7,7 @@ import { computeCfrRatio, computeZScore } from "../anomaly";
 
 vi.mock("server-only", () => ({}));
 
-// ── computeZScore ─────────────────────────────────────────────────────────────
+// -- computeZScore -------------------------------------------------------------
 
 describe("computeZScore", () => {
   it("returns null when fewer than 3 prior values (insufficient data)", () => {
@@ -55,7 +55,7 @@ describe("computeZScore", () => {
   });
 });
 
-// ── computeCfrRatio ───────────────────────────────────────────────────────────
+// -- computeCfrRatio -----------------------------------------------------------
 
 describe("computeCfrRatio", () => {
   it("returns the correct ratio for deaths / confirmed cases", () => {

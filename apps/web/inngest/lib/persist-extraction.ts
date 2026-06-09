@@ -28,7 +28,7 @@ import { db } from "@/lib/db";
 import { env } from "@/lib/env";
 import { createAdminClient } from "@/lib/supabase/admin";
 
-// ─── types ────────────────────────────────────────────────────────────────────
+// --- types --------------------------------------------------------------------
 
 export interface DivergedPair {
   asOf: string;
@@ -73,7 +73,7 @@ export interface TxParams {
   readonly usage: ExtractionUsage;
 }
 
-// ─── Anthropic client (singleton for this module) ─────────────────────────────
+// --- Anthropic client (singleton for this module) -----------------------------
 
 export const anthropic = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
 
@@ -82,7 +82,7 @@ export interface PersistResult {
   extractionRunId: string;
 }
 
-// ─── database helpers ─────────────────────────────────────────────────────────
+// --- database helpers ---------------------------------------------------------
 
 /**
  * Apply superseded_by on the loser row within a transaction.

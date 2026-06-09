@@ -41,7 +41,7 @@ export interface ReconcileRequestedData {
   readonly rowBId: string;
 }
 
-// ─── types for the reconcile.requested event ─────────────────────────────────
+// --- types for the reconcile.requested event ---------------------------------
 
 interface LoadedPair {
   a: ReconcileCandidate & { asOf: string; metric: string; outbreakId: string };
@@ -62,7 +62,7 @@ interface AuditParams {
   readonly promptVersionHash: string;
 }
 
-// ─── DB helper — load both rows + trust + quote + published ──────────────────
+// --- DB helper — load both rows + trust + quote + published ------------------
 
 /** Stable pairKey from two case_counts IDs: sha256(min:max).slice(0,32) */
 export function makePairKey(idA: string, idB: string): string {
@@ -145,7 +145,7 @@ async function loadReconcilePair(data: ReconcileRequestedData): Promise<LoadedPa
   return { stale: false, a: toCandidate(rA), b: toCandidate(rB) };
 }
 
-// ─── helpers ─────────────────────────────────────────────────────────────────
+// --- helpers -----------------------------------------------------------------
 
 // eslint-disable-next-line perfectionist/sort-modules -- a/w helpers grouped after loadReconcilePair
 async function applyReconcileSupersede(
@@ -197,7 +197,7 @@ async function writeReconcileAudit(params: AuditParams): Promise<void> {
   });
 }
 
-// ─── Inngest function ─────────────────────────────────────────────────────────
+// --- Inngest function ---------------------------------------------------------
 
 export const reconcileCounts = inngest.createFunction(
   RECONCILE_COUNTS_FN_CONFIG,

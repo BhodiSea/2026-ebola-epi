@@ -4,7 +4,7 @@ import { z } from "zod";
 
 import { createClient } from "@/lib/supabase/server";
 
-/* ─── schema ────────────────────────────────────────────────────────────────── */
+/* --- schema ------------------------------------------------------------------ */
 
 /* eslint-disable @typescript-eslint/naming-convention */
 const ZoneRow = z.object({
@@ -34,7 +34,7 @@ export interface ZoneData {
 
 export type ZoneRow = z.infer<typeof ZoneRow>;
 
-/* ─── query ─────────────────────────────────────────────────────────────────── */
+/* --- query ------------------------------------------------------------------- */
 
 export async function getOutbreakZoneSvg(outbreakId: string): Promise<ChoroplethData | null> {
   const supabase = await createClient();

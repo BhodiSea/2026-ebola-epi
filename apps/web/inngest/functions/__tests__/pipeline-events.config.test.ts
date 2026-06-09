@@ -28,7 +28,7 @@ import { UGANDA_MOH_FN_CONFIG } from "../uganda-moh-config.js";
 import { WHO_AFRO_FN_CONFIG } from "../who-afro-config.js";
 import { WHO_DON_FN_CONFIG } from "../who-don-config.js";
 
-// ── Event names ──────────────────────────────────────────────────────────────
+// -- Event names --------------------------------------------------------------
 
 describe("pipeline event names", () => {
   it("DOCUMENT_TRIAGE_REQUESTED matches the spec", () => {
@@ -52,7 +52,7 @@ describe("pipeline event names", () => {
   });
 });
 
-// ── Function configs ─────────────────────────────────────────────────────────
+// -- Function configs ---------------------------------------------------------
 
 // Per-source ingest configs use a CEL string-literal throttle key (not an event-data ref).
 // The key is `"<host>"` (with embedded double-quotes) — valid CEL string constant.

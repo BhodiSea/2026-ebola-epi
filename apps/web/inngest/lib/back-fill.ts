@@ -10,7 +10,7 @@ import type { FetchedDocument } from "./persist-extraction";
 import { persistExtraction } from "./persist-extraction";
 import { db } from "@/lib/db";
 
-// ─── types ────────────────────────────────────────────────────────────────────
+// --- types --------------------------------------------------------------------
 
 export interface BatchRequest {
   // eslint-disable-next-line @typescript-eslint/naming-convention -- Anthropic Batch API field name
@@ -31,7 +31,7 @@ export interface BatchResultItem {
 
 const BACKFILL_PREFIX = /^backfill-/;
 
-// ─── buildBatchRequests ───────────────────────────────────────────────────────
+// --- buildBatchRequests -------------------------------------------------------
 
 /**
  * Load documents from DB and build Anthropic Message Batches API request objects.
@@ -53,7 +53,7 @@ export async function buildBatchRequests(documentIds: string[]): Promise<BatchRe
   }));
 }
 
-// ─── persistBatchResults ──────────────────────────────────────────────────────
+// --- persistBatchResults ------------------------------------------------------
 
 /**
  * Write each batch result to `audit.batch_results` (permanent storage — batch results

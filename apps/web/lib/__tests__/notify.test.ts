@@ -27,7 +27,7 @@ const mockEnv = vi.hoisted(() => ({
 }));
 vi.mock("@/lib/env", () => ({ env: mockEnv }));
 
-// ── notifyTwilio ──────────────────────────────────────────────────────────────
+// -- notifyTwilio --------------------------------------------------------------
 
 describe("notifyTwilio", () => {
   afterEach(() => {
@@ -76,7 +76,7 @@ describe("notifyTwilio", () => {
   });
 });
 
-// ── openGithubIssue ───────────────────────────────────────────────────────────
+// -- openGithubIssue -----------------------------------------------------------
 
 describe("openGithubIssue", () => {
   afterEach(() => {
@@ -125,7 +125,7 @@ describe("openGithubIssue", () => {
   });
 });
 
-// ── notifyAnomaly ─────────────────────────────────────────────────────────────
+// -- notifyAnomaly -------------------------------------------------------------
 
 describe("notifyAnomaly", () => {
   beforeEach(() => {

@@ -7,7 +7,7 @@ import { and, desc, eq, isNull, lt, lte, sql } from "drizzle-orm";
 
 import type { Tx } from "@/lib/db";
 
-// ─── types ────────────────────────────────────────────────────────────────────
+// --- types --------------------------------------------------------------------
 
 /** Collected during persist; consumed by extract-document to write incidents + notify. */
 export interface AnomalyEscalation {
@@ -31,7 +31,7 @@ export interface AnomalySignal {
   kind: AnomalyKind;
 }
 
-// ─── pure helpers (exported for unit tests) ──────────────────────────────────
+// --- pure helpers (exported for unit tests) ----------------------------------
 
 /**
  * Case-fatality ratio: deaths / confirmedCases.
@@ -62,7 +62,7 @@ export function computeZScore(priorValues: number[], newValue: number): null | n
   return (newValue - mean) / stddev;
 }
 
-// ─── private signal detectors ────────────────────────────────────────────────
+// --- private signal detectors ------------------------------------------------
 
 /**
  * Detect anomaly signals for a candidate case-count row before it is inserted.
@@ -174,7 +174,7 @@ async function detectCluster(tx: Tx, params: AnomalyParams): Promise<AnomalySign
   return null;
 }
 
-// ─── public API ──────────────────────────────────────────────────────────────
+// --- public API --------------------------------------------------------------
 
 async function detectZScore(tx: Tx, params: AnomalyParams): Promise<AnomalySignal | null> {
   // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- outbreakId is validated at the persistence layer; branded cast is safe

@@ -4,7 +4,7 @@ import { z } from "zod";
 
 import { createClient, createStaticClient } from "@/lib/supabase/server";
 
-/* ─── schema ────────────────────────────────────────────────────────────────── */
+/* --- schema ------------------------------------------------------------------ */
 
 /* eslint-disable @typescript-eslint/naming-convention */
 const DailyBriefRowSchema = z.object({
@@ -22,7 +22,7 @@ export type DailyBrief = ReturnType<typeof toBrief>;
 
 type DailyBriefRow = z.infer<typeof DailyBriefRowSchema>;
 
-/* ─── queries ───────────────────────────────────────────────────────────────── */
+/* --- queries ----------------------------------------------------------------- */
 
 export async function getDailyBriefByDate(date: string): Promise<DailyBrief | null> {
   const supabase = await createClient();
@@ -57,7 +57,7 @@ export async function listPublishedBriefs(): Promise<{ date: string }[]> {
   return parsed.success ? parsed.data : [];
 }
 
-/* ─── helpers ───────────────────────────────────────────────────────────────── */
+/* --- helpers ----------------------------------------------------------------- */
 
 function toBrief(row: DailyBriefRow) {
   return {

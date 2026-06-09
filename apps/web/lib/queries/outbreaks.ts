@@ -5,7 +5,7 @@ import { z } from "zod";
 import { selectPrimaryOutbreak } from "./select-primary-outbreak.js";
 import { createClient } from "@/lib/supabase/server";
 
-/* ─── schema ────────────────────────────────────────────────────────────────── */
+/* --- schema ------------------------------------------------------------------ */
 
 /* eslint-disable @typescript-eslint/naming-convention */
 const OutbreakRow = z.object({
@@ -30,7 +30,7 @@ export type Outbreak = ReturnType<typeof toOutbreak>;
 
 export type OutbreakRow = z.infer<typeof OutbreakRow>;
 
-/* ─── queries ───────────────────────────────────────────────────────────────── */
+/* --- queries ----------------------------------------------------------------- */
 
 export async function getActiveOutbreak(): Promise<null | Outbreak> {
   const supabase = await createClient();

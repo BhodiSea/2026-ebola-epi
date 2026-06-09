@@ -27,7 +27,7 @@ const GITHUB_ISSUES_URL_RE = /api\.github\.com\/repos\/[^/]+\/[^/]+\/issues$/;
 const SUBSTRING_VERIFY_FAIL_RE = /substring_verify_fail/;
 const SUBSTRING_VERIFY_FAIL_PREFIX_RE = /^substring_verify_fail:/;
 
-// ── openGithubIssue — used by extract-document on second substring_verify_fail ──
+// -- openGithubIssue — used by extract-document on second substring_verify_fail --
 
 describe("openGithubIssue — substring_verify_fail path (G-13)", () => {
   let capturedUrl: string | undefined;
@@ -118,7 +118,7 @@ describe("openGithubIssue — substring_verify_fail path (G-13)", () => {
   });
 });
 
-// ── Title format guard — regression check on the extract-document call site ──
+// -- Title format guard — regression check on the extract-document call site --
 
 describe("extract-document title format (G-13 regression guard)", () => {
   it("assembles substring_verify_fail title matching the pattern openGithubIssue receives", () => {
