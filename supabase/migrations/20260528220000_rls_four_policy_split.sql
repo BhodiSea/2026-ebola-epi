@@ -7,6 +7,8 @@ begin;
 
 -- ─── public.sources ───────────────────────────────────────────────────────────
 drop policy if exists "sources_anon_select" on public.sources;
+drop policy if exists "sources_select_anon" on public.sources;
+drop policy if exists "sources_select_authenticated" on public.sources;
 
 create policy "sources_select_anon"
   on public.sources for select to anon
@@ -18,6 +20,8 @@ create policy "sources_select_authenticated"
 
 -- ─── public.documents ─────────────────────────────────────────────────────────
 drop policy if exists "documents_anon_select" on public.documents;
+drop policy if exists "documents_select_anon" on public.documents;
+drop policy if exists "documents_select_authenticated" on public.documents;
 
 create policy "documents_select_anon"
   on public.documents for select to anon
@@ -29,6 +33,8 @@ create policy "documents_select_authenticated"
 
 -- ─── public.source_quotes ─────────────────────────────────────────────────────
 drop policy if exists "source_quotes_anon_select" on public.source_quotes;
+drop policy if exists "source_quotes_select_anon" on public.source_quotes;
+drop policy if exists "source_quotes_select_authenticated" on public.source_quotes;
 
 create policy "source_quotes_select_anon"
   on public.source_quotes for select to anon
@@ -40,6 +46,8 @@ create policy "source_quotes_select_authenticated"
 
 -- ─── public.outbreaks ─────────────────────────────────────────────────────────
 drop policy if exists "outbreaks_anon_select" on public.outbreaks;
+drop policy if exists "outbreaks_select_anon" on public.outbreaks;
+drop policy if exists "outbreaks_select_authenticated" on public.outbreaks;
 
 create policy "outbreaks_select_anon"
   on public.outbreaks for select to anon
@@ -51,6 +59,8 @@ create policy "outbreaks_select_authenticated"
 
 -- ─── public.case_counts ───────────────────────────────────────────────────────
 drop policy if exists "case_counts_anon_select" on public.case_counts;
+drop policy if exists "case_counts_select_anon" on public.case_counts;
+drop policy if exists "case_counts_select_authenticated" on public.case_counts;
 
 create policy "case_counts_select_anon"
   on public.case_counts for select to anon

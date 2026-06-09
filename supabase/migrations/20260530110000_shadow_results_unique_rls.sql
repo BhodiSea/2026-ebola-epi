@@ -9,6 +9,7 @@ create unique index if not exists shadow_results_doc_version_udx
 
 -- SELECT policy: authenticated users can read their own shadow results.
 -- The table had RLS enabled with no SELECT policy, making it unreadable.
+drop policy if exists "shadow_results_select_authenticated" on audit.shadow_results;
 create policy "shadow_results_select_authenticated"
   on audit.shadow_results
   for select

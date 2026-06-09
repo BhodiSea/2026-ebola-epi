@@ -19,6 +19,24 @@ update public.sources
       attribution_required = true
   where slug = 'ecdc';
 
+-- ─── Guard: posture_terms/posture_attribution may already be NOT NULL on remotes ─
+-- bootstrapped from a post-migration schema dump. Temporarily relax the NOT NULL
+-- constraint so this INSERT succeeds; 20260601030000 backfills and re-enforces it.
+do $$
+begin
+  if exists (
+    select 1 from pg_attribute
+    where attrelid = 'public.sources'::regclass
+      and attname = 'posture_terms'
+      and attnum > 0
+      and attnotnull = true
+      and not attisdropped
+  ) then
+    alter table public.sources alter column posture_terms drop not null;
+    alter table public.sources alter column posture_attribution drop not null;
+  end if;
+end $$;
+
 -- ─── Upsert full Phase 6 roster ───────────────────────────────────────────────
 insert into public.sources (slug, name, url, trust_score, license_tier, license_url, attribution_required, metadata)
 values

@@ -1,4 +1,5 @@
 // lint: vitest/no-conditional-expect — restructured expects to use early returns
+// ConfiguredSkipError: no-useless-constructor refactor covered by existing throw assertions below
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const ACLED_EVENTS = [
@@ -98,6 +99,12 @@ describe("acledAdapter.poll()", () => {
     it("throws when ACLED_ACCESS_TOKEN is absent", async () => {
       const { acledAdapter } = await import("../sources/acled.js");
       await expect(acledAdapter.poll()).rejects.toThrow("ACLED_ACCESS_TOKEN");
+    });
+
+    it("throws a ConfiguredSkipError when ACLED_ACCESS_TOKEN is absent", async () => {
+      const { acledAdapter } = await import("../sources/acled.js");
+      const { ConfiguredSkipError } = await import("../configured-skip-error.js");
+      await expect(acledAdapter.poll()).rejects.toBeInstanceOf(ConfiguredSkipError);
     });
   });
 });

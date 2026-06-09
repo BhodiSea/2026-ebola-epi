@@ -27,6 +27,11 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Gitleaks — secrets scan
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: No-PHI scan
         run: |
           if git diff origin/main...HEAD | grep -iE '\b(DOB|MRN|SSN|Patient [A-Z])\b'; then
@@ -42,6 +47,11 @@ jobs:
 
       - name: Test
         run: pnpm test
+
+      - name: Knip — unused exports
+        run: pnpm knip --strict
+        env:
+          SUPABASE_DB_URL: postgresql://knip-dummy:ignored@localhost:5432/unused
 
       - name: Build
         run: pnpm build
@@ -87,7 +97,7 @@ jobs:
             http://localhost:3000/outbreaks
             http://localhost:3000/methods
             http://localhost:3000/map
-          budgetPath: ./apps/web/lighthouse-budget.json
+          configPath: ./.lighthouserc.json
           uploadArtifacts: true
           temporaryPublicStorage: false
 

@@ -10,7 +10,7 @@ import { computeF1Zone } from "../lib/f1-zone.js";
 const FIXTURE_DIR = path.join(import.meta.dirname, "..", "gold-set", "bundibugyo-ituri-2026-04-20");
 
 function loadZoneActual(): ZoneExtractionTuple[] {
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- JSON.parse returns any; shape validated by computeF1Zone
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, security/detect-non-literal-fs-filename -- JSON.parse returns any; path built from trusted FIXTURE_DIR constant
   const fixture = JSON.parse(readFileSync(path.join(FIXTURE_DIR, "response-fixture.json"), "utf8"));
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-type-assertion -- fixture JSON structure; shape validated by computeF1Zone
   const extractions = fixture.content[0].input.extractions as ZoneExtractionTuple[];
@@ -26,7 +26,7 @@ describe("zone-aware F1 scorer — bundibugyo-ituri-2026-04-20", () => {
     ) as ZoneExtractionTuple[];
     const actual = loadZoneActual();
     const { f1 } = computeF1Zone(expected, actual);
-    expect(f1).toBeGreaterThanOrEqual(0.7);
+    expect(f1).toBeGreaterThanOrEqual(0.85);
   });
 
   it("zone F1 drops when admin_names are stripped (regression check)", () => {

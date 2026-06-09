@@ -31,6 +31,7 @@ alter table public.incidents enable row level security;
 -- Authenticated users can read incidents for the editorial UI.
 -- Use (select auth.uid()) to run the auth check as an InitPlan once per
 -- statement rather than once per row (AGENTS.md rule 5).
+drop policy if exists "incidents_select_authenticated" on public.incidents;
 create policy "incidents_select_authenticated"
   on public.incidents
   for select

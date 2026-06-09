@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 
 import type { FetchResult, ParseInput, ParseResult, RegisteredAdapter } from "../adapter.js";
+import { ConfiguredSkipError } from "../configured-skip-error.js";
 
 const API_BASE = "https://api.acleddata.com/acled/read";
 
@@ -47,10 +48,10 @@ export function makeAcledAdapter(creds: AcledCreds): RegisteredAdapter {
       const token = creds.accessToken;
       const email = creds.email;
       if (token == null || token === "") {
-        throw new Error("ACLED_ACCESS_TOKEN is not configured");
+        throw new ConfiguredSkipError("ACLED_ACCESS_TOKEN is not configured");
       }
       if (email == null || email === "") {
-        throw new Error("ACLED_EMAIL is not configured");
+        throw new ConfiguredSkipError("ACLED_EMAIL is not configured");
       }
 
       const { startDate, endDate } = formatWindowDates();
@@ -80,10 +81,10 @@ export function makeAcledAdapter(creds: AcledCreds): RegisteredAdapter {
       const token = creds.accessToken;
       const email = creds.email;
       if (token == null || token === "") {
-        throw new Error("ACLED_ACCESS_TOKEN is not configured");
+        throw new ConfiguredSkipError("ACLED_ACCESS_TOKEN is not configured");
       }
       if (email == null || email === "") {
-        throw new Error("ACLED_EMAIL is not configured");
+        throw new ConfiguredSkipError("ACLED_EMAIL is not configured");
       }
       const u = new URL(url);
       u.searchParams.set("key", token);

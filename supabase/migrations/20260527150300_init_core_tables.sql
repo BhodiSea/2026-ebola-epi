@@ -70,7 +70,7 @@ create index if not exists source_quotes_embedding_hnsw_idx
 create index if not exists source_quotes_quote_text_trgm_idx
   on public.source_quotes using gin (quote_text gin_trgm_ops);
 
-create trigger source_quotes_verify_substring
+create or replace trigger source_quotes_verify_substring
   before insert or update on public.source_quotes
   for each row execute function public.tg_verify_quote_substring();
 

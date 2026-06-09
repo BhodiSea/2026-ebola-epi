@@ -29,11 +29,13 @@ create table if not exists public.daily_briefs (
 alter table public.daily_briefs enable row level security;
 
 -- SELECT: both anon and authenticated may read published rows.
+drop policy if exists "daily_briefs_select_anon" on public.daily_briefs;
 create policy "daily_briefs_select_anon"
   on public.daily_briefs for select
   to anon
   using (review_status = 'published');
 
+drop policy if exists "daily_briefs_select_authenticated" on public.daily_briefs;
 create policy "daily_briefs_select_authenticated"
   on public.daily_briefs for select
   to authenticated

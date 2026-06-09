@@ -81,6 +81,12 @@ describe("reliefwebAdapter.poll()", () => {
       const { reliefwebAdapter } = await import("../sources/reliefweb.js");
       await expect(reliefwebAdapter.poll()).rejects.toThrow("RELIEFWEB_APPNAME");
     });
+
+    it("throws a ConfiguredSkipError when RELIEFWEB_APPNAME is absent", async () => {
+      const { reliefwebAdapter } = await import("../sources/reliefweb.js");
+      const { ConfiguredSkipError } = await import("../configured-skip-error.js");
+      await expect(reliefwebAdapter.poll()).rejects.toBeInstanceOf(ConfiguredSkipError);
+    });
   });
 });
 

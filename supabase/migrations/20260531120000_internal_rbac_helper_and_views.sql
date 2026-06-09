@@ -58,6 +58,7 @@ grant select on public.agent_actions to authenticated;
 -- (USAGE revoked in init_schemas.sql); RLS adds depth for future-proofing.
 alter table audit.agent_actions enable row level security;
 
+drop policy if exists "agent_actions_select_internal" on audit.agent_actions;
 create policy "agent_actions_select_internal"
   on audit.agent_actions for select
   to authenticated
@@ -69,6 +70,7 @@ create policy "agent_actions_select_internal"
 -- (service_role, bypasses RLS); this policy provides a DB-side invariant so
 -- any future code path using the regular server client is also gated.
 -- INSERT/DELETE remain default-deny for authenticated (Inngest jobs use service_role).
+drop policy if exists "incidents_update_internal" on public.incidents;
 create policy "incidents_update_internal"
   on public.incidents for update
   to authenticated
@@ -79,6 +81,7 @@ create policy "incidents_update_internal"
 -- Allows authenticated internal users to toggle sources.extraction_paused.
 -- toggleSourcePauseAction currently uses service_role; same rationale as above.
 -- SELECT policies (anon + authenticated) already exist from the four-policy split.
+drop policy if exists "sources_update_internal" on public.sources;
 create policy "sources_update_internal"
   on public.sources for update
   to authenticated
@@ -104,11 +107,13 @@ create table if not exists public.extraction_eval_scores (
 
 alter table public.extraction_eval_scores enable row level security;
 
+drop policy if exists "eval_scores_select_internal" on public.extraction_eval_scores;
 create policy "eval_scores_select_internal"
   on public.extraction_eval_scores for select
   to authenticated
   using ((select private.is_internal_user()));
 
+drop policy if exists "eval_scores_insert_internal" on public.extraction_eval_scores;
 create policy "eval_scores_insert_internal"
   on public.extraction_eval_scores for insert
   to authenticated

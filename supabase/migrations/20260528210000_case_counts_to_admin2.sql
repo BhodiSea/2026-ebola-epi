@@ -9,15 +9,27 @@ alter table public.case_counts
 
 -- 2. Backfill: where a seed row had admin1_code, attempt to match the first admin2
 --    child of that admin1. Unambiguous for seed data; NULL is acceptable otherwise.
-update public.case_counts cc
-  set admin2_code = (
-    select a2.code
-    from geo.admin2 a2
-    where a2.admin1_code = cc.admin1_code
-    limit 1
-  )
-  where cc.admin1_code is not null
-    and cc.admin2_code is null;
+--    Guard: admin1_code may already be dropped if this migration re-runs on a remote
+--    that was bootstrapped from a post-migration schema dump.
+do $$
+begin
+  if exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'case_counts'
+      and column_name = 'admin1_code'
+  ) then
+    update public.case_counts cc
+      set admin2_code = (
+        select a2.code
+        from geo.admin2 a2
+        where a2.admin1_code = cc.admin1_code
+        limit 1
+      )
+      where cc.admin1_code is not null
+        and cc.admin2_code is null;
+  end if;
+end $$;
 
 -- 3. Drop the old admin1_code column
 alter table public.case_counts

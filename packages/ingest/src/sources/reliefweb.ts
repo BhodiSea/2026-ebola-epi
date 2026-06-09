@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import { JSDOM } from "jsdom";
 
 import type { FetchResult, ParseInput, ParseResult, RegisteredAdapter } from "../adapter.js";
+import { ConfiguredSkipError } from "../configured-skip-error.js";
 
 const API_BASE = "https://api.reliefweb.int/v1/reports";
 
@@ -40,7 +41,7 @@ export function makeReliefwebAdapter(creds: ReliefwebCreds): RegisteredAdapter {
     async poll() {
       const appname = creds.appname;
       if (appname == null || appname === "") {
-        throw new Error("RELIEFWEB_APPNAME is not configured");
+        throw new ConfiguredSkipError("RELIEFWEB_APPNAME is not configured");
       }
 
       /* eslint-disable @typescript-eslint/naming-convention */
@@ -83,7 +84,7 @@ export function makeReliefwebAdapter(creds: ReliefwebCreds): RegisteredAdapter {
     async fetch(url: string): Promise<FetchResult> {
       const appname = creds.appname;
       if (appname == null || appname === "") {
-        throw new Error("RELIEFWEB_APPNAME is not configured");
+        throw new ConfiguredSkipError("RELIEFWEB_APPNAME is not configured");
       }
       // URL shape: https://reliefweb.int/report/<id>
       const reportId = new URL(url).pathname.split("/").filter(Boolean)[1] ?? "";

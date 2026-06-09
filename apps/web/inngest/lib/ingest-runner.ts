@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 
 import { agentActions, sources } from "@ituri/db";
 import type { RegisteredAdapter } from "@ituri/ingest";
+import { ConfiguredSkipError } from "@ituri/ingest";
 import { and, count, eq, gte } from "drizzle-orm";
 import type { GetStepTools } from "inngest";
 
@@ -13,6 +14,7 @@ import { resolveSourceId, upsertDocument } from "@/inngest/lib/persist-extractio
 import { translateRateLimitError } from "@/inngest/lib/rate-limit-error";
 import { db } from "@/lib/db";
 import { chromiumFallbackEnabled } from "@/lib/kill-switch";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 const AGENT_SLUG = "ingest-runner";
 const CHROMIUM_DAILY_CAP = 5;
@@ -44,10 +46,32 @@ export async function runPerSourceIngest(
   adapter: RegisteredAdapter,
   step: GetStepTools<typeof inngest>,
 ): Promise<void> {
-  const items = await step.run("poll", async () => adapter.poll());
   const sourceId = await step.run("resolve-source-id", async () =>
     resolveSourceId(adapter.sourceSlug),
   );
+
+  const pollResult = await step.run("poll", async (): Promise<null | PollItem[]> => {
+    try {
+      return await adapter.poll();
+    } catch (error) {
+      if (error instanceof ConfiguredSkipError) {
+        await db.insert(agentActions).values({
+          agent: AGENT_SLUG,
+          action: "skipped_no_credentials",
+          subjectTable: "sources",
+          subjectId: sourceId,
+          payload: { sourceSlug: adapter.sourceSlug, reason: error.message },
+        });
+        return null;
+      }
+      throw error;
+    }
+  });
+
+  if (pollResult === null) {
+    return;
+  }
+  const items = pollResult;
 
   for (const item of items) {
     const stepId = createHash("sha256").update(item.url).digest("hex").slice(0, 16);
@@ -109,6 +133,8 @@ export async function runPerSourceIngest(
           url: item.url,
         });
 
+        await uploadRawBytes(fetchResult.sha256, fetchResult.rawBytes, fetchResult.mimeType);
+
         return {
           documentId,
           fullText: parseResult.fullText,
@@ -142,6 +168,16 @@ export async function runPerSourceIngest(
       .set({ lastFetchedAt: new Date(), parserVersion: adapter.version })
       .where(eq(sources.slug, adapter.sourceSlug));
   });
+}
+
+function extFromMime(mimeType: string): string {
+  if (mimeType.includes("pdf")) {
+    return ".pdf";
+  }
+  if (mimeType.includes("html")) {
+    return ".html";
+  }
+  return ".bin";
 }
 
 async function runChromiumFallback(opts: {
@@ -219,4 +255,25 @@ async function runChromiumFallback(opts: {
     sha256Hex: sha256.toString("hex"),
     sourceSlug: adapter.sourceSlug,
   };
+}
+
+async function uploadRawBytes(
+  sha256: Buffer,
+  rawBytes: Buffer | Uint8Array | undefined,
+  mimeType: string,
+): Promise<void> {
+  if (rawBytes === undefined) {
+    return;
+  }
+  const ext = extFromMime(mimeType);
+  try {
+    await createAdminClient()
+      .storage.from("source-bytes")
+      .upload(`${sha256.toString("hex")}${ext}`, rawBytes, {
+        contentType: mimeType,
+        upsert: true,
+      });
+  } catch (error) {
+    console.warn("[source-bytes] upload failed, skipping:", error);
+  }
 }

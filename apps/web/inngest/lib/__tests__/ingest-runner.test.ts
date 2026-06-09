@@ -3,11 +3,18 @@
 // Tests cover runPerSourceIngest orchestration (fetch→parse→persist→emit).
 // WS2: parse() now receives ParseInput; rawBytes conditional spread avoids exactOptionalPropertyTypes error.
 // WS2 §2.2: chromium fallback path — kill-switch gate, daily cap, fetchJsRendered, re-parse.
+// Lint: catch param renamed to `error`; union type reordered to `null | PollItem[]` (perfectionist/unicorn).
 // WS2 §2.1: upsertDocument now accepts mimeType/language (passed through from parse results).
 // Refactor: PollItem and FetchParseResult changed from type aliases to interfaces; AGENT_SLUG constant extracted.
+// B3: upload raw bytes to source-bytes bucket via createAdminClient; non-fatal catch logs console.warn (satisfies no-restricted-syntax). uploadRawBytes accepts undefined rawBytes (guard inside helper).
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
+
+const mockStorageUpload = vi.fn().mockResolvedValue({ data: { path: "abc" }, error: null });
+const mockStorageFrom = vi.fn().mockReturnValue({ upload: mockStorageUpload });
+const mockCreateAdminClient = vi.fn().mockReturnValue({ storage: { from: mockStorageFrom } });
+vi.mock("@/lib/supabase/admin", () => ({ createAdminClient: mockCreateAdminClient }));
 
 const mockInsertValues = vi.fn().mockResolvedValue(undefined);
 const mockInsert = vi.fn().mockReturnValue({ values: mockInsertValues });
@@ -252,6 +259,77 @@ describe("runPerSourceIngest — chromium fallback", () => {
   });
 });
 
+describe("runPerSourceIngest — ConfiguredSkipError (A1)", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockInsert.mockReturnValue({ values: mockInsertValues });
+    mockInsertValues.mockResolvedValue(undefined);
+    mockUpdate.mockReturnValue({ set: mockUpdateSet });
+    mockUpdateSet.mockReturnValue({ where: mockUpdateWhere });
+    mockUpdateWhere.mockResolvedValue(undefined);
+    mockChromiumFallbackEnabled.mockResolvedValue(false);
+  });
+
+  it("inserts a skipped_no_credentials agent_actions row when poll throws ConfiguredSkipError", async () => {
+    const { runPerSourceIngest } = await import("@/inngest/lib/ingest-runner");
+    const { ConfiguredSkipError } = await import("@ituri/ingest");
+    mockInsert.mockClear();
+    mockInsertValues.mockClear();
+
+    const step = makeStep();
+    const adapter = {
+      ...makeAdapter({}),
+      poll: vi
+        .fn()
+        .mockRejectedValue(new ConfiguredSkipError("ACLED_ACCESS_TOKEN is not configured")),
+    };
+
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion, @typescript-eslint/no-unsafe-type-assertion -- vitest mock types resolve to any
+    await runPerSourceIngest(adapter as never, step as never);
+
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- cast to inspect action field
+    const actions = mockInsertValues.mock.calls.map((c) => (c[0] as { action: string }).action);
+    expect(actions).toContain("skipped_no_credentials");
+  });
+
+  it("does not emit a triage event when poll throws ConfiguredSkipError", async () => {
+    const { runPerSourceIngest } = await import("@/inngest/lib/ingest-runner");
+    const { ConfiguredSkipError } = await import("@ituri/ingest");
+
+    const step = makeStep();
+    const adapter = {
+      ...makeAdapter({}),
+      poll: vi
+        .fn()
+        .mockRejectedValue(new ConfiguredSkipError("ACLED_ACCESS_TOKEN is not configured")),
+    };
+
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion, @typescript-eslint/no-unsafe-type-assertion -- vitest mock types resolve to any
+    await runPerSourceIngest(adapter as never, step as never);
+
+    expect(step.sendEvent).not.toHaveBeenCalled();
+  });
+
+  it("does not update source health when poll throws ConfiguredSkipError", async () => {
+    const { runPerSourceIngest } = await import("@/inngest/lib/ingest-runner");
+    const { ConfiguredSkipError } = await import("@ituri/ingest");
+    mockUpdate.mockClear();
+
+    const step = makeStep();
+    const adapter = {
+      ...makeAdapter({}),
+      poll: vi
+        .fn()
+        .mockRejectedValue(new ConfiguredSkipError("ACLED_ACCESS_TOKEN is not configured")),
+    };
+
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion, @typescript-eslint/no-unsafe-type-assertion -- vitest mock types resolve to any
+    await runPerSourceIngest(adapter as never, step as never);
+
+    expect(mockUpdate).not.toHaveBeenCalled();
+  });
+});
+
 describe("runPerSourceIngest — source health update (G-4)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -288,5 +366,92 @@ describe("runPerSourceIngest — source health update (G-4)", () => {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- vitest mock.calls typed any[]; cast to inspect the set() argument
     const setArg = mockUpdateSet.mock.calls[0]?.[0] as undefined | { parserVersion: string };
     expect(setArg?.parserVersion).toBe("1.0.0");
+  });
+});
+
+describe("runPerSourceIngest — source-bytes storage upload (B3)", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockInsert.mockReturnValue({ values: mockInsertValues });
+    mockInsertValues.mockResolvedValue(undefined);
+    mockUpdate.mockReturnValue({ set: mockUpdateSet });
+    mockUpdateSet.mockReturnValue({ where: mockUpdateWhere });
+    mockUpdateWhere.mockResolvedValue(undefined);
+    mockChromiumFallbackEnabled.mockResolvedValue(false);
+    mockSelectWhere.mockResolvedValue([{ cnt: 0 }]);
+    mockSelectFrom.mockReturnValue({ where: mockSelectWhere });
+    mockSelect.mockReturnValue({ from: mockSelectFrom });
+    mockCreateAdminClient.mockReturnValue({ storage: { from: mockStorageFrom } });
+    mockStorageFrom.mockReturnValue({ upload: mockStorageUpload });
+    mockStorageUpload.mockResolvedValue({ data: { path: "abc" }, error: null });
+  });
+
+  it("uploads raw bytes to source-bytes with sha256 path when fetch returns rawBytes", async () => {
+    const { runPerSourceIngest } = await import("@/inngest/lib/ingest-runner");
+    const sha256Buf = Buffer.alloc(32, 171);
+    const sha256Hex = sha256Buf.toString("hex");
+    const step = makeStep();
+    const adapter = makeAdapter({
+      fetch: vi.fn().mockResolvedValue({
+        skipped: false,
+        rawContent: "<html/>",
+        rawBytes: Buffer.from("<html/>"),
+        sha256: sha256Buf,
+        mimeType: "text/html",
+      }),
+    });
+
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion, @typescript-eslint/no-unsafe-type-assertion -- vitest mock types resolve to any
+    await runPerSourceIngest(adapter as never, step as never);
+
+    expect(mockStorageFrom).toHaveBeenCalledWith("source-bytes");
+    expect(mockStorageUpload).toHaveBeenCalledWith(
+      `${sha256Hex}.html`,
+      expect.any(Buffer),
+      expect.objectContaining({ contentType: "text/html", upsert: true }),
+    );
+  });
+
+  it("uses .pdf extension for application/pdf mime type", async () => {
+    const { runPerSourceIngest } = await import("@/inngest/lib/ingest-runner");
+    const sha256Buf = Buffer.alloc(32, 205);
+    const sha256Hex = sha256Buf.toString("hex");
+    const step = makeStep();
+    const adapter = makeAdapter({
+      fetch: vi.fn().mockResolvedValue({
+        skipped: false,
+        rawContent: "",
+        rawBytes: Buffer.alloc(8),
+        sha256: sha256Buf,
+        mimeType: "application/pdf",
+      }),
+    });
+
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion, @typescript-eslint/no-unsafe-type-assertion -- vitest mock types resolve to any
+    await runPerSourceIngest(adapter as never, step as never);
+
+    expect(mockStorageUpload).toHaveBeenCalledWith(
+      `${sha256Hex}.pdf`,
+      expect.anything(),
+      expect.anything(),
+    );
+  });
+
+  it("does not throw when storage upload rejects (silent skip)", async () => {
+    const { runPerSourceIngest } = await import("@/inngest/lib/ingest-runner");
+    mockStorageUpload.mockRejectedValueOnce(new Error("storage unavailable"));
+    const step = makeStep();
+    const adapter = makeAdapter({
+      fetch: vi.fn().mockResolvedValue({
+        skipped: false,
+        rawContent: "<html/>",
+        rawBytes: Buffer.from("<html/>"),
+        sha256: Buffer.alloc(32),
+        mimeType: "text/html",
+      }),
+    });
+
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- vitest mock types resolve to any
+    await expect(runPerSourceIngest(adapter as never, step as never)).resolves.toBeUndefined();
   });
 });
