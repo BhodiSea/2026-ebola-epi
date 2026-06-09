@@ -318,7 +318,7 @@ never invokes the Chromium-sandbox fallback path in
 [apps/web/inngest/lib/fetch-with-sandbox.ts](../../apps/web/inngest/lib/fetch-with-sandbox.ts)
 for JS-rendered pages.
 
-**Why it matters:** WHO DON is the highest-priority source (30-minute cron). Missing
+**Why it matters:** WHO DON is a high-priority source (daily cron, 00:00 UTC; previously 30-minute, dropped for cost/rate-limit). Missing
 `mimeType` makes the `sources_with_health` view incomplete. The absence of skip logging
 means parse failures are invisible. The Chromium gap matters less today (WHO DON pages
 are Readability-parseable) but will bite if WHO restructures their site.

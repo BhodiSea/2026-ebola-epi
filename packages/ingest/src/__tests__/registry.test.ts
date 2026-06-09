@@ -49,4 +49,8 @@ describe("ADAPTER_REGISTRY", () => {
   )("%s: throttleKey is a non-empty hostname string", (_slug, adapter) => {
     expect(adapter.throttleKey).toMatch(HOSTNAME_RE);
   });
+
+  it("who-don pollInterval is daily 00:00 UTC (cost/rate-limit policy — do not restore to */30)", () => {
+    expect(ADAPTER_REGISTRY["who-don"].pollInterval).toBe("0 0 * * *");
+  });
 });

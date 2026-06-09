@@ -119,7 +119,7 @@ function isOutbreakItem(link: string, title: string): boolean {
 export const whoDONAdapter: RegisteredAdapter = {
   sourceSlug: "who-don",
   throttleKey: "who.int",
-  pollInterval: "*/30 * * * *",
+  pollInterval: "0 0 * * *",
   version: "1.0.0",
 
   async poll() {

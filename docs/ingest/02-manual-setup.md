@@ -278,7 +278,7 @@ The manifest is served by the `serve()` call in
 `apps/web/inngest/functions/index.ts` will appear in the Inngest dashboard once synced.
 
 **Cron triggers** are declared inside each Inngest function definition (e.g.
-`{ cron: "*/30 * * * *" }` in `ingest-who-don.ts`). Inngest Cloud executes these — they
+`{ cron: "0 0 * * *" }` in `ingest-who-don.ts`). Inngest Cloud executes these — they
 do NOT use Vercel Cron. No `vercel.ts` configuration is needed for cron scheduling.
 
 **Critical: Deployment Protection bypass.** If Vercel Deployment Protection is enabled
@@ -721,7 +721,7 @@ Note the preview URL (e.g. `https://ituri-sitrep-<hash>-bhodiSea.vercel.app`).
 1. Inngest dashboard → App → Environments → Branch (or Production).
 2. Sync → enter the preview URL + `/api/inngest`.
 3. Verify 17 functions appear in the function list.
-4. Check that cron triggers show the expected schedules (e.g. WHO DON: `*/30 * * * *`).
+4. Check that cron triggers show the expected schedules (e.g. WHO DON: `0 0 * * *`).
 
 ### Step 4 — Trigger a manual WHO DON run
 

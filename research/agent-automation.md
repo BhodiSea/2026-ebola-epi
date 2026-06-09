@@ -141,7 +141,8 @@ Notes:
 
 ### 4. Scheduling & Triggering
 
-- **High-frequency polling (WHO DON, ReliefWeb, ECDC, Africa CDC)**: Inngest cron triggers, one function per source family, 15–30 min cadence, concurrency-keyed to source domain to respect per-site rate limits.
+- **High-frequency polling (ReliefWeb, ECDC, Africa CDC)**: Inngest cron triggers, one function per source family, 15–30 min cadence, concurrency-keyed to source domain to respect per-site rate limits.
+- **Daily polling (WHO DON)**: Inngest cron `0 0 * * *` (daily 00:00 UTC). Moved from 30-min tier to reduce cost and outbound request load on who.int.
 - **Daily orchestration (eval, audit, link-rot scan)**: Inngest cron at 03:00 UTC.
 - **Weekly maintenance (Renovate review, source-list health, doc-drift)**: GitHub Actions cron — cheaper and fits the developer workflow.
 - **Reactive (email-only sources, e.g., some MoH press releases)**: Postmark/Resend inbound webhook → POST to Inngest event → triage agent. Brevo and Postmark both publish stable inbound JSON formats.
@@ -348,7 +349,7 @@ Notification dedup, snooze, ack: all done via a single `incidents` Postgres tabl
 
 ### 19. Worked Example: New Marburg Outbreak in Tanzania
 
-1. **05:00 UTC** — `source.poll.tick` for WHO DON RSS fires (Inngest cron, every 30 min). Source-Monitor fetches the feed with `If-Modified-Since`; sees a 200 with a new GUID. SHA-256 of the entry hashes to a previously-unseen value → emit `document.discovered`.
+1. **00:00 UTC** — `source.poll.tick` for WHO DON RSS fires (Inngest cron, daily 00:00 UTC). Source-Monitor fetches the feed with `If-Modified-Since`; sees a 200 with a new GUID. SHA-256 of the entry hashes to a previously-unseen value → emit `document.discovered`.
 2. **05:00:02** — Fetch+parse step retrieves the HTML, Mozilla Readability returns clean text (~4k chars). Language detect: English.
 3. **05:00:04** — Triage Agent (Haiku 4.5) reads text + system prompt (cached). Returns `{is_outbreak: true, pathogen_icd11: "1D24.0" /* Marburg */, country_iso3: "TZA", novelty: "new", confidence: 0.96}`.
 4. **05:00:05** — Novelty=new + `(Marburg, TZA)` not in `outbreaks` table → Inngest `step.waitForEvent("escalation.confirmed", {matchKey: "marburg-tza-2026-05-27", timeout: "7d"})`. Slack message posted with "Confirm" / "Reject" buttons.
