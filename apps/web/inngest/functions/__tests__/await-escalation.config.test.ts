@@ -2,7 +2,7 @@
 // Verifies that await-escalation uses keyed concurrency so triage-document is not starved.
 // Starvation scenario: triage-document.concurrency.limit = 5; if waitForEvent lived there,
 // 5 simultaneous novel-pair escalations would hold all slots for up to 7 days.
-// P5 fix: waitForEvent moved here; each matchKey gets its own slot, global cap = 1000.
+// P5 fix: waitForEvent moved here; each matchKey gets its own slot, global cap = plan limit (100).
 import { describe, expect, it } from "vitest";
 
 import { ESCALATION_NOVEL_PATHOGEN_COUNTRY } from "../pipeline-events-config.js";

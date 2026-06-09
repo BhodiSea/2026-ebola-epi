@@ -38,14 +38,14 @@ export const RECONCILE_COUNTS_FN_CONFIG = {
 
 export const RECONCILE_COUNTS_TRIGGER = { event: RECONCILE_REQUESTED } as const;
 
-// Each matchKey (pathogen-country pair) gets one dedicated slot; global cap is high
-// because these are cheap wait steps, not compute-intensive work.
+// Each matchKey (pathogen-country pair) gets one dedicated slot; global cap is capped at
+// the plan limit (100) — cheap wait steps, not compute-intensive work.
 // Moves waitForEvent out of triage-document (which has limit=5) to prevent starvation
 // when ≥5 novel-pair escalations are open simultaneously.
 export const AWAIT_ESCALATION_FN_CONFIG = {
   id: "await-escalation" as const,
   retries: 0 as const,
-  concurrency: [{ limit: 1, key: "event.data.matchKey" }, { limit: 1000 }] as [
+  concurrency: [{ limit: 1, key: "event.data.matchKey" }, { limit: 100 }] as [
     { key: string; limit: number },
     { limit: number },
   ],
