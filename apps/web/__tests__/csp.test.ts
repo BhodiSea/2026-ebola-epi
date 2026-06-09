@@ -61,4 +61,10 @@ describe("buildCsp", () => {
     vi.unstubAllEnvs();
     expect(prodCsp).not.toContain("'unsafe-eval'");
   });
+
+  // Vercel Analytics loads /_vercel/insights/script.js (same-origin).
+  // strict-dynamic allows it without an explicit host allowlist entry.
+  it("includes strict-dynamic in script-src so same-origin scripts like Vercel Analytics load", () => {
+    expect(csp).toContain("'strict-dynamic'");
+  });
 });
