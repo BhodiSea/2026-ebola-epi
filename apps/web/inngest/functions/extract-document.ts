@@ -15,6 +15,7 @@ import {
   detectDivergence,
   isAlreadyExtracted,
   persistExtraction,
+  recordFailedExtraction,
 } from "../lib/persist-extraction";
 import { RECONCILE_REQUESTED, SHADOW_RUN_TRIGGER } from "./pipeline-events-config";
 import { EXTRACT_DOCUMENT_FN_CONFIG, EXTRACT_DOCUMENT_TRIGGER } from "./pipeline-fn-config";
@@ -103,6 +104,12 @@ export const extractDocument = inngest.createFunction(
         );
         return { skipped: true, reason: "substring_verify_fail" };
       }
+      await step.run("record-failed-extraction", async () =>
+        recordFailedExtraction(doc, rawMsg, {
+          message: msg,
+          class: error instanceof Error ? error.constructor.name : "unknown_error",
+        }),
+      );
       throw error;
     }
 

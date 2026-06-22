@@ -1,0 +1,15 @@
+# Gitleaks configuration for ituri-sitrep.
+# See https://github.com/gitleaks/gitleaks/blob/main/config/gitleaks.toml
+
+[allowlist]
+description = "Local-dev JWTs and example keys in research docs"
+commits = [
+  # JWT in apps/web/playwright.config.ts — local Supabase anon key for e2e
+  "15d84e9892e31af8221154ec76f5a6062215b679",
+  # JWTs in apps/web/e2e/global-setup.ts — local Supabase service-role key for e2e
+  "eeae39ac0da10c6226609768935f1e2027ccef9d",
+  # JWTs in apps/web/vitest.integration.config.ts — local Supabase dev tokens
+  "e85a44c731bcceb01a8ebeeac8fa56aba18eb5bd",
+  # Sample API key in research/agent-automation.md — illustrative example in docs
+  "57e3bbdd7eef6d308c869df1c7a2aca615ec8445",
+]

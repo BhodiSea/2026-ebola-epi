@@ -151,6 +151,14 @@ export const extractionRuns = auditSchema.table("extraction_runs", {
   outputTokens: integer("output_tokens").notNull().default(0),
   rowsExtracted: integer("rows_extracted").notNull().default(0),
   rowsVerified: integer("rows_verified").notNull().default(0),
+  droppedRows: integer("dropped_rows").notNull().default(0),
+  status: text("status")
+    .notNull()
+    .default("running")
+    .$type<"failed" | "running" | "skipped" | "succeeded">(),
+  errorMessage: text("error_message"),
+  errorClass: text("error_class"),
+  modelIdResolved: text("model_id_resolved"),
   startedAt: timestamp("started_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
   endedAt: timestamp("ended_at", { withTimezone: true, mode: "date" }),
   createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),

@@ -10,11 +10,14 @@ import type { GetStepTools } from "inngest";
 import type { inngest } from "@/inngest/client";
 import { DOCUMENT_TRIAGE_REQUESTED } from "@/inngest/functions/pipeline-events-config";
 import { fetchJsRendered } from "@/inngest/lib/fetch-with-sandbox";
-import { resolveSourceId, upsertDocument } from "@/inngest/lib/persist-extraction";
+import {
+  checkExtractionPaused,
+  resolveSourceId,
+  upsertDocument,
+} from "@/inngest/lib/persist-extraction";
 import { translateRateLimitError } from "@/inngest/lib/rate-limit-error";
 import { db } from "@/lib/db";
 import { chromiumFallbackEnabled } from "@/lib/kill-switch";
-import { createAdminClient } from "@/lib/supabase/admin";
 
 const AGENT_SLUG = "ingest-runner";
 const CHROMIUM_DAILY_CAP = 5;
@@ -49,6 +52,24 @@ export async function runPerSourceIngest(
   const sourceId = await step.run("resolve-source-id", async () =>
     resolveSourceId(adapter.sourceSlug),
   );
+
+  const isPaused = await step.run("check-extraction-paused", async (): Promise<boolean> => {
+    if (await checkExtractionPaused(adapter.sourceSlug)) {
+      await db.insert(agentActions).values({
+        agent: AGENT_SLUG,
+        action: "ingest_skipped_paused",
+        subjectTable: "sources",
+        subjectId: sourceId,
+        payload: { sourceSlug: adapter.sourceSlug },
+      });
+      return true;
+    }
+    return false;
+  });
+
+  if (isPaused) {
+    return;
+  }
 
   const pollResult = await step.run("poll", async (): Promise<null | PollItem[]> => {
     try {
@@ -144,8 +165,6 @@ export async function runPerSourceIngest(
           url: item.url,
         });
 
-        await uploadRawBytes(fetchResult.sha256, fetchResult.rawBytes, fetchResult.mimeType);
-
         return {
           documentId,
           fullText: parseResult.fullText,
@@ -179,16 +198,6 @@ export async function runPerSourceIngest(
       .set({ lastFetchedAt: new Date(), parserVersion: adapter.version })
       .where(eq(sources.slug, adapter.sourceSlug));
   });
-}
-
-function extFromMime(mimeType: string): string {
-  if (mimeType.includes("pdf")) {
-    return ".pdf";
-  }
-  if (mimeType.includes("html")) {
-    return ".html";
-  }
-  return ".bin";
 }
 
 async function runChromiumFallback(opts: {
@@ -266,25 +275,4 @@ async function runChromiumFallback(opts: {
     sha256Hex: sha256.toString("hex"),
     sourceSlug: adapter.sourceSlug,
   };
-}
-
-async function uploadRawBytes(
-  sha256: Buffer,
-  rawBytes: Buffer | Uint8Array | undefined,
-  mimeType: string,
-): Promise<void> {
-  if (rawBytes === undefined) {
-    return;
-  }
-  const ext = extFromMime(mimeType);
-  try {
-    await createAdminClient()
-      .storage.from("source-bytes")
-      .upload(`${sha256.toString("hex")}${ext}`, rawBytes, {
-        contentType: mimeType,
-        upsert: true,
-      });
-  } catch (error) {
-    console.warn("[source-bytes] upload failed, skipping:", error);
-  }
 }

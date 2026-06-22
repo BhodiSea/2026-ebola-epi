@@ -16,8 +16,13 @@ import {
   sources,
 } from "@ituri/db";
 import type { ExtractionRow, ExtractionUsage, PathogenCode } from "@ituri/extract";
-// eslint-disable-next-line perfectionist/sort-named-imports -- Biome organizeImports uses uppercase-first; perfectionist uses natural (case-insensitive); these two conflict
-import { computeCost, MODEL, PATHOGEN_SLUG, parseExtractionResponse } from "@ituri/extract";
+import {
+  computeCost,
+  computeToolSchemaHash,
+  MODEL,
+  PATHOGEN_SLUG,
+  parseExtractionResponse, // eslint-disable-line perfectionist/sort-named-imports -- Biome uppercase-first conflicts with perfectionist natural sort
+} from "@ituri/extract";
 import { ExtractionRunId } from "@ituri/shared";
 import { and, eq, isNull, ne, sql } from "drizzle-orm";
 
@@ -65,8 +70,10 @@ export interface TxParams {
   readonly extractionRunId: string;
   readonly inputDocSha256: Buffer;
   readonly modelId: string;
+  readonly modelIdResolved: string | undefined;
   readonly publishedAt: Date;
   readonly pvHash: string;
+  readonly rawCount: number;
   readonly rows: readonly ExtractionRow[];
   readonly sourceSlug: string;
   readonly toolSchemaHash: string;
@@ -113,6 +120,19 @@ export async function applySupersede(opts: {
       payload: { winnerId: opts.winnerId, loserId: opts.loserId, reason: opts.reason },
     });
   });
+}
+
+/**
+ * Returns true when `sources.extraction_paused` is set for the given slug.
+ * Call at the start of ingest to short-circuit without entering a transaction.
+ */
+export async function checkExtractionPaused(slug: string): Promise<boolean> {
+  const rows = await db
+    .select({ extractionPaused: sources.extractionPaused })
+    .from(sources)
+    .where(eq(sources.slug, slug))
+    .limit(1);
+  return rows[0]?.extractionPaused ?? false;
 }
 
 /** Typed wrapper so step.ai.wrap infers Promise<Anthropic.Message>, not APIPromise. */
@@ -179,7 +199,41 @@ export async function detectDivergence(extractionRunId: string): Promise<Diverge
   }));
 }
 
-// eslint-disable-next-line max-lines-per-function, max-statements -- transaction helper orchestrates multiple DB inserts; extracting would require threading a transaction handle
+/**
+ * Insert a minimal `extraction_runs` row with `status='failed'` when extraction
+ * crashes before or during `persistExtraction`. Call this in catch blocks before
+ * re-throwing so every attempted extraction leaves an audit trail.
+ */
+export async function recordFailedExtraction(
+  doc: Pick<FetchedDocument, "documentId" | "inputDocSha256Hex" | "pvHash">,
+  rawMsg: Pick<Anthropic.Message, "model" | "usage">,
+  error: { class: string; message: string },
+): Promise<string> {
+  const extractionRunId = ExtractionRunId.parse(crypto.randomUUID());
+  await db.insert(extractionRuns).values({
+    id: extractionRunId,
+    documentId: doc.documentId,
+    modelId: MODEL,
+    modelIdResolved: rawMsg.model,
+    promptVersionHash: doc.pvHash,
+    toolSchemaHash: computeToolSchemaHash(),
+    inputDocSha256: Buffer.from(doc.inputDocSha256Hex, "hex"),
+    cacheReadInputTokens: rawMsg.usage.cache_read_input_tokens ?? 0,
+    cacheCreationInputTokens: rawMsg.usage.cache_creation_input_tokens ?? 0,
+    inputTokens: rawMsg.usage.input_tokens,
+    outputTokens: rawMsg.usage.output_tokens,
+    rowsExtracted: 0,
+    rowsVerified: 0,
+    droppedRows: 0,
+    status: "failed",
+    errorMessage: error.message,
+    errorClass: error.class,
+    endedAt: new Date(),
+  });
+  return extractionRunId;
+}
+
+// eslint-disable-next-line max-lines-per-function, max-statements, perfectionist/sort-modules -- transaction helper orchestrates multiple DB inserts; split would require threading a transaction handle; new audit fns added above for locality
 export async function insertExtractionInTransaction(
   tx: Tx,
   params: TxParams,
@@ -212,6 +266,7 @@ export async function insertExtractionInTransaction(
     id: params.extractionRunId,
     documentId: params.documentId,
     modelId: params.modelId,
+    modelIdResolved: params.modelIdResolved ?? null,
     promptVersionHash: params.pvHash,
     toolSchemaHash: params.toolSchemaHash,
     inputDocSha256: params.inputDocSha256,
@@ -219,9 +274,12 @@ export async function insertExtractionInTransaction(
     cacheCreationInputTokens: params.usage.cache_creation_input_tokens ?? 0,
     inputTokens: params.usage.input_tokens,
     outputTokens: params.usage.output_tokens,
-    rowsExtracted: params.rows.length,
+    rowsExtracted: params.rawCount,
     rowsVerified: params.rows.length,
+    droppedRows: params.rawCount - params.rows.length,
     sourceQuoteIds: sqIds,
+    status: "succeeded",
+    endedAt: new Date(),
   });
 
   const escalations: AnomalyEscalation[] = [];
@@ -292,9 +350,9 @@ export async function isAlreadyExtracted(documentId: string, pvHash: string): Pr
  */
 export async function persistExtraction(
   doc: FetchedDocument,
-  rawMsg: Pick<Anthropic.Message, "content" | "usage">,
+  rawMsg: Pick<Anthropic.Message, "content" | "model" | "usage">,
 ): Promise<PersistResult> {
-  const { rows, toolSchemaHash, usage } = parseExtractionResponse(rawMsg, doc.fullText);
+  const { rows, rawCount, toolSchemaHash, usage } = parseExtractionResponse(rawMsg, doc.fullText);
   const extractionRunId = ExtractionRunId.parse(crypto.randomUUID());
   const escalations = await db.transaction(async (tx) =>
     insertExtractionInTransaction(tx, {
@@ -302,8 +360,10 @@ export async function persistExtraction(
       extractionRunId,
       inputDocSha256: Buffer.from(doc.inputDocSha256Hex, "hex"),
       modelId: MODEL,
+      modelIdResolved: rawMsg.model,
       publishedAt: new Date(doc.publishedAtIso),
       pvHash: doc.pvHash,
+      rawCount,
       rows,
       sourceSlug: doc.sourceSlug,
       toolSchemaHash,

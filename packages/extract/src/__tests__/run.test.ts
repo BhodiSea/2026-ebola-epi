@@ -178,6 +178,42 @@ describe("parseExtractionResponse", () => {
     expect(() => parseExtractionResponse(response, VALID_DOC)).toThrow("substring_verify_fail");
   });
 
+  it("rawCount reflects LLM-returned count before zod filtering", () => {
+    const response: Pick<Anthropic.Message, "content" | "usage"> = {
+      content: [
+        {
+          type: "tool_use" as const,
+          id: "toolu_rc",
+          name: "extract_case_counts",
+          input: {
+            extractions: [
+              {
+                pathogen_icd11: "1D60.00", // invalid — dropped by zod
+                country_iso3: "COD",
+                metric: "confirmed",
+                value: 10,
+                as_of: "2026-05-01",
+                source_quote: { char_start: 0, char_end: 5, quote_text: "As of" },
+              },
+              {
+                pathogen_icd11: "1D60.2", // valid
+                country_iso3: "COD",
+                metric: "deaths",
+                value: 3,
+                as_of: "2026-05-01",
+                source_quote: { char_start: 0, char_end: 5, quote_text: "As of" },
+              },
+            ],
+          },
+        },
+      ],
+      usage: MOCK_RESPONSE.usage,
+    };
+    const result = parseExtractionResponse(response, VALID_DOC);
+    expect(result.rawCount).toBe(2);
+    expect(result.rows).toHaveLength(1);
+  });
+
   it("silently drops rows with unknown ICD-11 codes rather than failing the batch", () => {
     // Regression: model once emitted 1D60.00 (hallucinated sub-code) creating phantom outbreaks.
     const response: Pick<Anthropic.Message, "content" | "usage"> = {

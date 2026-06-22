@@ -9,6 +9,7 @@ import type {
   batchResults,
   caseCounts,
   documents,
+  extractionRuns,
   incidents,
   outbreaks,
   shadowResults,
@@ -208,6 +209,36 @@ describe("schema type inference", () => {
       | "suspected"
       | "vaccinated"
     >();
+  });
+});
+
+// ── extraction_runs lifecycle columns (migration 20260622120000) ──────────────
+
+describe("extractionRuns lifecycle columns", () => {
+  it("status is narrowed to the four valid lifecycle values", () => {
+    type Row = typeof extractionRuns.$inferSelect;
+    expectTypeOf<Row["status"]>().toEqualTypeOf<"failed" | "running" | "skipped" | "succeeded">();
+  });
+
+  it("droppedRows is number (not null)", () => {
+    type Row = typeof extractionRuns.$inferSelect;
+    expectTypeOf<Row["droppedRows"]>().toEqualTypeOf<number>();
+  });
+
+  it("modelIdResolved is nullable string", () => {
+    type Row = typeof extractionRuns.$inferSelect;
+    expectTypeOf<Row["modelIdResolved"]>().toEqualTypeOf<null | string>();
+  });
+
+  it("errorMessage and errorClass are nullable strings", () => {
+    type Row = typeof extractionRuns.$inferSelect;
+    expectTypeOf<Row["errorMessage"]>().toEqualTypeOf<null | string>();
+    expectTypeOf<Row["errorClass"]>().toEqualTypeOf<null | string>();
+  });
+
+  it("id column resolves to ExtractionRunId brand", () => {
+    type Row = typeof extractionRuns.$inferSelect;
+    expectTypeOf<Row["id"]>().toEqualTypeOf<ExtractionRunId>();
   });
 });
 

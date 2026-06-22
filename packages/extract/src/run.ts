@@ -44,6 +44,8 @@ export const CANDIDATE_PROMPT_VERSION = computeCandidatePromptVersionHash();
 
 export interface ExtractionResult {
   promptVersionHash: string;
+  /** Count of rows returned by the LLM before zod schema filtering. */
+  rawCount: number;
   rows: ExtractionRow[];
   toolSchemaHash: string;
   usage: ExtractionUsage;
@@ -107,6 +109,7 @@ export function parseExtractionResponse(
   // Per-row filtering with ExtractionRowSchema prevents one hallucinated ICD-11 code
   // (e.g. 1D60.00) from throwing and losing all valid rows in the same document.
   const outer = z.object({ extractions: z.array(z.unknown()) }).parse(toolUse.input);
+  const rawCount = outer.extractions.length;
   const validRows = outer.extractions
     .map((r) => ExtractionRowSchema.safeParse(r))
     .filter((r): r is { data: ExtractionRow; success: true } => r.success)
@@ -119,6 +122,7 @@ export function parseExtractionResponse(
     return { ...row, source_quote: { ...row.source_quote, ...resolved } };
   });
   return {
+    rawCount,
     rows: resolvedRows,
     toolSchemaHash: computeToolSchemaHash(),
     usage: response.usage,

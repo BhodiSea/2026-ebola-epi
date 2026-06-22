@@ -5,6 +5,8 @@ import type { ExtractionRow } from "@ituri/extract";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
+  checkExtractionPaused,
+  recordFailedExtraction,
   resolveAdminCode,
   upsertDocument,
   upsertOutbreak,
@@ -306,6 +308,105 @@ describe("upsertDocument — rawBytes storage (G-11)", () => {
       `${SHA256_HEX}.pdf`,
       RAW_BYTES,
       expect.objectContaining({ contentType: MIME_PDF }),
+    );
+  });
+});
+
+// --- checkExtractionPaused (Phase 4.3 kill-switch query) ----------------------
+
+describe("checkExtractionPaused", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("returns false when source extraction_paused is false", async () => {
+    const mockLimit = vi.fn().mockResolvedValue([{ extractionPaused: false }]);
+    const mockWhere = vi.fn().mockReturnValue({ limit: mockLimit });
+    mockDbSelect.mockReturnValue({ from: vi.fn().mockReturnValue({ where: mockWhere }) });
+    const result = await checkExtractionPaused("who-don");
+    expect(result).toBe(false);
+  });
+
+  it("returns true when source extraction_paused is true", async () => {
+    const mockLimit = vi.fn().mockResolvedValue([{ extractionPaused: true }]);
+    const mockWhere = vi.fn().mockReturnValue({ limit: mockLimit });
+    mockDbSelect.mockReturnValue({ from: vi.fn().mockReturnValue({ where: mockWhere }) });
+    const result = await checkExtractionPaused("who-don");
+    expect(result).toBe(true);
+  });
+
+  it("returns false when source row is not found", async () => {
+    const mockLimit = vi.fn().mockResolvedValue([]);
+    const mockWhere = vi.fn().mockReturnValue({ limit: mockLimit });
+    mockDbSelect.mockReturnValue({ from: vi.fn().mockReturnValue({ where: mockWhere }) });
+    const result = await checkExtractionPaused("missing-source");
+    expect(result).toBe(false);
+  });
+});
+
+// --- recordFailedExtraction --------------------------------------------------
+// Called by extract-document.ts catch block before re-throw (Phase 1.2 failure path).
+// detectDivergence/insertExtractionInTransaction sorted before recordFailedExtraction in persist-extraction.ts.
+
+describe("recordFailedExtraction", () => {
+  const MOCK_USAGE = {
+    input_tokens: 10,
+    output_tokens: 5,
+    cache_read_input_tokens: 0,
+    cache_creation_input_tokens: 0,
+    server_tool_use: null,
+    service_tier: null,
+  };
+  const DOC_STUB = {
+    documentId: "doc-fail-001",
+    inputDocSha256Hex: "a".repeat(64),
+    pvHash: "pv-hash-fail",
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    const mockValues = vi.fn().mockResolvedValue([]);
+    mockDbInsert.mockReturnValue({ values: mockValues });
+  });
+
+  it("inserts extraction_runs row with status failed", async () => {
+    await recordFailedExtraction(
+      DOC_STUB,
+      { model: "claude-sonnet-4-6", usage: MOCK_USAGE },
+      {
+        message: "parse error",
+        class: "parse_failed",
+      },
+    );
+    expect(mockDbInsert).toHaveBeenCalledTimes(1);
+    const insertValues =
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- mock chain introspection; shape verified by setup
+      (mockDbInsert.mock.results[0] as { value: { values: ReturnType<typeof vi.fn> } }).value
+        .values;
+    expect(insertValues).toHaveBeenCalledWith(
+      expect.objectContaining({
+        status: "failed",
+        errorMessage: "parse error",
+        errorClass: "parse_failed",
+      }),
+    );
+  });
+
+  it("records zero rows extracted and zero dropped on failure", async () => {
+    await recordFailedExtraction(
+      DOC_STUB,
+      { model: "claude-sonnet-4-6", usage: MOCK_USAGE },
+      {
+        message: "db timeout",
+        class: "db_error",
+      },
+    );
+    const insertValues =
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- mock chain introspection; shape verified by setup
+      (mockDbInsert.mock.results[0] as { value: { values: ReturnType<typeof vi.fn> } }).value
+        .values;
+    expect(insertValues).toHaveBeenCalledWith(
+      expect.objectContaining({ rowsExtracted: 0, rowsVerified: 0, droppedRows: 0 }),
     );
   });
 });

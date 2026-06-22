@@ -98,6 +98,8 @@ fi
 # ── 4. pgTAP (db:test) ───────────────────────────────────────────────────────
 if ! has supabase; then
   skip_or_fail "db:test" "supabase CLI not installed"
+elif ! supabase status >/dev/null 2>&1; then
+  skip_or_fail "db:test" "supabase stack not running (supabase start)"
 elif have_script db:test; then
   run_gate "db:test" pnpm run db:test
 fi

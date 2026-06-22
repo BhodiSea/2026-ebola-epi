@@ -1,7 +1,7 @@
 import "server-only";
 
 import Anthropic from "@anthropic-ai/sdk";
-import { incidents, outbreaks } from "@ituri/db";
+import { agentActions, incidents, outbreaks } from "@ituri/db";
 import {
   buildTriageParams,
   computeTriagePromptHash,
@@ -25,6 +25,14 @@ import { getExtractionCapacity } from "@/lib/kill-switch";
 import { notifyKillSwitch, notifySlack } from "@/lib/notify";
 
 const anthropic = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
+
+export async function recordNotOutbreakSkip(documentId: string, sourceSlug: string): Promise<void> {
+  await db.insert(agentActions).values({
+    agent: "triage-document",
+    action: "skipped_not_outbreak",
+    payload: { documentId, sourceSlug },
+  });
+}
 
 async function createHaikuMessage(
   params: Anthropic.MessageCreateParamsNonStreaming,
@@ -114,6 +122,9 @@ export const triageDocument = inngest.createFunction(
     }
 
     if (!triage.is_outbreak) {
+      await step.run("record-not-outbreak-skip", async () =>
+        recordNotOutbreakSkip(documentId, sourceSlug),
+      );
       return { skipped: true, reason: "not_outbreak" };
     }
 
