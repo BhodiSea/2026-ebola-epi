@@ -24,6 +24,8 @@ export const env = createEnv({
     TWILIO_TO_NUMBER: z.string().optional(),
     GITHUB_TOKEN: z.string().optional(),
     GITHUB_REPO: z.string().optional(),
+    // Embedding provider — ADR-0023 (Vercel AI SDK, text-embedding-3-small 1024-dim)
+    OPENAI_API_KEY: z.string().optional(),
     // Ingest adapter credentials (optional — adapters throw visibly when missing at runtime)
     RELIEFWEB_APPNAME: z.string().optional(),
     ACLED_ACCESS_TOKEN: z.string().optional(),
@@ -63,6 +65,7 @@ export const env = createEnv({
     TWILIO_TO_NUMBER: process.env.TWILIO_TO_NUMBER,
     GITHUB_TOKEN: process.env.GITHUB_TOKEN,
     GITHUB_REPO: process.env.GITHUB_REPO,
+    OPENAI_API_KEY: process.env.OPENAI_API_KEY,
     RELIEFWEB_APPNAME: process.env.RELIEFWEB_APPNAME,
     ACLED_ACCESS_TOKEN: process.env.ACLED_ACCESS_TOKEN,
     ACLED_EMAIL: process.env.ACLED_EMAIL,

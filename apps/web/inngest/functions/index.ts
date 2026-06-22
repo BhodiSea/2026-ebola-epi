@@ -1,5 +1,6 @@
 import { awaitEscalation } from "./await-escalation";
 import { backFillExtraction } from "./back-fill";
+import { backfillEmbeddings } from "./backfill-embeddings";
 import { extractDocument } from "./extract-document";
 import { ingestACLED } from "./ingest-acled";
 import { ingestAfricaCDC } from "./ingest-africa-cdc";
@@ -33,5 +34,6 @@ export const functions = [
   syntheticMonitor,
   maintenanceAgent,
   backFillExtraction,
+  backfillEmbeddings,
   shadowExtraction,
 ];

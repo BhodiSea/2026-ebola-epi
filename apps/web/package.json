@@ -19,6 +19,7 @@
     "inngest:dev": "npx inngest-cli@latest dev -u http://localhost:3000/api/inngest"
   },
   "dependencies": {
+    "@ai-sdk/openai": "^3.0.74",
     "@anthropic-ai/sdk": "^0.52.0",
     "@arcjet/next": "^1",
     "@deck.gl/core": "^9.3.2",
@@ -44,6 +45,7 @@
     "@visx/brush": "^3.12.0",
     "@visx/scale": "^3.12.0",
     "@visx/xychart": "^3.12.0",
+    "ai": "^6.0.208",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
