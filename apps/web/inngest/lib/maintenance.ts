@@ -228,14 +228,24 @@ export async function headAllSources(): Promise<HealthCheckResult[]> {
 
 // --- checkDocDrift ------------------------------------------------------------
 
+// Variable assignment bypasses SDK 0.52 excess-property check on cache_control.ttl (AGENTS.md Rule 13).
+// The block is ~50 tokens — Anthropic silently no-ops caching below the 1024-token minimum.
+const PARSER_FIX_SYSTEM = [
+  {
+    type: "text" as const,
+    text: "You are a web-scraping reliability engineer. Given a line-diff between last-known-good and current source content, suggest the minimal CSS/XPath selector or parsing code change needed to restore extraction. Be concise — one or two sentences.",
+    // eslint-disable-next-line @typescript-eslint/naming-convention -- Anthropic API field name
+    cache_control: { type: "ephemeral" as const, ttl: "1h" },
+  },
+];
+
 /** Ask Sonnet for a minimal parser fix given a line diff. */
 export async function suggestParserFix(diff: string): Promise<string> {
   const msg = await anthropic.messages.create({
     model: MODEL_SONNET,
     // eslint-disable-next-line @typescript-eslint/naming-convention -- Anthropic API field name
     max_tokens: 512,
-    system:
-      "You are a web-scraping reliability engineer. Given a line-diff between last-known-good and current source content, suggest the minimal CSS/XPath selector or parsing code change needed to restore extraction. Be concise — one or two sentences.",
+    system: PARSER_FIX_SYSTEM,
     messages: [{ role: "user", content: `Diff:\n${diff}` }],
   });
   const block = msg.content[0];

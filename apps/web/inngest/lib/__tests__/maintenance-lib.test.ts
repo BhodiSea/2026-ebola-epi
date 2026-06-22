@@ -92,8 +92,9 @@ describe("computeLineDiff (multiset diff)", () => {
 
 // --- suggestParserFix --------------------------------------------------------
 // Verifies the function calls the LLM and returns the text block content.
-// The system prompt is a tiny block (~50 tokens) so cache_control was removed —
-// it can't meet the 1024-token minimum for Anthropic's prompt cache.
+// cache_control { type:"ephemeral", ttl:"1h" } is present per AGENTS.md Rule 13
+// (naming-convention suppressed because cache_control is an Anthropic API field);
+// Anthropic silently no-ops the breakpoint below the 1024-token minimum block size.
 
 describe("suggestParserFix", () => {
   it("returns the text from the LLM response", async () => {

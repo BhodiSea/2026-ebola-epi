@@ -6,12 +6,25 @@ vi.mock("server-only", () => ({}));
 const mockDbInsert = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/db", () => ({
   db: {
-    select: vi.fn(() => ({ from: vi.fn().mockReturnThis(), where: vi.fn().mockResolvedValue([]) })),
+    select: vi.fn(() => ({
+      from: vi.fn().mockReturnThis(),
+      where: vi.fn().mockResolvedValue([]),
+      orderBy: vi.fn().mockReturnThis(),
+      limit: vi.fn().mockResolvedValue([]),
+    })),
     insert: vi.fn(() => ({ values: mockDbInsert.mockResolvedValue({}) })),
     update: vi.fn(() => ({
       set: vi.fn().mockReturnThis(),
       where: vi.fn().mockResolvedValue({}),
     })),
+    transaction: vi.fn(async (fn: (tx: unknown) => Promise<unknown>) =>
+      fn({
+        update: vi.fn(() => ({
+          set: vi.fn().mockReturnThis(),
+          where: vi.fn().mockResolvedValue({}),
+        })),
+      }),
+    ),
   },
 }));
 
@@ -23,6 +36,7 @@ vi.mock("@ituri/db", () => ({
 vi.mock("drizzle-orm", () => ({
   isNull: vi.fn(),
   eq: vi.fn(),
+  asc: vi.fn(),
 }));
 
 const mockEmbedMany = vi.hoisted(() => vi.fn());
@@ -80,5 +94,33 @@ describe("backfillEmbeddings — OPENAI_API_KEY absent", () => {
     expect(result).toEqual({ skipped: true, reason: "no_openai_key" });
     expect(mockEmbedMany).not.toHaveBeenCalled();
     expect(mockDbInsert).toHaveBeenCalledOnce();
+  });
+});
+
+// --- embedBatch happy path ---------------------------------------------------
+// Asserts that embedMany is called with providerOptions.openai.dimensions: 1024
+// to match the HNSW vector(1024) index on source_quotes.embedding.
+// Note: fetch is done outside step.run in the Inngest function (closure capture
+// avoids JsonifyObject type-widening on Drizzle return types).
+
+describe("embedBatch — happy path", () => {
+  beforeEach(() => {
+    mockEmbedMany.mockResolvedValue({ embeddings: [[0.1, 0.2, 0.3]] });
+  });
+
+  afterEach(() => {
+    mockEmbedMany.mockReset();
+    vi.resetModules();
+  });
+
+  it("calls embedMany with providerOptions.openai.dimensions: 1024", async () => {
+    const { embedBatch } = await import("../backfill-embeddings");
+    await embedBatch([{ id: "quote-1", quoteText: "Bundibugyo virus case confirmed" }]);
+
+    expect(mockEmbedMany).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({
+        providerOptions: { openai: { dimensions: 1024 } },
+      }),
+    );
   });
 });

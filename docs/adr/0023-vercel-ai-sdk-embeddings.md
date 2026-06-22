@@ -41,6 +41,17 @@ Add `ai` (Vercel AI Core SDK) and `@ai-sdk/openai` to `@ituri/web`.
 | Direct Anthropic API (Voyage via Anthropic) | No first-party embedding endpoint in `@anthropic-ai/sdk` as of this decision; would require raw HTTP calls and manual schema validation. |
 | Supabase pgvector `pgembedding` extension | Runs embedding inside Postgres; limits model choice and observability; incompatible with Inngest step memoization. |
 
+## Rate-limit & politeness (AGENTS.md Rule 15)
+
+Rule 15 mandates Inngest `throttle` with `scope: "account"` for all outbound HTTP
+calls, keyed per host. This rule targets courtesy-throttled public sites (WHO DON,
+ReliefWeb, ACLED) where parallel scraping violates terms of service.
+
+OpenAI's Embeddings API is a commercial endpoint: requests are authenticated,
+rate-limited server-side by tier, and explicitly designed for programmatic bulk
+use. No per-host courtesy throttle is required or appropriate. Inngest `retries: 2`
+already handles `429 Too Many Requests` responses from the OpenAI tier limits.
+
 ## Consequences
 
 - **Positive**: `embedMany` is provider-agnostic; swapping models is one-line.
