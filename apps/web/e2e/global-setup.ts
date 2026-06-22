@@ -15,6 +15,10 @@ const LOCAL_ANON_JWT =
 /* eslint-enable no-secrets/no-secrets */
 
 const SUPABASE_URL = "http://127.0.0.1:54321";
+const PG_URL = "postgresql://postgres:postgres@127.0.0.1:54322/postgres";
+
+const E2E_DIR = fileURLToPath(new URL(".", import.meta.url));
+const DEV_SEED_PATH = path.resolve(E2E_DIR, "../../../supabase/fixtures/dev-seed.sql");
 
 // Stable UUID from supabase/seed.sql — quote1: "189 confirmed and 37 deaths" (WHO DON 603)
 const PHASE3_DEMO_QUOTE_ID = "a1eebc99-9c0b-4ef8-bb6d-6bb9bd380a01";
@@ -30,6 +34,7 @@ const ADMIN_PASSWORD = "e2e-admin-password-local";
 // eslint-disable-next-line import-x/no-default-export
 export default async function globalSetup(): Promise<void> {
   bootLocalStack();
+  applyDevSeed();
   parseStatusEnv();
   await provisionAdminUser();
   await saveAdminStorageState();
@@ -37,6 +42,17 @@ export default async function globalSetup(): Promise<void> {
 }
 
 // --- helpers (alphabetical) ---------------------------------------------------
+
+function applyDevSeed(): void {
+  // Apply Phase 4 synthetic fixtures so E2E tests have case_counts, source_quotes,
+  // and documents to interact with. PGOPTIONS sets app.env=test for this psql
+  // session to satisfy the production guard in dev-seed.sql without touching shared state.
+  // eslint-disable-next-line sonarjs/os-command
+  execSync(`psql "${PG_URL}" -f "${DEV_SEED_PATH}"`, {
+    stdio: "inherit",
+    env: { ...process.env, PGOPTIONS: "-c app.env=test" },
+  });
+}
 
 function bootLocalStack(): void {
   try {

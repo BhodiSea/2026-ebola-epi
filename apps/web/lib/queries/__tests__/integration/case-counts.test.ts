@@ -1,5 +1,5 @@
 // Integration tests require supabase/fixtures/dev-seed.sql applied after db reset.
-// The global setup (vitest.integration.globalSetup.ts) handles this via psql.
+// Both vitest.integration.globalSetup.ts and e2e/global-setup.ts apply it via psql.
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
