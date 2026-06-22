@@ -461,6 +461,64 @@ describe("runPerSourceIngest — rawBytes threading (Phase 4.4)", () => {
   });
 });
 
+// Phase 4.2: covers recordFetchFailure path extracted from fetchAndParse
+describe("runPerSourceIngest — fetch-parse error telemetry (Phase 4.2)", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockInsert.mockReturnValue({ values: mockInsertValues });
+    mockInsertValues.mockResolvedValue(undefined);
+    mockUpdate.mockReturnValue({ set: mockUpdateSet });
+    mockUpdateSet.mockReturnValue({ where: mockUpdateWhere });
+    mockUpdateWhere.mockResolvedValue(undefined);
+    mockChromiumFallbackEnabled.mockResolvedValue(false);
+    mockSelectWhere.mockResolvedValue([{ cnt: 0 }]);
+    mockSelectFrom.mockReturnValue({ where: mockSelectWhere });
+    mockSelect.mockReturnValue({ from: mockSelectFrom });
+    mockCheckExtractionPaused.mockResolvedValue(false);
+    mockUpsertDocument.mockResolvedValue("doc-uuid-456");
+  });
+
+  it("inserts ingest_failed and rethrows when adapter.fetch() throws a non-rate-limit error", async () => {
+    const { runPerSourceIngest } = await import("@/inngest/lib/ingest-runner");
+    mockInsert.mockClear();
+    mockInsertValues.mockClear();
+
+    const step = makeStep();
+    const adapter = makeAdapter({
+      fetch: vi.fn().mockRejectedValue(new Error("HTTP 404: https://www.afro.who.int/article")),
+    });
+
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- vitest mock types resolve to any
+    await expect(runPerSourceIngest(adapter as never, step as never)).rejects.toThrow("HTTP 404");
+
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- cast to inspect action field
+    const actions = mockInsertValues.mock.calls.map((c) => (c[0] as { action: string }).action);
+    expect(actions).toContain("ingest_failed");
+  });
+
+  it("includes stage: 'fetch' in the ingest_failed payload when adapter.fetch() throws", async () => {
+    const { runPerSourceIngest } = await import("@/inngest/lib/ingest-runner");
+    mockInsert.mockClear();
+    mockInsertValues.mockClear();
+
+    const step = makeStep();
+    const adapter = makeAdapter({
+      fetch: vi.fn().mockRejectedValue(new Error("HTTP 404: https://www.afro.who.int/article")),
+    });
+
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- vitest mock types resolve to any
+    await expect(runPerSourceIngest(adapter as never, step as never)).rejects.toThrow();
+
+    const call = mockInsertValues.mock.calls.find(
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- vitest mock.calls items are typed as any
+      (c) => (c[0] as { action: string }).action === "ingest_failed",
+    );
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- vitest mock.calls items are typed as any
+    const payload = (call?.[0] as undefined | { payload: { stage: string } })?.payload;
+    expect(payload?.stage).toBe("fetch");
+  });
+});
+
 describe("runPerSourceIngest — extraction_paused gate (Phase 4.3)", () => {
   beforeEach(() => {
     vi.clearAllMocks();

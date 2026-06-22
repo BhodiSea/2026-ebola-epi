@@ -22,6 +22,12 @@ import { chromiumFallbackEnabled } from "@/lib/kill-switch";
 const AGENT_SLUG = "ingest-runner";
 const CHROMIUM_DAILY_CAP = 5;
 
+interface FetchParseContext {
+  adapter: RegisteredAdapter;
+  item: PollItem;
+  sourceId: string;
+}
+
 interface FetchParseResult {
   documentId: string;
   fullText: string;
@@ -44,7 +50,7 @@ interface PollItem {
  * Steps are keyed by sha256(url) so Inngest memoises correctly on replay even when
  * multiple items are in flight for the same source in the same run.
  */
-// eslint-disable-next-line max-lines-per-function -- orchestrates fetch→parse→persist→emit + chromium fallback across multiple Inngest steps; runChromiumFallback is already extracted
+// eslint-disable-next-line max-lines-per-function -- orchestrates fetch→parse→persist→emit + chromium fallback across multiple Inngest steps; fetchAndParse is already extracted
 export async function runPerSourceIngest(
   adapter: RegisteredAdapter,
   step: GetStepTools<typeof inngest>,
@@ -109,70 +115,8 @@ export async function runPerSourceIngest(
     const stepId = createHash("sha256").update(item.url).digest("hex").slice(0, 16);
 
     // eslint-disable-next-line no-await-in-loop
-    const doc = await step.run(
-      `fetch-parse-${stepId}`,
-      async (): Promise<FetchParseResult | null> => {
-        const fetchResult = await adapter.fetch(item.url).catch(translateRateLimitError);
-
-        if (fetchResult.skipped) {
-          if (fetchResult.reason === "chromium_required" && (await chromiumFallbackEnabled())) {
-            return runChromiumFallback({ adapter, item, sourceId });
-          }
-          await db.insert(agentActions).values({
-            agent: AGENT_SLUG,
-            action: "ingest_skipped",
-            subjectTable: "sources",
-            subjectId: sourceId,
-            payload: {
-              sourceSlug: adapter.sourceSlug,
-              url: item.url,
-              stage: "fetch",
-              reason: fetchResult.reason,
-            },
-          });
-          return null;
-        }
-
-        const parseResult = await adapter.parse({
-          rawContent: fetchResult.rawContent,
-          mimeType: fetchResult.mimeType,
-          ...(fetchResult.rawBytes !== undefined && { rawBytes: fetchResult.rawBytes }),
-        });
-        if (parseResult.skipped) {
-          await db.insert(agentActions).values({
-            agent: AGENT_SLUG,
-            action: "ingest_skipped",
-            subjectTable: "sources",
-            subjectId: sourceId,
-            payload: {
-              sourceSlug: adapter.sourceSlug,
-              url: item.url,
-              stage: "parse",
-              reason: parseResult.reason,
-            },
-          });
-          return null;
-        }
-
-        const documentId = await upsertDocument({
-          fullText: parseResult.fullText,
-          language: parseResult.language,
-          mimeType: fetchResult.mimeType,
-          publishedAt: new Date(item.publishedAt),
-          ...(fetchResult.rawBytes !== undefined && { rawBytes: fetchResult.rawBytes }),
-          sha256: fetchResult.sha256,
-          sourceId,
-          url: item.url,
-        });
-
-        return {
-          documentId,
-          fullText: parseResult.fullText,
-          publishedAtIso: item.publishedAt,
-          sha256Hex: fetchResult.sha256.toString("hex"),
-          sourceSlug: adapter.sourceSlug,
-        };
-      },
+    const doc = await step.run(`fetch-parse-${stepId}`, async () =>
+      fetchAndParse({ adapter, item, sourceId }),
     );
 
     if (doc === null) {
@@ -197,6 +141,99 @@ export async function runPerSourceIngest(
       .update(sources)
       .set({ lastFetchedAt: new Date(), parserVersion: adapter.version })
       .where(eq(sources.slug, adapter.sourceSlug));
+  });
+}
+
+async function fetchAndParse({
+  adapter,
+  item,
+  sourceId,
+}: FetchParseContext): Promise<FetchParseResult | null> {
+  try {
+    const fetchResult = await adapter.fetch(item.url).catch(translateRateLimitError);
+
+    if (fetchResult.skipped) {
+      if (fetchResult.reason === "chromium_required" && (await chromiumFallbackEnabled())) {
+        return await runChromiumFallback({ adapter, item, sourceId });
+      }
+      await db.insert(agentActions).values({
+        agent: AGENT_SLUG,
+        action: "ingest_skipped",
+        subjectTable: "sources",
+        subjectId: sourceId,
+        payload: {
+          sourceSlug: adapter.sourceSlug,
+          url: item.url,
+          stage: "fetch",
+          reason: fetchResult.reason,
+        },
+      });
+      return null;
+    }
+
+    const parseResult = await adapter.parse({
+      rawContent: fetchResult.rawContent,
+      mimeType: fetchResult.mimeType,
+      ...(fetchResult.rawBytes !== undefined && { rawBytes: fetchResult.rawBytes }),
+    });
+    if (parseResult.skipped) {
+      await db.insert(agentActions).values({
+        agent: AGENT_SLUG,
+        action: "ingest_skipped",
+        subjectTable: "sources",
+        subjectId: sourceId,
+        payload: {
+          sourceSlug: adapter.sourceSlug,
+          url: item.url,
+          stage: "parse",
+          reason: parseResult.reason,
+        },
+      });
+      return null;
+    }
+
+    const documentId = await upsertDocument({
+      fullText: parseResult.fullText,
+      language: parseResult.language,
+      mimeType: fetchResult.mimeType,
+      publishedAt: new Date(item.publishedAt),
+      ...(fetchResult.rawBytes !== undefined && { rawBytes: fetchResult.rawBytes }),
+      sha256: fetchResult.sha256,
+      sourceId,
+      url: item.url,
+    });
+
+    return {
+      documentId,
+      fullText: parseResult.fullText,
+      publishedAtIso: item.publishedAt,
+      sha256Hex: fetchResult.sha256.toString("hex"),
+      sourceSlug: adapter.sourceSlug,
+    };
+  } catch (error) {
+    await recordFetchFailure({ error, sourceId, sourceSlug: adapter.sourceSlug, url: item.url });
+    throw error;
+  }
+}
+
+async function recordFetchFailure(opts: {
+  error: unknown;
+  sourceId: string;
+  sourceSlug: string;
+  url: string;
+}): Promise<void> {
+  const { error, sourceId, sourceSlug, url } = opts;
+  await db.insert(agentActions).values({
+    agent: AGENT_SLUG,
+    action: "ingest_failed",
+    subjectTable: "sources",
+    subjectId: sourceId,
+    payload: {
+      sourceSlug,
+      url,
+      stage: "fetch",
+      reason: error instanceof Error ? error.message : String(error),
+    },
   });
 }
 
