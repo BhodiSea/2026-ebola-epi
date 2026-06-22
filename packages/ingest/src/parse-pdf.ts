@@ -15,7 +15,7 @@ const MIN_PDF_TEXT_CHARS = 100;
  * Risk: multi-column layouts and OCR artifacts can desync LLM-quoted offsets.
  * Validated by the opt-in integration test (PDF_LIVE_TEST=1).
  */
-export async function parsePdf(rawBytes: Uint8Array): Promise<ParseResult> {
+export async function parsePdf(rawBytes: Uint8Array, language = "en"): Promise<ParseResult> {
   const { text } = await extractText(rawBytes);
   const fullText = text.join("\n");
 
@@ -27,6 +27,6 @@ export async function parsePdf(rawBytes: Uint8Array): Promise<ParseResult> {
     skipped: false,
     fullText,
     title: "",
-    language: "en",
+    language,
   };
 }

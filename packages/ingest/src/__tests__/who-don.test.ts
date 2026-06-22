@@ -82,3 +82,42 @@ describe("fetchAndParseDocument", () => {
     ).rejects.toThrow("HTTP 404");
   });
 });
+
+describe("whoDONAdapter.fetch", () => {
+  beforeEach(() => {
+    vi.stubGlobal("fetch", makeFetchMock(fixture));
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("populates rawBytes so canonical-bytes archive is non-empty (G-11)", async () => {
+    const { whoDONAdapter } = await import("../sources/who-don.js");
+    const result = await whoDONAdapter.fetch(
+      "https://www.who.int/emergencies/disease-outbreak-news/item/2026-DON-001",
+    );
+    expect(result.skipped).toBe(false);
+    if (result.skipped) {
+      return;
+    }
+    expect(result.rawBytes).toBeInstanceOf(Uint8Array);
+    expect(result.rawBytes?.length).toBeGreaterThan(0);
+  });
+
+  it("returns skipped:true on 304 Not Modified", async () => {
+    vi.stubGlobal("fetch", async (url: string) => {
+      await Promise.resolve();
+      const u = new URL(url);
+      if (u.pathname === "/robots.txt") {
+        return new Response(ALLOW_ALL_ROBOTS, { status: 200 });
+      }
+      return new Response(null, { status: 304 });
+    });
+    const { whoDONAdapter } = await import("../sources/who-don.js");
+    const result = await whoDONAdapter.fetch(
+      "https://www.who.int/emergencies/disease-outbreak-news/item/2026-DON-001",
+    );
+    expect(result.skipped).toBe(true);
+  });
+});

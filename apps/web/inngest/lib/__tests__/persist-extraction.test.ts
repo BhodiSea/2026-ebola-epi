@@ -6,6 +6,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   checkExtractionPaused,
+  recordAllRowsDropped,
   recordFailedExtraction,
   resolveAdminCode,
   upsertDocument,
@@ -407,6 +408,51 @@ describe("recordFailedExtraction", () => {
         .values;
     expect(insertValues).toHaveBeenCalledWith(
       expect.objectContaining({ rowsExtracted: 0, rowsVerified: 0, droppedRows: 0 }),
+    );
+  });
+});
+
+// --- recordAllRowsDropped — writes an incidents row when zod drops every extracted row (all_rows_dropped) ---
+
+describe("recordAllRowsDropped", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    const mockValues = vi.fn().mockResolvedValue([]);
+    mockDbInsert.mockReturnValue({ values: mockValues });
+  });
+
+  it("inserts an incidents row with class all_rows_dropped", async () => {
+    await recordAllRowsDropped(
+      { documentId: "doc-drop-001", pvHash: "pv-abc123", sourceSlug: "who-don" },
+      5,
+    );
+    expect(mockDbInsert).toHaveBeenCalledTimes(1);
+    const insertValues =
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- mock chain introspection
+      (mockDbInsert.mock.results[0] as { value: { values: ReturnType<typeof vi.fn> } }).value
+        .values;
+    expect(insertValues).toHaveBeenCalledWith(
+      expect.objectContaining({
+        class: "all_rows_dropped",
+        documentId: "doc-drop-001",
+      }),
+    );
+  });
+
+  it("includes rawCount, pvHash, and sourceSlug in detail", async () => {
+    await recordAllRowsDropped(
+      { documentId: "doc-drop-002", pvHash: "pv-xyz", sourceSlug: "ecdc-cdtr" },
+      3,
+    );
+    const insertValues =
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- mock chain introspection
+      (mockDbInsert.mock.results[0] as { value: { values: ReturnType<typeof vi.fn> } }).value
+        .values;
+    expect(insertValues).toHaveBeenCalledWith(
+      expect.objectContaining({
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- nested objectContaining typed as any by vitest
+        detail: expect.objectContaining({ rawCount: 3, pvHash: "pv-xyz", sourceSlug: "ecdc-cdtr" }),
+      }),
     );
   });
 });

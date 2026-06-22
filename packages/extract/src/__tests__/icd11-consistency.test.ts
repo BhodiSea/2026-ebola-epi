@@ -1,7 +1,9 @@
 // lint: functional/no-loop-statements suppressed on for-of loops (Biome noForEach conflicts); expect-expect suppressed on assertAllCodesAuthoritative helper; n/settings Node 22
 import { describe, expect, it } from "vitest";
 
+import { reconcileTool } from "../agents/reconcile-tool.js";
 import { TRIAGE_FEW_SHOTS, TRIAGE_SYSTEM } from "../agents/triage-prompt.js";
+import { triageTool } from "../agents/triage-tool.js";
 import { PATHOGEN_ICD11, PATHOGEN_SLUG } from "../icd11.js";
 import {
   CANDIDATE_FEW_SHOTS,
@@ -130,5 +132,15 @@ describe("ICD-11 code consistency across triage and extraction prompts", () => {
         `Code "${code}" found in prompts but not in PATHOGEN_ICD11`,
       ).toBe(true);
     }
+  });
+
+  // eslint-disable-next-line vitest/expect-expect -- assertions inside assertAllCodesAuthoritative helper
+  it("triageTool.description codes are all in the PATHOGEN_ICD11 table (guards against XN0AT regression)", () => {
+    assertAllCodesAuthoritative(triageTool.description, "triageTool.description");
+  });
+
+  // eslint-disable-next-line vitest/expect-expect -- assertions inside assertAllCodesAuthoritative helper
+  it("reconcileTool.description codes are all in the PATHOGEN_ICD11 table", () => {
+    assertAllCodesAuthoritative(reconcileTool.description, "reconcileTool.description");
   });
 });

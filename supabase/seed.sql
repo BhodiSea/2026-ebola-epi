@@ -1,3 +1,8 @@
+-- ─── Production seed ──────────────────────────────────────────────────────────
+-- Sources, zones, and the canonical outbreak row. Safe to apply in any env.
+-- Synthetic document/case_counts data lives in supabase/fixtures/dev-seed.sql.
+-- ─────────────────────────────────────────────────────────────────────────────
+
 insert into public.sources (id, slug, name, url, trust_score, license_tier, license_url, attribution_required, posture_terms, posture_attribution)
 values (
   'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a01',
@@ -12,12 +17,6 @@ values (
   '© World Health Organization'
 ) on conflict (slug) do nothing;
 
--- ─── Phase 4 seed data ────────────────────────────────────────────────────────
--- Seed a realistic Bundibugyo outbreak in DRC Ituri Province for Phase 4 editorial
--- surfaces. All values are synthetic but consistent with the 2026 outbreak
--- scenario described in research/copy.md.
-
--- Additional sources
 insert into public.sources (id, slug, name, url, trust_score, license_tier, license_url, attribution_required, posture_terms, posture_attribution)
 values
   ('b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a01',
@@ -39,7 +38,17 @@ values
    'https://www.ecdc.europa.eu/en/legal-notice',
    true,
    'ECDC publications are released under a custom open licence permitting reproduction with attribution. Derived statistics and quoted figures may be displayed.',
-   '© European Centre for Disease Prevention and Control')
+   '© European Centre for Disease Prevention and Control'),
+  ('d1eebc99-9c0b-4ef8-bb6d-6bb9bd380a01',
+   'africa-cdc',
+   'Africa CDC Outbreak Brief',
+   'https://africacdc.org/disease-outbreaks/',
+   0.90,
+   'open',
+   'https://africacdc.org/terms-of-use',
+   true,
+   'Africa CDC outbreak briefs are released as public documents. Reproduction with attribution is permitted for public-health purposes.',
+   '© Africa Centres for Disease Control and Prevention')
 on conflict (slug) do nothing;
 
 -- geo.admin1 — Ituri Province, DRC (simplified bbox polygon)
@@ -95,10 +104,12 @@ values
 on conflict (code) do nothing;
 
 -- public.outbreaks — Bundibugyo virus disease, 2026, DRC Ituri
+-- ICD-11 coded entity 1D60.2 (Bundibugyo virus disease at the disease level).
+-- The MMS taxon code XN0AT must NOT be used here; 1D60.00 is also wrong.
 insert into public.outbreaks (id, pathogen_icd11, pathogen_slug, country_iso3, onset_date, name, status, severity_level)
 values (
   'd0eebc99-9c0b-4ef8-bb6d-6bb9bd380a01',
-  '1D60.00',
+  '1D60.2',
   'bundibugyo',
   'COD',
   '2026-04-20',
@@ -106,259 +117,3 @@ values (
   'active',
   'emergency'
 ) on conflict (pathogen_icd11, country_iso3) do nothing;
-
--- Documents:
--- doc1 — WHO DON 603 (24 May 2026)
--- full_text designed so that quote offsets work with tg_verify_quote_substring:
---   "189 confirmed and 37 deaths" starts at char 0 (char_start=0, char_end=27)
---   "37 deaths" starts at char 18 (char_start=18, char_end=27)
-insert into public.documents (id, source_id, sha256, url, title, full_text, published_at, ingested_at)
-select
-  'e0eebc99-9c0b-4ef8-bb6d-6bb9bd380a01',
-  s.id,
-  sha256(convert_to(
-    '189 confirmed and 37 deaths as of 24 May 2026. WHO Disease Outbreak News 603.',
-    'UTF8'
-  )),
-  'https://www.who.int/emergencies/disease-outbreak-news/item/2026-DON603',
-  'WHO DON 603 — Bundibugyo virus disease in the Democratic Republic of the Congo',
-  '189 confirmed and 37 deaths as of 24 May 2026. WHO Disease Outbreak News 603.',
-  '2026-05-24T12:00:00Z',
-  '2026-05-24T13:00:00Z'
-from public.sources s where s.slug = 'who-don'
-on conflict (sha256) do nothing;
-
--- doc2 — AFRO Sitrep 11 (15 May 2026)
--- "312 suspected cases" starts at char 0 (char_start=0, char_end=19)
-insert into public.documents (id, source_id, sha256, url, title, full_text, published_at, ingested_at)
-select
-  'e1eebc99-9c0b-4ef8-bb6d-6bb9bd380a01',
-  s.id,
-  sha256(convert_to(
-    '312 suspected cases as of 15 May 2026. AFRO Sitrep 11. Five health zones affected in Ituri Province.',
-    'UTF8'
-  )),
-  'https://www.afro.who.int/publications/sitrep-bvd-drc-11',
-  'AFRO Situation Report 11 — Bundibugyo Virus Disease, DRC',
-  '312 suspected cases as of 15 May 2026. AFRO Sitrep 11. Five health zones affected in Ituri Province.',
-  '2026-05-15T08:00:00Z',
-  '2026-05-15T09:00:00Z'
-from public.sources s where s.slug = 'who-afro'
-on conflict (sha256) do nothing;
-
--- doc3 — AFRO Sitrep 12 (22 May 2026)
--- "347 suspected cases" starts at char 0 (char_start=0, char_end=19)
-insert into public.documents (id, source_id, sha256, url, title, full_text, published_at, ingested_at)
-select
-  'e2eebc99-9c0b-4ef8-bb6d-6bb9bd380a01',
-  s.id,
-  sha256(convert_to(
-    '347 suspected cases as of 22 May 2026. AFRO Sitrep 12. Mambasa health zone newly reported.',
-    'UTF8'
-  )),
-  'https://www.afro.who.int/publications/sitrep-bvd-drc-12',
-  'AFRO Situation Report 12 — Bundibugyo Virus Disease, DRC',
-  '347 suspected cases as of 22 May 2026. AFRO Sitrep 12. Mambasa health zone newly reported.',
-  '2026-05-22T08:00:00Z',
-  '2026-05-22T09:00:00Z'
-from public.sources s where s.slug = 'who-afro'
-on conflict (sha256) do nothing;
-
--- audit.extraction_runs — one run referenced by all case_counts
-insert into audit.extraction_runs (
-  id, document_id, model_id, prompt_version_hash, tool_schema_hash,
-  schema_version, rows_extracted, rows_verified, started_at, ended_at
-)
-values (
-  'f0eebc99-9c0b-4ef8-bb6d-6bb9bd380a01',
-  'e0eebc99-9c0b-4ef8-bb6d-6bb9bd380a01',
-  'claude-sonnet-4-6',
-  'seed-v1-phase4',
-  'seed-v1-phase4',
-  '1',
-  9,
-  9,
-  '2026-05-24T13:00:00Z',
-  '2026-05-24T13:05:00Z'
-) on conflict (document_id, prompt_version_hash) do nothing;
-
--- public.source_quotes — quotes for provenance chain.
--- Trigger tg_verify_quote_substring checks: substring(full_text from char_start+1 for char_end-char_start) = quote_text.
--- doc1 char positions:
---   pos 0-26 (0-indexed, inclusive): "189 confirmed and 37 deaths"  → char_start=0, char_end=27
---   pos 18-26:                        "37 deaths"                    → char_start=18, char_end=27
--- doc2 pos 0-18: "312 suspected cases"  → char_start=0, char_end=19
--- doc3 pos 0-18: "347 suspected cases"  → char_start=0, char_end=19
-insert into public.source_quotes (id, document_id, char_start, char_end, quote_text)
-values
-  -- quote1: confirmed+deaths total from WHO DON 603
-  ('a1eebc99-9c0b-4ef8-bb6d-6bb9bd380a01',
-   'e0eebc99-9c0b-4ef8-bb6d-6bb9bd380a01',
-   0, 27,
-   '189 confirmed and 37 deaths'),
-  -- quote2: deaths total from WHO DON 603
-  ('a2eebc99-9c0b-4ef8-bb6d-6bb9bd380a01',
-   'e0eebc99-9c0b-4ef8-bb6d-6bb9bd380a01',
-   18, 27,
-   '37 deaths'),
-  -- quote3: suspected total from AFRO Sitrep 11
-  ('a3eebc99-9c0b-4ef8-bb6d-6bb9bd380a01',
-   'e1eebc99-9c0b-4ef8-bb6d-6bb9bd380a01',
-   0, 19,
-   '312 suspected cases'),
-  -- quote4: suspected total from AFRO Sitrep 12
-  ('a4eebc99-9c0b-4ef8-bb6d-6bb9bd380a01',
-   'e2eebc99-9c0b-4ef8-bb6d-6bb9bd380a01',
-   0, 19,
-   '347 suspected cases')
-on conflict (id) do nothing;
-
--- public.case_counts — confirmed per zone (choropleth + stat totals)
--- All linked to quote1 (WHO DON 603 confirmed figure). status=published, no supersededBy.
-insert into public.case_counts (
-  id, outbreak_id, as_of, admin2_code, metric, value,
-  source_quote_id, extraction_run_id, model_id, prompt_version_hash, status
-)
-values
-  -- confirmed per zone, 2026-05-24 (current state for choropleth + StatCard)
-  ('cc000000-0000-0000-0000-000000000001',
-   'd0eebc99-9c0b-4ef8-bb6d-6bb9bd380a01', '2026-05-24', 'COD-IT-IR', 'confirmed',  98,
-   'a1eebc99-9c0b-4ef8-bb6d-6bb9bd380a01', 'f0eebc99-9c0b-4ef8-bb6d-6bb9bd380a01',
-   'claude-sonnet-4-6', 'seed-v1-phase4', 'published'),
-  ('cc000000-0000-0000-0000-000000000002',
-   'd0eebc99-9c0b-4ef8-bb6d-6bb9bd380a01', '2026-05-24', 'COD-IT-MB', 'confirmed',  45,
-   'a1eebc99-9c0b-4ef8-bb6d-6bb9bd380a01', 'f0eebc99-9c0b-4ef8-bb6d-6bb9bd380a01',
-   'claude-sonnet-4-6', 'seed-v1-phase4', 'published'),
-  ('cc000000-0000-0000-0000-000000000003',
-   'd0eebc99-9c0b-4ef8-bb6d-6bb9bd380a01', '2026-05-24', 'COD-IT-BU', 'confirmed',  23,
-   'a1eebc99-9c0b-4ef8-bb6d-6bb9bd380a01', 'f0eebc99-9c0b-4ef8-bb6d-6bb9bd380a01',
-   'claude-sonnet-4-6', 'seed-v1-phase4', 'published'),
-  ('cc000000-0000-0000-0000-000000000004',
-   'd0eebc99-9c0b-4ef8-bb6d-6bb9bd380a01', '2026-05-24', 'COD-IT-KO', 'confirmed',  15,
-   'a1eebc99-9c0b-4ef8-bb6d-6bb9bd380a01', 'f0eebc99-9c0b-4ef8-bb6d-6bb9bd380a01',
-   'claude-sonnet-4-6', 'seed-v1-phase4', 'published'),
-  ('cc000000-0000-0000-0000-000000000005',
-   'd0eebc99-9c0b-4ef8-bb6d-6bb9bd380a01', '2026-05-24', 'COD-IT-MA', 'confirmed',   8,
-   'a1eebc99-9c0b-4ef8-bb6d-6bb9bd380a01', 'f0eebc99-9c0b-4ef8-bb6d-6bb9bd380a01',
-   'claude-sonnet-4-6', 'seed-v1-phase4', 'published'),
-  -- deaths (national aggregate, no admin2_code) — quote2
-  ('cc000000-0000-0000-0000-000000000006',
-   'd0eebc99-9c0b-4ef8-bb6d-6bb9bd380a01', '2026-05-24', null, 'deaths', 37,
-   'a2eebc99-9c0b-4ef8-bb6d-6bb9bd380a01', 'f0eebc99-9c0b-4ef8-bb6d-6bb9bd380a01',
-   'claude-sonnet-4-6', 'seed-v1-phase4', 'published'),
-  -- suspected totals for sparkline (historical dates, no admin2 breakdown)
-  ('cc000000-0000-0000-0000-000000000007',
-   'd0eebc99-9c0b-4ef8-bb6d-6bb9bd380a01', '2026-05-10', null, 'suspected', 134,
-   'a3eebc99-9c0b-4ef8-bb6d-6bb9bd380a01', 'f0eebc99-9c0b-4ef8-bb6d-6bb9bd380a01',
-   'claude-sonnet-4-6', 'seed-v1-phase4', 'published'),
-  ('cc000000-0000-0000-0000-000000000008',
-   'd0eebc99-9c0b-4ef8-bb6d-6bb9bd380a01', '2026-05-15', null, 'suspected', 312,
-   'a3eebc99-9c0b-4ef8-bb6d-6bb9bd380a01', 'f0eebc99-9c0b-4ef8-bb6d-6bb9bd380a01',
-   'claude-sonnet-4-6', 'seed-v1-phase4', 'published'),
-  ('cc000000-0000-0000-0000-000000000009',
-   'd0eebc99-9c0b-4ef8-bb6d-6bb9bd380a01', '2026-05-22', null, 'suspected', 347,
-   'a4eebc99-9c0b-4ef8-bb6d-6bb9bd380a01', 'f0eebc99-9c0b-4ef8-bb6d-6bb9bd380a01',
-   'claude-sonnet-4-6', 'seed-v1-phase4', 'published'),
-  -- confirmed national aggregate (admin2_code=null) — for national-only stat filter
-  ('cc000000-0000-0000-0000-00000000000a',
-   'd0eebc99-9c0b-4ef8-bb6d-6bb9bd380a01', '2026-05-24', null, 'confirmed', 189,
-   'a1eebc99-9c0b-4ef8-bb6d-6bb9bd380a01', 'f0eebc99-9c0b-4ef8-bb6d-6bb9bd380a01',
-   'claude-sonnet-4-6', 'seed-v1-phase4', 'published')
-on conflict (id) do nothing;
-
--- ─── WP7 e2e seed additions ───────────────────────────────────────────────────
--- Africa CDC source for disagreement spec: two sources reporting different
--- confirmed totals for the same (outbreak, metric, as_of) triggers the
--- get_disagreements RPC and makes [data-disagreement-pill] visible on /today.
-
-insert into public.sources (id, slug, name, url, trust_score, license_tier, license_url, attribution_required, posture_terms, posture_attribution)
-values (
-  'd1eebc99-9c0b-4ef8-bb6d-6bb9bd380a01',
-  'africa-cdc',
-  'Africa CDC Outbreak Brief',
-  'https://africacdc.org/disease-outbreaks/',
-  0.90,
-  'open',
-  'https://africacdc.org/terms-of-use',
-  true,
-  'Africa CDC outbreak briefs are released as public documents. Reproduction with attribution is permitted for public-health purposes.',
-  '© Africa Centres for Disease Control and Prevention'
-) on conflict (slug) do nothing;
-
--- Africa CDC document — 24 May 2026 brief with a divergent confirmed count
-insert into public.documents (id, source_id, sha256, url, title, full_text, published_at, ingested_at)
-select
-  'e3eebc99-9c0b-4ef8-bb6d-6bb9bd380a01',
-  s.id,
-  sha256(convert_to(
-    '172 confirmed cases as of 24 May 2026. Africa CDC Outbreak Brief 4.',
-    'UTF8'
-  )),
-  'https://africacdc.org/briefs/bdbv-drc-2026-04',
-  'Africa CDC Outbreak Brief 4 — Bundibugyo Virus Disease, DRC',
-  '172 confirmed cases as of 24 May 2026. Africa CDC Outbreak Brief 4.',
-  '2026-05-24T10:00:00Z',
-  '2026-05-24T11:00:00Z'
-from public.sources s where s.slug = 'africa-cdc'
-on conflict (sha256) do nothing;
-
--- extraction run for the Africa CDC document
-insert into audit.extraction_runs (
-  id, document_id, model_id, prompt_version_hash, tool_schema_hash,
-  schema_version, rows_extracted, rows_verified, started_at, ended_at
-)
-values (
-  'f1eebc99-9c0b-4ef8-bb6d-6bb9bd380a01',
-  'e3eebc99-9c0b-4ef8-bb6d-6bb9bd380a01',
-  'claude-sonnet-4-6',
-  'seed-v1-africa-cdc',
-  'seed-v1-africa-cdc',
-  '1',
-  1,
-  1,
-  '2026-05-24T11:00:00Z',
-  '2026-05-24T11:02:00Z'
-) on conflict (document_id, prompt_version_hash) do nothing;
-
--- source quote from Africa CDC doc — char_start=0, char_end=19
-insert into public.source_quotes (id, document_id, char_start, char_end, quote_text)
-values (
-  'a5eebc99-9c0b-4ef8-bb6d-6bb9bd380a01',
-  'e3eebc99-9c0b-4ef8-bb6d-6bb9bd380a01',
-  0, 19,
-  '172 confirmed cases'
-) on conflict (id) do nothing;
-
--- Divergent confirmed total from Africa CDC — triggers get_disagreements RPC.
--- superseded_by points to the first WHO DON zone row so this row is excluded
--- from getEpiCurveSeries (.is("superseded_by", null) filter) while remaining
--- visible to get_disagreements (which includes superseded rows by design).
-insert into public.case_counts (
-  id, outbreak_id, as_of, admin2_code, metric, value,
-  source_quote_id, extraction_run_id, model_id, prompt_version_hash,
-  status, superseded_by
-)
-values (
-  'cc000000-0000-0000-0000-000000000010',
-  'd0eebc99-9c0b-4ef8-bb6d-6bb9bd380a01',
-  '2026-05-24',
-  null,
-  'confirmed',
-  172,
-  'a5eebc99-9c0b-4ef8-bb6d-6bb9bd380a01',
-  'f1eebc99-9c0b-4ef8-bb6d-6bb9bd380a01',
-  'claude-sonnet-4-6',
-  'seed-v1-africa-cdc',
-  'published',
-  'cc000000-0000-0000-0000-000000000001'
-) on conflict (id) do nothing;
-
--- public.incidents — one open anomaly for the escalations spec
-insert into public.incidents (id, class, outbreak_id, status, detail)
-values (
-  '11111111-1111-1111-1111-111111111111',
-  'anomaly',
-  'd0eebc99-9c0b-4ef8-bb6d-6bb9bd380a01',
-  'open',
-  '{"metric": "confirmed", "z_score": 3.4}'::jsonb
-) on conflict (id) do nothing;

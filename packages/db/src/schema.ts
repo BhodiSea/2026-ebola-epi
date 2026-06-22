@@ -284,7 +284,11 @@ export const incidents = pgTable("incidents", {
   class: text("class")
     .notNull()
     .$type<
-      "anomaly" | "conflict_unresolvable" | "novel_pathogen_country" | "substring_verify_fail"
+      | "all_rows_dropped"
+      | "anomaly"
+      | "conflict_unresolvable"
+      | "novel_pathogen_country"
+      | "substring_verify_fail"
     >(),
   outbreakId: uuid("outbreak_id")
     .$type<OutbreakId>()

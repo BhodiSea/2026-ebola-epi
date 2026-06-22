@@ -5,7 +5,8 @@ import { JSDOM } from "jsdom";
 import robotsParser from "robots-parser";
 import RSSParser from "rss-parser";
 
-import type { FetchResult, ParseInput, ParseResult, RegisteredAdapter } from "../adapter.js";
+import type { ParseInput, ParseResult, RegisteredAdapter } from "../adapter.js";
+import { fetchWithConditionalGet } from "../fetch-helper.js";
 
 const USER_AGENT = "ituri-sitrep/1.0 (+https://ituri-sitrep.org/about/bot)";
 
@@ -131,14 +132,8 @@ export const whoDONAdapter: RegisteredAdapter = {
     }));
   },
 
-  async fetch(url: string): Promise<FetchResult> {
-    const doc = await fetchAndParseDocument(url);
-    return {
-      skipped: false,
-      rawContent: doc.html,
-      sha256: doc.sha256,
-      mimeType: "text/html",
-    };
+  async fetch(url: string) {
+    return fetchWithConditionalGet(url);
   },
 
   // eslint-disable-next-line @typescript-eslint/require-await

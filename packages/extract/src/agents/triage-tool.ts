@@ -47,7 +47,7 @@ export const triageTool: {
   description:
     "Classify whether this document reports an active disease outbreak. " +
     "Set is_outbreak:true only for confirmed or strongly suspected active outbreaks. " +
-    "When is_outbreak:true, pathogen_icd11 (ICD-11 code, e.g. XN0AT for Bundibugyo) and " +
+    "When is_outbreak:true, pathogen_icd11 (ICD-11 coded entity, e.g. 1D60.2 for Bundibugyo virus disease) and " +
     "country_iso3 (ISO 3166-1 alpha-3) are required.",
   input_schema: inputSchema,
 };

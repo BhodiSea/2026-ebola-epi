@@ -40,7 +40,7 @@ describe("parsePdf — text extraction", () => {
     expect(result.fullText).toBe("first\nsecond");
   });
 
-  it("returns language:'en' (WHO AFRO / MoH DRC PDFs default to en)", async () => {
+  it("returns language:'en' by default (WHO AFRO PDFs are English)", async () => {
     mockExtractText.mockResolvedValue({ text: [LONG_TEXT], totalPages: 1 });
     const { parsePdf } = await import("../parse-pdf.js");
     const result = await parsePdf(new Uint8Array(10));
@@ -48,6 +48,16 @@ describe("parsePdf — text extraction", () => {
       return;
     }
     expect(result.language).toBe("en");
+  });
+
+  it("returns language:'fr' when caller passes 'fr' (MoH DRC PDFs are French)", async () => {
+    mockExtractText.mockResolvedValue({ text: [LONG_TEXT], totalPages: 1 });
+    const { parsePdf } = await import("../parse-pdf.js");
+    const result = await parsePdf(new Uint8Array(10), "fr");
+    if (result.skipped) {
+      return;
+    }
+    expect(result.language).toBe("fr");
   });
 
   it("returns title as empty string (PDFs carry no HTML title)", async () => {

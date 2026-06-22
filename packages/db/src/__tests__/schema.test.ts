@@ -125,7 +125,11 @@ describe("schema type inference", () => {
   it("incidents.$inferSelect has class, status, outbreakId (phase6 escalation table)", () => {
     type Row = typeof incidents.$inferSelect;
     expectTypeOf<Row["class"]>().toEqualTypeOf<
-      "anomaly" | "conflict_unresolvable" | "novel_pathogen_country" | "substring_verify_fail"
+      | "all_rows_dropped"
+      | "anomaly"
+      | "conflict_unresolvable"
+      | "novel_pathogen_country"
+      | "substring_verify_fail"
     >();
     expectTypeOf<Row["status"]>().toEqualTypeOf<"acked" | "closed" | "open" | "snoozed">();
     expectTypeOf<Row["outbreakId"]>().toEqualTypeOf<null | OutbreakId>();

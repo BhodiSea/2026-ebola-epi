@@ -85,7 +85,7 @@ describe("parseTriageResponse — is_outbreak:true branch", () => {
             is_outbreak: true,
             novelty: "known",
             confidence: 0.88,
-            pathogen_icd11: "XN0AT",
+            pathogen_icd11: "1D60.2",
             country_iso3: "COD",
           },
         },
@@ -104,7 +104,7 @@ describe("parseTriageResponse — is_outbreak:true branch", () => {
     if (!result.triage.is_outbreak) {
       throw new Error("is_outbreak must be true");
     }
-    expect(result.triage.pathogen_icd11).toBe("XN0AT");
+    expect(result.triage.pathogen_icd11).toBe("1D60.2");
     expect(result.triage.country_iso3).toBe("COD");
   });
 

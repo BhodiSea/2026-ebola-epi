@@ -11,6 +11,7 @@ import {
   caseCounts,
   documents,
   extractionRuns,
+  incidents,
   outbreaks,
   sourceQuotes,
   sources,
@@ -200,6 +201,23 @@ export async function detectDivergence(extractionRunId: string): Promise<Diverge
 }
 
 /**
+ * Write an `incidents` row of class `all_rows_dropped` when the model returned
+ * content but every row failed zod validation. Distinct from `recordFailedExtraction`
+ * (API/crash failures); this records silent validation loss so the pipeline dashboard
+ * can surface it.
+ */
+export async function recordAllRowsDropped(
+  doc: { documentId: string; pvHash: string; sourceSlug: string },
+  rawCount: number,
+): Promise<void> {
+  await db.insert(incidents).values({
+    class: "all_rows_dropped",
+    documentId: doc.documentId,
+    detail: { rawCount, pvHash: doc.pvHash, sourceSlug: doc.sourceSlug },
+  });
+}
+
+/**
  * Insert a minimal `extraction_runs` row with `status='failed'` when extraction
  * crashes before or during `persistExtraction`. Call this in catch blocks before
  * re-throwing so every attempted extraction leaves an audit trail.
@@ -353,6 +371,12 @@ export async function persistExtraction(
   rawMsg: Pick<Anthropic.Message, "content" | "model" | "usage">,
 ): Promise<PersistResult> {
   const { rows, rawCount, toolSchemaHash, usage } = parseExtractionResponse(rawMsg, doc.fullText);
+  if (rawCount > 0 && rows.length === 0) {
+    await recordAllRowsDropped(
+      { documentId: doc.documentId, pvHash: doc.pvHash, sourceSlug: doc.sourceSlug },
+      rawCount,
+    );
+  }
   const extractionRunId = ExtractionRunId.parse(crypto.randomUUID());
   const escalations = await db.transaction(async (tx) =>
     insertExtractionInTransaction(tx, {

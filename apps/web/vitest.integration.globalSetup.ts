@@ -1,8 +1,17 @@
 import { execSync } from "node:child_process";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 // Matches `KEY=value` or `KEY="value"` — quote-stripping handles values with
 // trailing quotes only; the postgres jdbc URL may contain `=` in query params.
 const ENV_KEY_RE = /^([A-Z_]+)=(.*)$/;
+
+const DEV_SEED_PATH = path.resolve(
+  fileURLToPath(new URL(".", import.meta.url)),
+  "../../supabase/fixtures/dev-seed.sql",
+);
+
+const PG_URL = "postgresql://postgres:postgres@127.0.0.1:54322/postgres";
 
 export function setup(): void {
   // Always reset the local DB so every test run starts with a clean seed
@@ -22,6 +31,16 @@ export function setup(): void {
     // eslint-disable-next-line sonarjs/no-os-command-from-path
     execSync("supabase start", { stdio: "inherit" });
   }
+
+  // Apply dev-seed fixtures (Phase 4 synthetic data) so integration tests have
+  // case_counts, source_quotes, and documents to query against. The guard in
+  // dev-seed.sql requires app.env to be 'dev' or 'test'; PGOPTIONS sets it for
+  // this psql session without modifying any shared state.
+  // eslint-disable-next-line sonarjs/os-command
+  execSync(`psql "${PG_URL}" -f "${DEV_SEED_PATH}"`, {
+    stdio: "inherit",
+    env: { ...process.env, PGOPTIONS: "-c app.env=test" },
+  });
 
   // eslint-disable-next-line sonarjs/no-os-command-from-path
   const statusOutput = execSync("supabase status --output env", {

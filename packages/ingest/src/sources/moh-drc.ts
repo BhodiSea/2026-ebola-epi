@@ -59,7 +59,7 @@ export const mohDRCAdapter: RegisteredAdapter = {
 
   async parse(input: ParseInput): Promise<ParseResult> {
     if (input.mimeType === "application/pdf" && input.rawBytes !== undefined) {
-      return parsePdf(input.rawBytes);
+      return parsePdf(input.rawBytes, "fr");
     }
 
     const dom = new JSDOM(input.rawContent, { url: BASE_URL });
