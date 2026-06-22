@@ -90,7 +90,7 @@ function buildRequestHeaders(ua: string, opts: ConditionalGetOpts): Record<strin
 }
 
 function buildTextFetchResult(rawContent: string, mimeType: string): FetchResult {
-  const rawBytes = Buffer.from(rawContent);
+  const rawBytes = new TextEncoder().encode(rawContent);
   const sha256 = createHash("sha256").update(rawContent).digest();
   return { skipped: false, rawContent, rawBytes, sha256, mimeType };
 }

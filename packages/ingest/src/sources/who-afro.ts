@@ -67,7 +67,7 @@ export const whoAFROAdapter: RegisteredAdapter = {
   },
 
   async parse(input: ParseInput): Promise<ParseResult> {
-    if (input.rawBytes !== undefined) {
+    if (input.mimeType === "application/pdf" && input.rawBytes !== undefined) {
       return parsePdf(input.rawBytes);
     }
 

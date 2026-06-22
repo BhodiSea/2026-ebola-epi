@@ -75,6 +75,28 @@ describe("whoAFROAdapter.fetch + parse", () => {
     );
     expect(result.skipped).toBe(false);
   });
+
+  // ingest-runner always passes rawBytes from fetchResult to parse; mimeType must
+  // guard the parsePdf branch so HTML articles are not misidentified as PDFs.
+  it("parse produces fullText when rawBytes is set alongside mimeType:text/html", async () => {
+    const { whoAFROAdapter } = await import("../sources/who-afro.js");
+    const fetchResult = await whoAFROAdapter.fetch(
+      "https://www.afro.who.int/publications/sitrep-bvd-drc-21",
+    );
+    if (fetchResult.skipped) {
+      throw new Error("expected not skipped");
+    }
+    const parseResult = await whoAFROAdapter.parse({
+      rawContent: fetchResult.rawContent,
+      mimeType: fetchResult.mimeType,
+      ...(fetchResult.rawBytes !== undefined && { rawBytes: fetchResult.rawBytes }),
+    });
+    expect(parseResult.skipped).toBe(false);
+    if (parseResult.skipped) {
+      return;
+    }
+    expect(parseResult.fullText.length).toBeGreaterThan(0);
+  });
 });
 
 describe("whoAFROAdapter.poll()", () => {

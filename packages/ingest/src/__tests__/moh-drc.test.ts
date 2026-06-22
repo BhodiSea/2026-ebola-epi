@@ -195,4 +195,21 @@ describe("mohDRCAdapter.parse()", () => {
     }
     expect(result.reason).toBe("readability_parse_failed");
   });
+
+  // ingest-runner always passes rawBytes from fetchResult to parse; mimeType must
+  // guard the parsePdf branch so HTML articles are not misidentified as PDFs.
+  it("parse produces fullText when rawBytes is set alongside mimeType:text/html", async () => {
+    const { mohDRCAdapter } = await import("../sources/moh-drc.js");
+    const rawBytes = new TextEncoder().encode(BULLETIN_HTML);
+    const result = await mohDRCAdapter.parse({
+      rawContent: BULLETIN_HTML,
+      mimeType: "text/html",
+      rawBytes,
+    });
+    expect(result.skipped).toBe(false);
+    if (result.skipped) {
+      return;
+    }
+    expect(result.fullText).toContain("République Démocratique");
+  });
 });

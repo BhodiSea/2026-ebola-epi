@@ -42,4 +42,16 @@ describe("fetchWithConditionalGet — rawBytes (G-11)", () => {
     const expected = Buffer.from(body);
     expect(result.rawBytes?.byteLength).toBe(expected.byteLength);
   });
+
+  // Supabase Storage JS client rejects Buffer instances — rawBytes must be a plain Uint8Array,
+  // not a Buffer subclass. Buffer.isBuffer returns false only for real Uint8Array.
+  it("HTML rawBytes is a plain Uint8Array, not a Node.js Buffer", async () => {
+    const body = "<html>test</html>";
+    stubFetchHtml(body);
+    const result = await fetchWithConditionalGet("https://who.int/test");
+    if (result.skipped) {
+      throw new Error("unexpected skip");
+    }
+    expect(Buffer.isBuffer(result.rawBytes)).toBe(false);
+  });
 });
