@@ -21,9 +21,9 @@ export default async function OutbreakOgImage({
   const outbreak = await getOutbreakBySlug(pathogen, country.toUpperCase(), onset);
   const name = outbreak?.name ?? pathogen;
   const severity = outbreak?.severityLevel ?? "info";
-  const totals = outbreak === null ? null : await getStatTotals(outbreak.id);
-  const confirmed = totals?.confirmed.value ?? 0;
-  const deaths = totals?.deaths.value ?? 0;
+  const totalsResult = outbreak === null ? null : await getStatTotals(outbreak.id);
+  const confirmed = totalsResult?.ok === true ? totalsResult.data.confirmed.value : 0;
+  const deaths = totalsResult?.ok === true ? totalsResult.data.deaths.value : 0;
   const sourceLabel = outbreak === null ? "" : await fetchSourceLabel(outbreak.id);
   const fonts = await getOgFonts();
 

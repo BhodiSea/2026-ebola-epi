@@ -18,10 +18,9 @@ export default async function ZoneOgImage({
   const { code } = await params;
 
   const outbreak = await getActiveOutbreak();
-  const stats = outbreak === null ? null : await getZoneStatTotals(outbreak.id, code, "all");
-
-  const confirmed = stats?.confirmed.value ?? 0;
-  const deaths = stats?.deaths.value ?? 0;
+  const statsResult = outbreak === null ? null : await getZoneStatTotals(outbreak.id, code, "all");
+  const confirmed = statsResult?.ok === true ? statsResult.data.confirmed.value : 0;
+  const deaths = statsResult?.ok === true ? statsResult.data.deaths.value : 0;
   const severity = outbreak?.severityLevel ?? "info";
   const fonts = await getOgFonts();
 

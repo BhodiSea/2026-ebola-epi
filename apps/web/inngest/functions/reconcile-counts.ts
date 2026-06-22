@@ -147,7 +147,6 @@ async function loadReconcilePair(data: ReconcileRequestedData): Promise<LoadedPa
 
 // --- helpers -----------------------------------------------------------------
 
-// eslint-disable-next-line perfectionist/sort-modules -- a/w helpers grouped after loadReconcilePair
 async function applyReconcileSupersede(
   winnerId: string,
   loserId: string,

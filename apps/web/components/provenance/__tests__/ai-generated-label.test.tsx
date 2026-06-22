@@ -26,4 +26,13 @@ describe("AiGeneratedLabel", () => {
     // TooltipContent only mounts after pointerEnter (Radix lazy mount) — static render must be content-free
     expect(document.querySelector("[role=tooltip]")).toBeNull();
   });
+
+  it("accepts a dynamic reviewStatus prop without throwing", () => {
+    const { unmount } = render(
+      <AiGeneratedLabel modelId="claude-opus-4-7" reviewStatus="published" />,
+      { wrapper: Wrapper },
+    );
+    expect(screen.getByText("Auto-generated")).toBeInTheDocument();
+    unmount();
+  });
 });

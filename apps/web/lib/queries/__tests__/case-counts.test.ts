@@ -1,3 +1,4 @@
+// refactor: extract fetchOutbreakIds; add partitionByComment to sort-modules config
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
@@ -41,6 +42,28 @@ function buildChain(returnValue: ReturnVal) {
 const OUTBREAK = "d0eebc99-9c0b-4ef8-bb6d-6bb9bd380a01";
 const Q1 = "11111111-1111-4111-8111-111111111111";
 
+function trustRow({
+  asOf,
+  metric,
+  value,
+  quoteId,
+  trustScore,
+}: {
+  asOf: string;
+  metric: string;
+  quoteId: string;
+  trustScore: number;
+  value: number;
+}) {
+  return {
+    as_of: asOf,
+    metric,
+    value,
+    source_quote_id: quoteId,
+    source_quotes: { documents: { sources: { trust_score: trustScore } } },
+  };
+}
+
 describe("getEpiCurveSeries", () => {
   it("groups by date and carries a representative source_quote_id per point", async () => {
     mockFrom.mockReturnValue(
@@ -59,6 +82,35 @@ describe("getEpiCurveSeries", () => {
       { date: "2026-05-08", value: 15, quoteId: Q1 },
     ]);
     expect(deaths).toEqual([{ date: "2026-05-08", value: 2, quoteId: Q1 }]);
+  });
+
+  it("picks the highest-trust_score row per date — does NOT sum across sources", async () => {
+    const Q2 = "22222222-2222-4222-8222-222222222222";
+    mockFrom.mockReturnValue(
+      buildChain({
+        data: [
+          trustRow({
+            asOf: "2026-05-08",
+            metric: "confirmed",
+            value: 150,
+            quoteId: Q1,
+            trustScore: 0.95,
+          }), // high trust → winner
+          trustRow({
+            asOf: "2026-05-08",
+            metric: "confirmed",
+            value: 172,
+            quoteId: Q2,
+            trustScore: 0.8,
+          }), // lower trust → dropped
+        ],
+        error: null,
+      }),
+    );
+    const { confirmed } = await getEpiCurveSeries(OUTBREAK);
+    expect(confirmed).toHaveLength(1);
+    expect(confirmed[0]?.value).toBe(150);
+    expect(confirmed[0]?.quoteId).toBe(Q1);
   });
 });
 
@@ -83,19 +135,35 @@ describe("getStatTotals", () => {
     // countZonesAffected issues a second from() call
     mockFrom.mockReturnValueOnce(buildChain({ data: [], error: null }));
 
-    const totals = await getStatTotals(OUTBREAK);
-    expect(totals.confirmed.value).toBe(47);
-    expect(totals.deaths.value).toBe(12);
-    expect(totals.cfr).toBeCloseTo(25.5, 0);
-    expect(totals.confirmed.quoteId).toBe(Q1);
+    const result = await getStatTotals(OUTBREAK);
+    expect(result.ok).toBe(true);
+    if (!result.ok) {
+      return;
+    }
+    expect(result.data.confirmed.value).toBe(47);
+    expect(result.data.deaths.value).toBe(12);
+    expect(result.data.cfr).toBeCloseTo(25.5, 0);
+    expect(result.data.confirmed.quoteId).toBe(Q1);
   });
 
-  it("returns zero totals when data is null", async () => {
+  it("returns rpc-error when data is null", async () => {
     mockFrom.mockReturnValueOnce(buildChain({ data: null, error: { message: "oops" } }));
-    const totals = await getStatTotals(OUTBREAK);
-    expect(totals.confirmed.value).toBe(0);
-    expect(totals.deaths.value).toBe(0);
-    expect(totals.cfr).toBeNull();
+    const result = await getStatTotals(OUTBREAK);
+    expect(result.ok).toBe(false);
+    if (result.ok) {
+      return;
+    }
+    expect(result.reason).toBe("rpc-error");
+  });
+
+  it("returns no-rows when there are no published case_counts rows", async () => {
+    mockFrom.mockReturnValueOnce(buildChain({ data: [], error: null }));
+    const result = await getStatTotals(OUTBREAK);
+    expect(result.ok).toBe(false);
+    if (result.ok) {
+      return;
+    }
+    expect(result.reason).toBe("no-rows");
   });
 });
 
@@ -147,12 +215,16 @@ describe("getInternationalStatTotals", () => {
     // Call 3: countZonesAffected
     mockFrom.mockReturnValueOnce(buildChain({ data: [], error: null }));
 
-    const totals = await getInternationalStatTotals("1D60.2");
-    expect(totals.confirmed.value).toBe(428);
-    expect(totals.deaths.value).toBe(160);
+    const result = await getInternationalStatTotals("1D60.2");
+    expect(result.ok).toBe(true);
+    if (!result.ok) {
+      return;
+    }
+    expect(result.data.confirmed.value).toBe(428);
+    expect(result.data.deaths.value).toBe(160);
     // quoteId comes from the largest-value contributor
-    expect(totals.confirmed.quoteId).toBe(Q1);
-    expect(totals.deaths.quoteId).toBe(Q1);
+    expect(result.data.confirmed.quoteId).toBe(Q1);
+    expect(result.data.deaths.quoteId).toBe(Q1);
   });
 
   it("only takes the latest as_of snapshot per (country, metric), not all historical rows", async () => {
@@ -188,23 +260,30 @@ describe("getInternationalStatTotals", () => {
     );
     mockFrom.mockReturnValueOnce(buildChain({ data: [], error: null }));
 
-    const totals = await getInternationalStatTotals("1D60.2");
-    expect(totals.confirmed.value).toBe(416); // not 796 (416+380)
-    expect(totals.deaths.value).toBe(157);
+    const result = await getInternationalStatTotals("1D60.2");
+    expect(result.ok).toBe(true);
+    if (!result.ok) {
+      return;
+    }
+    expect(result.data.confirmed.value).toBe(416); // not 796 (416+380)
+    expect(result.data.deaths.value).toBe(157);
   });
 
-  it("returns zero totals when no outbreaks found for the pathogen", async () => {
+  it("returns no-rows when no outbreaks found for the pathogen", async () => {
     mockFrom.mockReturnValueOnce(buildChain({ data: [], error: null }));
-    const totals = await getInternationalStatTotals("1D60.2");
-    expect(totals.confirmed.value).toBe(0);
-    expect(totals.deaths.value).toBe(0);
-    expect(totals.cfr).toBeNull();
+    const result = await getInternationalStatTotals("1D60.2");
+    expect(result.ok).toBe(false);
+    if (result.ok) {
+      return;
+    }
+    expect(result.reason).toBe("no-rows");
   });
 });
 
 const ROW_A = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const ROW_B = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
 
+// Refactor pass 4: fix lint errors (optional-chain, jsx-leaked-render, max-params, consistent-type-definitions)
 describe("getDisagreements", () => {
   it("returns a map keyed by metric:asOf with entries from multiple sources", async () => {
     mockRpc.mockResolvedValueOnce({
@@ -217,6 +296,7 @@ describe("getDisagreements", () => {
           source_slug: "who-don",
           source_quote_id: Q1,
           superseded_by: null,
+          trust_score: 0.95,
         },
         {
           row_id: ROW_B,
@@ -226,6 +306,7 @@ describe("getDisagreements", () => {
           source_slug: "ecdc-cdtr",
           source_quote_id: Q2,
           superseded_by: ROW_A,
+          trust_score: 0.8,
         },
       ],
       error: null,
@@ -236,7 +317,9 @@ describe("getDisagreements", () => {
     const entries = map.get(key)!;
     expect(entries).toHaveLength(2);
     expect(entries.find((e) => e.sourceSlug === "who-don")?.value).toBe(142);
+    expect(entries.find((e) => e.sourceSlug === "who-don")?.trustScore).toBe(0.95);
     expect(entries.find((e) => e.sourceSlug === "ecdc-cdtr")?.superseded).toBe(true);
+    expect(entries.find((e) => e.sourceSlug === "ecdc-cdtr")?.trustScore).toBe(0.8);
   });
 
   it("returns an empty map when the RPC returns no rows", async () => {

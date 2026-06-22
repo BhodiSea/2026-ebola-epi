@@ -61,6 +61,16 @@ describe("BACKFILL_EMBEDDINGS_TRIGGER", () => {
   });
 });
 
+describe("BACKFILL_EMBEDDINGS_CRON", () => {
+  it("defines a nightly cron expression", async () => {
+    const { BACKFILL_EMBEDDINGS_CRON } = await import("../backfill-embeddings");
+    expect(typeof BACKFILL_EMBEDDINGS_CRON.cron).toBe("string");
+    // 5-field cron; must fire daily (last field = *)
+    expect(BACKFILL_EMBEDDINGS_CRON.cron.split(" ")).toHaveLength(5);
+    expect(BACKFILL_EMBEDDINGS_CRON.cron.split(" ").at(-1)).toBe("*");
+  });
+});
+
 // --- no-key early exit -------------------------------------------------------
 // When OPENAI_API_KEY is absent the function must write an agent_actions row
 // with action='embedding_skipped_no_key' and return { skipped: true }.

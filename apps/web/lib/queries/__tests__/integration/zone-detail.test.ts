@@ -22,14 +22,21 @@ afterEach(resetFixtures);
 describe("getZoneStatTotals (integration)", () => {
   it("returns cumulative confirmed for Irumu (COD-IT-IR)", async () => {
     const result = await getZoneStatTotals(OUTBREAK_ID, ZONE_IR, "all");
-    expect(result.confirmed.value).toBe(98);
-    expect(result.confirmed.quoteId).toBeTruthy();
+    expect(result.ok).toBe(true);
+    if (!result.ok) {
+      return;
+    }
+    expect(result.data.confirmed.value).toBe(98);
+    expect(result.data.confirmed.quoteId).toBeTruthy();
   });
 
-  it("returns EMPTY_TOTALS for a nonexistent zone", async () => {
+  it("returns no-rows for a nonexistent zone", async () => {
     const result = await getZoneStatTotals(OUTBREAK_ID, "ZZ-XX-00", "all");
-    expect(result.confirmed.value).toBe(0);
-    expect(result.cfr).toBeNull();
+    expect(result.ok).toBe(false);
+    if (result.ok) {
+      return;
+    }
+    expect(result.reason).toBe("no-rows");
   });
 });
 

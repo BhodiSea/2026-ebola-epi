@@ -13,9 +13,9 @@ export const contentType = "image/png";
 
 export default async function TodayOgImage() {
   const outbreak = await getActiveOutbreak();
-  const totals = outbreak === null ? null : await getStatTotals(outbreak.id);
-  const confirmed = totals?.confirmed.value ?? 0;
-  const deaths = totals?.deaths.value ?? 0;
+  const totalsResult = outbreak === null ? null : await getStatTotals(outbreak.id);
+  const confirmed = totalsResult?.ok === true ? totalsResult.data.confirmed.value : 0;
+  const deaths = totalsResult?.ok === true ? totalsResult.data.deaths.value : 0;
   const fonts = await getOgFonts();
 
   return new ImageResponse(

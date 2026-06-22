@@ -46,14 +46,14 @@ const MOCK_STATS = {
 
 describe("OutbreakRow", () => {
   it("renders the outbreak name", async () => {
-    vi.mocked(getStatTotals).mockResolvedValue(MOCK_STATS);
+    vi.mocked(getStatTotals).mockResolvedValue({ ok: true, data: MOCK_STATS });
     const jsx = await OutbreakRow({ outbreak: MOCK_OUTBREAK });
     render(jsx);
     expect(screen.getByText(PATHOGEN_NAME_RE)).toBeInTheDocument();
   });
 
   it("renders confirmed count with quoteId passed to FigureOrMissing", async () => {
-    vi.mocked(getStatTotals).mockResolvedValue(MOCK_STATS);
+    vi.mocked(getStatTotals).mockResolvedValue({ ok: true, data: MOCK_STATS });
     const jsx = await OutbreakRow({ outbreak: MOCK_OUTBREAK });
     const { container } = render(jsx);
     const figures = container.querySelectorAll("[data-figure-or-missing]");
@@ -65,7 +65,7 @@ describe("OutbreakRow", () => {
   });
 
   it("renders CFR with deathsQuoteId passed to FigureOrMissing", async () => {
-    vi.mocked(getStatTotals).mockResolvedValue(MOCK_STATS);
+    vi.mocked(getStatTotals).mockResolvedValue({ ok: true, data: MOCK_STATS });
     const jsx = await OutbreakRow({ outbreak: MOCK_OUTBREAK });
     const { container } = render(jsx);
     const cfrFigures = container.querySelectorAll("[data-figure-or-missing]");
@@ -73,7 +73,7 @@ describe("OutbreakRow", () => {
   });
 
   it("renders SeverityPill with emergency class", async () => {
-    vi.mocked(getStatTotals).mockResolvedValue(MOCK_STATS);
+    vi.mocked(getStatTotals).mockResolvedValue({ ok: true, data: MOCK_STATS });
     const jsx = await OutbreakRow({ outbreak: MOCK_OUTBREAK });
     const { container } = render(jsx);
     expect(container.innerHTML).toContain("bg-emergency");
@@ -86,7 +86,7 @@ describe("OutbreakRow", () => {
       cfr: 19,
       zonesAffected: 2,
     };
-    vi.mocked(getStatTotals).mockResolvedValue(nullStats);
+    vi.mocked(getStatTotals).mockResolvedValue({ ok: true, data: nullStats });
     const jsx = await OutbreakRow({ outbreak: MOCK_OUTBREAK });
     const { container } = render(jsx);
     // Must not synthesize the all-zeros fallback UUID

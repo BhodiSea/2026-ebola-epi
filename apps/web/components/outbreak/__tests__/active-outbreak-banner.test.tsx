@@ -21,6 +21,7 @@ const MOCK_OUTBREAK: Outbreak = {
 const QUOTE_ID = "00000000-0000-0000-0000-000000000001";
 const DAY_N_RE = /^Day \d+$/;
 const PATHOGEN_NAME_RE = /Bundibugyo/;
+const LAST_SITREP_RE = /last sitrep/;
 
 describe("ActiveOutbreakBanner", () => {
   it("renders SeverityPill with emergency css class", () => {
@@ -51,5 +52,28 @@ describe("ActiveOutbreakBanner", () => {
       ActiveOutbreakBanner({ outbreak: MOCK_OUTBREAK, confirmedQuoteId: QUOTE_ID }),
     );
     expect(container.querySelector(`[data-confirmed-quote="${QUOTE_ID}"]`)).not.toBeNull();
+  });
+
+  it("shows last-sitrep label when lastIngestedAt is provided", () => {
+    const threeDaysAgo = new Date(Date.now() - 3 * 86_400_000).toISOString();
+    render(
+      ActiveOutbreakBanner({
+        outbreak: MOCK_OUTBREAK,
+        confirmedQuoteId: QUOTE_ID,
+        lastIngestedAt: threeDaysAgo,
+      }),
+    );
+    expect(screen.getByText(LAST_SITREP_RE)).toBeInTheDocument();
+  });
+
+  it("omits last-sitrep label when lastIngestedAt is null", () => {
+    render(
+      ActiveOutbreakBanner({
+        outbreak: MOCK_OUTBREAK,
+        confirmedQuoteId: QUOTE_ID,
+        lastIngestedAt: null,
+      }),
+    );
+    expect(screen.queryByText(LAST_SITREP_RE)).toBeNull();
   });
 });

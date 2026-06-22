@@ -2,9 +2,10 @@ import { notFound } from "next/navigation";
 
 import { MapClientShell } from "@/components/map/map-client-shell";
 import { TabularView } from "@/components/map/tabular-view";
+import { LastUpdatedIndicator } from "@/components/provenance/last-updated-indicator";
 import { getEpiCurveSeries } from "@/lib/queries/case-counts";
 import { getOutbreakZoneSvg } from "@/lib/queries/choropleth";
-import { getDocumentsForOutbreak } from "@/lib/queries/documents";
+import { getDocumentsForOutbreak, getLastIngestedAt } from "@/lib/queries/documents";
 import { getActiveOutbreak, getOutbreakById, listOutbreaks } from "@/lib/queries/outbreaks";
 
 interface MapPageProps {
@@ -25,12 +26,14 @@ export default async function MapPage({ searchParams }: Readonly<MapPageProps>) 
     return <TabularView outbreakId={outbreak.id} />;
   }
 
-  const [{ confirmed, deaths }, zoneData, outbreaksList, documents] = await Promise.all([
-    getEpiCurveSeries(outbreak.id),
-    getOutbreakZoneSvg(outbreak.id),
-    listOutbreaks({ status: "active" }),
-    getDocumentsForOutbreak(outbreak.id),
-  ]);
+  const [{ confirmed, deaths }, zoneData, outbreaksList, documents, lastIngestedAt] =
+    await Promise.all([
+      getEpiCurveSeries(outbreak.id),
+      getOutbreakZoneSvg(outbreak.id),
+      listOutbreaks({ status: "active" }),
+      getDocumentsForOutbreak(outbreak.id),
+      getLastIngestedAt(outbreak.id),
+    ]);
 
   const caseCountsByCode: Record<string, number> = Object.fromEntries(
     (zoneData?.zones ?? []).map((z) => [z.admin2Code, z.totalValue]),
@@ -48,13 +51,20 @@ export default async function MapPage({ searchParams }: Readonly<MapPageProps>) 
   const outbreaks = outbreaksList.map((o) => ({ id: o.id, name: o.name }));
 
   return (
-    <MapClientShell
-      outbreakId={outbreak.id}
-      confirmedSeries={confirmed}
-      deathsSeries={deaths}
-      sitrepDates={sitrepDates}
-      caseCountsByCode={caseCountsByCode}
-      outbreaks={outbreaks}
-    />
+    <div className="relative flex flex-col">
+      {lastIngestedAt === null ? null : (
+        <div className="flex justify-end px-4 py-1">
+          <LastUpdatedIndicator updatedAt={lastIngestedAt} />
+        </div>
+      )}
+      <MapClientShell
+        outbreakId={outbreak.id}
+        confirmedSeries={confirmed}
+        deathsSeries={deaths}
+        sitrepDates={sitrepDates}
+        caseCountsByCode={caseCountsByCode}
+        outbreaks={outbreaks}
+      />
+    </div>
   );
 }

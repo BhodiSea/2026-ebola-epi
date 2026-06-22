@@ -77,8 +77,22 @@ describe("StatCard", () => {
         value: 142,
         quoteId: QUOTE_ID,
         disagreements: [
-          { rowId: "aaa", value: 142, sourceSlug: "who-don", quoteId: QUOTE_ID, superseded: false },
-          { rowId: "bbb", value: 108, sourceSlug: "ecdc-cdtr", quoteId: null, superseded: true },
+          {
+            rowId: "aaa",
+            value: 142,
+            sourceSlug: "who-don",
+            quoteId: QUOTE_ID,
+            superseded: false,
+            trustScore: 0.95,
+          },
+          {
+            rowId: "bbb",
+            value: 108,
+            sourceSlug: "ecdc-cdtr",
+            quoteId: null,
+            superseded: true,
+            trustScore: 0.8,
+          },
         ],
       }),
     );

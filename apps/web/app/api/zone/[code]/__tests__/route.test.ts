@@ -30,10 +30,13 @@ function req(code: string, qs: string) {
 
 function seedQueries() {
   vi.mocked(getZoneStatTotals).mockResolvedValue({
-    confirmed: { value: 50, quoteId: QID },
-    deaths: { value: 5, quoteId: null },
-    cfr: 10,
-    firstDetected: { value: "2026-05-01", quoteId: QID },
+    ok: true,
+    data: {
+      confirmed: { value: 50, quoteId: QID },
+      deaths: { value: 5, quoteId: null },
+      cfr: 10,
+      firstDetected: { value: "2026-05-01", quoteId: QID },
+    },
   });
   vi.mocked(getZoneEpiSeries).mockResolvedValue({
     confirmed: [{ date: "2026-05-01", value: 50 }],

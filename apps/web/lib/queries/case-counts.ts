@@ -12,6 +12,7 @@ export interface DisagreementEntry {
   sourceSlug: string;
   /** true when superseded_by is non-null — this row lost reconciliation */
   superseded: boolean;
+  trustScore: number;
   value: number;
 }
 
@@ -31,17 +32,43 @@ export interface StatTotals {
   zonesAffected: number;
 }
 
+export const EMPTY_STAT_TOTALS: StatTotals = {
+  cfr: null,
+  confirmed: { quoteId: null, value: 0 },
+  deaths: { quoteId: null, value: 0 },
+  zonesAffected: 0,
+};
+
+export type TotalsResult<T> =
+  | { data: T; ok: true }
+  | { ok: false; reason: "no-rows" | "parse-error" | "rpc-error" };
+
 /* eslint-disable @typescript-eslint/naming-convention */
+
+// Optional nested trust_score from source_quotes → documents → sources join
+const SourceTrustNested = z
+  .object({
+    documents: z
+      .object({
+        sources: z.object({ trust_score: z.coerce.number() }).nullable(),
+      })
+      .nullable(),
+  })
+  .nullable()
+  .optional();
+
 const EpiRow = z.object({
   as_of: z.string(),
   metric: z.string(),
   source_quote_id: z.string().nullable(),
   value: z.number(),
+  source_quotes: SourceTrustNested,
 });
 
 const SparkRow = z.object({
   as_of: z.string(),
   value: z.number(),
+  source_quotes: SourceTrustNested,
 });
 
 const StatRow = z.object({
@@ -82,6 +109,26 @@ type InternationalStatRowType = z.infer<typeof InternationalStatRow>;
 type StatRowType = z.infer<typeof StatRow>;
 
 /* --- helpers ----------------------------------------------------------------- */
+
+async function fetchOutbreakIds(pathogenIcd11: string): Promise<TotalsResult<string[]>> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("outbreaks")
+    .select("id")
+    .eq("pathogen_icd11", pathogenIcd11)
+    .eq("status", "active");
+  if (data === null) {
+    return { ok: false, reason: "rpc-error" };
+  }
+  if (data.length === 0) {
+    return { ok: false, reason: "no-rows" };
+  }
+  const parsed = z.array(OutbreakIdRow).safeParse(data);
+  if (!parsed.success) {
+    return { ok: false, reason: "parse-error" };
+  }
+  return { ok: true, data: parsed.data.map((r) => r.id) };
+}
 
 /**
  * Returns the value and quoteId from the first row matching `metric`.
@@ -136,13 +183,6 @@ function sumLatestPerCountry(rows: InternationalStatRowType[]): InternationalAcc
   return acc;
 }
 
-const EMPTY_TOTALS: StatTotals = {
-  confirmed: { value: 0, quoteId: null },
-  deaths: { value: 0, quoteId: null },
-  cfr: null,
-  zonesAffected: 0,
-};
-
 /* --- queries ----------------------------------------------------------------- */
 
 type EpiRowType = z.infer<typeof EpiRow>;
@@ -155,14 +195,13 @@ export async function getEpiCurveSeries(outbreakId: string): Promise<{
 
   const { data } = await supabase
     .from("case_counts")
-    .select("as_of, metric, value, source_quote_id")
+    .select("as_of, metric, value, source_quote_id, source_quotes(documents(sources(trust_score)))")
     .eq("outbreak_id", outbreakId)
     .eq("status", "published")
     .is("superseded_by", null)
     .is("admin_name", null)
     .is("admin2_code", null)
     .in("metric", ["confirmed", "deaths"])
-    .or("is_new_in_period.is.null,is_new_in_period.eq.false")
     .order("as_of", { ascending: true });
 
   if (data === null) {
@@ -186,25 +225,15 @@ export async function getEpiCurveSeries(outbreakId: string): Promise<{
  * Per country: picks the latest national cumulative snapshot for each metric.
  * The quoteId returned is from the highest-value contributing country.
  */
-export async function getInternationalStatTotals(pathogenIcd11: string): Promise<StatTotals> {
+export async function getInternationalStatTotals(
+  pathogenIcd11: string,
+): Promise<TotalsResult<StatTotals>> {
+  const idsResult = await fetchOutbreakIds(pathogenIcd11);
+  if (!idsResult.ok) {
+    return idsResult;
+  }
+  const ids = idsResult.data;
   const supabase = await createClient();
-
-  const { data: outbreakData } = await supabase
-    .from("outbreaks")
-    .select("id")
-    .eq("pathogen_icd11", pathogenIcd11)
-    .eq("status", "active");
-
-  if (outbreakData === null || outbreakData.length === 0) {
-    return EMPTY_TOTALS;
-  }
-
-  const parsedOutbreaks = z.array(OutbreakIdRow).safeParse(outbreakData);
-  if (!parsedOutbreaks.success) {
-    return EMPTY_TOTALS;
-  }
-
-  const ids = parsedOutbreaks.data.map((r) => r.id);
 
   const { data } = await supabase
     .from("case_counts")
@@ -215,16 +244,19 @@ export async function getInternationalStatTotals(pathogenIcd11: string): Promise
     .is("admin_name", null)
     .is("admin2_code", null)
     .in("metric", ["confirmed", "deaths"])
-    .or("is_new_in_period.is.null,is_new_in_period.eq.false")
     .order("as_of", { ascending: false });
 
   if (data === null) {
-    return EMPTY_TOTALS;
+    return { ok: false, reason: "rpc-error" };
   }
 
   const rows = z.array(InternationalStatRow).safeParse(data);
   if (!rows.success) {
-    return EMPTY_TOTALS;
+    return { ok: false, reason: "parse-error" };
+  }
+
+  if (rows.data.length === 0) {
+    return { ok: false, reason: "no-rows" };
   }
 
   const acc = sumLatestPerCountry(rows.data);
@@ -233,10 +265,13 @@ export async function getInternationalStatTotals(pathogenIcd11: string): Promise
   const zonesAffected = await countZonesAffected(ids);
 
   return {
-    confirmed: { value: acc.confirmedTotal, quoteId: acc.confirmedQuote },
-    deaths: { value: acc.deathsTotal, quoteId: acc.deathsQuote },
-    cfr,
-    zonesAffected,
+    ok: true,
+    data: {
+      confirmed: { value: acc.confirmedTotal, quoteId: acc.confirmedQuote },
+      deaths: { value: acc.deathsTotal, quoteId: acc.deathsQuote },
+      cfr,
+      zonesAffected,
+    },
   };
 }
 
@@ -251,14 +286,13 @@ export async function getSparkline14d(
 
   const { data } = await supabase
     .from("case_counts")
-    .select("as_of, value")
+    .select("as_of, value, source_quotes(documents(sources(trust_score)))")
     .eq("outbreak_id", outbreakId)
     .eq("metric", metric)
     .eq("status", "published")
     .is("superseded_by", null)
     .is("admin_name", null)
     .is("admin2_code", null)
-    .or("is_new_in_period.is.null,is_new_in_period.eq.false")
     .gte("as_of", cutoff.toISOString().slice(0, 10))
     .order("as_of", { ascending: true });
 
@@ -271,12 +305,16 @@ export async function getSparkline14d(
     return [];
   }
 
-  const byDate = new Map<string, number>();
+  const byDate = new Map<string, { trustScore: number; value: number }>();
   for (const row of rows.data) {
-    byDate.set(row.as_of, (byDate.get(row.as_of) ?? 0) + row.value);
+    const trustScore = row.source_quotes?.documents?.sources?.trust_score ?? 0;
+    const cur = byDate.get(row.as_of);
+    if (cur === undefined || trustScore > cur.trustScore) {
+      byDate.set(row.as_of, { trustScore, value: row.value });
+    }
   }
 
-  return [...byDate.entries()].map(([date, value]) => ({ date, value }));
+  return [...byDate.entries()].map(([date, { value }]) => ({ date, value }));
 }
 
 /**
@@ -284,7 +322,7 @@ export async function getSparkline14d(
  * Picks the latest national cumulative snapshot per metric — does NOT sum
  * across weekly snapshots or zone-level rows.
  */
-export async function getStatTotals(outbreakId: string): Promise<StatTotals> {
+export async function getStatTotals(outbreakId: string): Promise<TotalsResult<StatTotals>> {
   const supabase = await createClient();
 
   const { data } = await supabase
@@ -296,16 +334,19 @@ export async function getStatTotals(outbreakId: string): Promise<StatTotals> {
     .is("admin_name", null)
     .is("admin2_code", null)
     .in("metric", ["confirmed", "deaths"])
-    .or("is_new_in_period.is.null,is_new_in_period.eq.false")
     .order("as_of", { ascending: false });
 
   if (data === null) {
-    return EMPTY_TOTALS;
+    return { ok: false, reason: "rpc-error" };
   }
 
   const rows = z.array(StatRow).safeParse(data);
   if (!rows.success) {
-    return EMPTY_TOTALS;
+    return { ok: false, reason: "parse-error" };
+  }
+
+  if (rows.data.length === 0) {
+    return { ok: false, reason: "no-rows" };
   }
 
   const confirmed = pickLatest(rows.data, "confirmed");
@@ -313,24 +354,26 @@ export async function getStatTotals(outbreakId: string): Promise<StatTotals> {
   const cfr = confirmed.value > 0 ? Math.round((deaths.value / confirmed.value) * 1000) / 10 : null;
   const zonesAffected = await countZonesAffected([outbreakId]);
 
-  return { confirmed, deaths, cfr, zonesAffected };
+  return { ok: true, data: { confirmed, deaths, cfr, zonesAffected } };
 }
 
-/** Group one metric's rows by date, summing values and keeping the first quoteId as provenance. */
+/** Group one metric's rows by date, picking the highest-trust_score row per date. */
 function buildEpiSeries(rows: EpiRowType[], metric: string): SparklinePoint[] {
-  const byDate = new Map<string, SparklinePoint>();
+  const byDate = new Map<string, { point: SparklinePoint; trustScore: number }>();
   for (const row of rows) {
     if (row.metric !== metric) {
       continue;
     }
+    const trustScore = row.source_quotes?.documents?.sources?.trust_score ?? 0;
     const cur = byDate.get(row.as_of);
-    byDate.set(row.as_of, {
-      date: row.as_of,
-      value: (cur?.value ?? 0) + row.value,
-      quoteId: cur?.quoteId ?? row.source_quote_id,
-    });
+    if (cur === undefined || trustScore > cur.trustScore) {
+      byDate.set(row.as_of, {
+        trustScore,
+        point: { date: row.as_of, value: row.value, quoteId: row.source_quote_id },
+      });
+    }
   }
-  return [...byDate.values()];
+  return [...byDate.values()].map((e) => e.point);
 }
 
 async function countZonesAffected(outbreakIds: string[]): Promise<number> {
@@ -370,6 +413,7 @@ const DisagreementRow = z.object({
   source_quote_id: z.string().nullable(),
   source_slug: z.string(),
   superseded_by: z.string().nullable(),
+  trust_score: z.coerce.number().optional().default(0),
   value: z.number(),
 });
 /* eslint-enable @typescript-eslint/naming-convention */
@@ -406,6 +450,7 @@ export async function getDisagreements(outbreakId: string): Promise<Disagreement
       sourceSlug: row.source_slug,
       quoteId: row.source_quote_id,
       superseded: row.superseded_by !== null,
+      trustScore: row.trust_score,
     };
     const existing = map.get(key);
     if (existing) {

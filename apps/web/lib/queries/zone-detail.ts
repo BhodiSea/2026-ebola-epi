@@ -3,7 +3,7 @@ import "server-only";
 import { z } from "zod";
 
 import type { TimeWindow } from "@/lib/map/zone-detail-response";
-import type { SparklinePoint } from "@/lib/queries/case-counts";
+import type { SparklinePoint, TotalsResult } from "@/lib/queries/case-counts";
 import { createClient } from "@/lib/supabase/server";
 
 export interface ZoneDateMetric {
@@ -16,19 +16,26 @@ export interface ZoneMetric {
   value: number;
 }
 
+export interface ZoneStatTotals {
+  cfr: null | number;
+  confirmed: ZoneMetric;
+  deaths: ZoneMetric;
+  firstDetected: ZoneDateMetric;
+}
+
+export const EMPTY_ZONE_STAT_TOTALS: ZoneStatTotals = {
+  cfr: null,
+  confirmed: { quoteId: null, value: 0 },
+  deaths: { quoteId: null, value: 0 },
+  firstDetected: { quoteId: null, value: null },
+};
+
 interface ZoneRawRow {
   asOf: string;
   metric: string;
   sourceQuoteId: string;
   status: string;
   value: number;
-}
-
-interface ZoneStatTotals {
-  cfr: null | number;
-  confirmed: ZoneMetric;
-  deaths: ZoneMetric;
-  firstDetected: ZoneDateMetric;
 }
 
 interface ZoneTotalsAccumulator {
@@ -60,22 +67,6 @@ const RawRow = z.object({
 /* eslint-disable @typescript-eslint/naming-convention */
 const WINDOW_DAYS: Record<Exclude<TimeWindow, "all">, number> = { "7d": 7, "30d": 30, "90d": 90 };
 /* eslint-enable @typescript-eslint/naming-convention */
-
-function cutoffFor(window: TimeWindow): null | string {
-  if (window === "all") {
-    return null;
-  }
-  const d = new Date();
-  d.setDate(d.getDate() - WINDOW_DAYS[window]);
-  return d.toISOString().slice(0, 10);
-}
-
-const EMPTY_TOTALS: ZoneStatTotals = {
-  confirmed: { value: 0, quoteId: null },
-  deaths: { value: 0, quoteId: null },
-  cfr: null,
-  firstDetected: { value: null, quoteId: null },
-};
 
 export async function getZoneEpiSeries(
   outbreakId: string,
@@ -168,7 +159,7 @@ export async function getZoneStatTotals(
   outbreakId: string,
   admin2Code: string,
   window: TimeWindow,
-): Promise<ZoneStatTotals> {
+): Promise<TotalsResult<ZoneStatTotals>> {
   const supabase = await createClient();
   const cutoff = cutoffFor(window);
 
@@ -186,17 +177,29 @@ export async function getZoneStatTotals(
 
   // biome-ignore lint/nursery/useAwaitThenable: Supabase query builder is a PromiseLike thenable
   const { data } = await query;
+
+  if (data === null) {
+    return { ok: false, reason: "rpc-error" };
+  }
+
   const rows = z.array(StatRow).safeParse(data);
   if (!rows.success) {
-    return EMPTY_TOTALS;
+    return { ok: false, reason: "parse-error" };
+  }
+
+  if (rows.data.length === 0) {
+    return { ok: false, reason: "no-rows" };
   }
 
   const acc = accumulateZoneTotals(rows.data);
   return {
-    confirmed: { value: acc.confirmed, quoteId: acc.confirmedQuote },
-    deaths: { value: acc.deaths, quoteId: acc.deathsQuote },
-    cfr: acc.confirmed > 0 ? Math.round((acc.deaths / acc.confirmed) * 1000) / 10 : null,
-    firstDetected: { value: acc.firstDetected, quoteId: acc.firstDetectedQuote },
+    ok: true,
+    data: {
+      confirmed: { value: acc.confirmed, quoteId: acc.confirmedQuote },
+      deaths: { value: acc.deaths, quoteId: acc.deathsQuote },
+      cfr: acc.confirmed > 0 ? Math.round((acc.deaths / acc.confirmed) * 1000) / 10 : null,
+      firstDetected: { value: acc.firstDetected, quoteId: acc.firstDetectedQuote },
+    },
   };
 }
 
@@ -268,4 +271,13 @@ function accumulateZoneTotals(rows: z.infer<typeof StatRow>[]): ZoneTotalsAccumu
     }
   }
   return acc;
+}
+
+function cutoffFor(window: TimeWindow): null | string {
+  if (window === "all") {
+    return null;
+  }
+  const d = new Date();
+  d.setDate(d.getDate() - WINDOW_DAYS[window]);
+  return d.toISOString().slice(0, 10);
 }

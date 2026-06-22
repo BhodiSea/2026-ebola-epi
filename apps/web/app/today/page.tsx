@@ -7,15 +7,17 @@ import { ActiveOutbreakBanner } from "@/components/outbreak/active-outbreak-bann
 import { OutbreakChoropleth } from "@/components/outbreak/outbreak-choropleth";
 import { StatCard } from "@/components/outbreak/stat-card";
 import { AiGeneratedLabel } from "@/components/provenance/ai-generated-label";
+import { LastUpdatedIndicator } from "@/components/provenance/last-updated-indicator";
 import type { DisagreementEntry, DisagreementsMap } from "@/lib/queries/case-counts";
 import {
+  EMPTY_STAT_TOTALS,
   getDisagreements,
   getInternationalStatTotals,
   getSparkline14d,
 } from "@/lib/queries/case-counts";
 import { getDailyBriefByDate } from "@/lib/queries/daily-briefs";
 import type { Document } from "@/lib/queries/documents";
-import { listRecentDocuments } from "@/lib/queries/documents";
+import { getLastIngestedAt, listRecentDocuments } from "@/lib/queries/documents";
 import type { Outbreak } from "@/lib/queries/outbreaks";
 import { getActiveOutbreak, listOutbreaks } from "@/lib/queries/outbreaks";
 
@@ -50,35 +52,47 @@ export default async function TodayPage({
     );
   }
 
-  const { stats, sparkline, sitreps, allOutbreaks, disagreements, brief } = await loadTodayData(
-    outbreak.id,
-    outbreak.pathogenIcd11,
-  );
+  const { stats, sparkline, sitreps, allOutbreaks, disagreements, brief, lastIngestedAt } =
+    await loadTodayData(outbreak.id, outbreak.pathogenIcd11);
+  const statsData = stats.ok ? stats.data : EMPTY_STAT_TOTALS;
   const sparklineValues = sparkline.map((p) => p.value);
-  const confirmedQuoteId = stats.confirmed.quoteId ?? null;
-  const deathsQuoteId = stats.deaths.quoteId ?? null;
-  const cfrValue = stats.cfr === null ? "—" : `${stats.cfr.toFixed(1)}%`;
+  const confirmedQuoteId = statsData.confirmed.quoteId ?? null;
+  const deathsQuoteId = statsData.deaths.quoteId ?? null;
+  const cfrValue = statsData.cfr === null ? "—" : `${statsData.cfr.toFixed(1)}%`;
 
   return (
     <main className="mx-auto max-w-4xl space-y-8 px-4 py-8">
-      <ActiveOutbreakBanner outbreak={outbreak} confirmedQuoteId={confirmedQuoteId} />
+      <div className="flex items-center justify-between">
+        <ActiveOutbreakBanner
+          outbreak={outbreak}
+          confirmedQuoteId={confirmedQuoteId}
+          lastIngestedAt={lastIngestedAt}
+        />
+        {lastIngestedAt === null ? null : <LastUpdatedIndicator updatedAt={lastIngestedAt} />}
+      </div>
 
       <section className="grid grid-cols-2 gap-4 md:grid-cols-4">
         <StatCard
           label="Confirmed"
-          value={stats.confirmed.value}
+          value={statsData.confirmed.value}
           quoteId={confirmedQuoteId}
           sparkline={sparklineValues}
           disagreements={pickDisagreements(disagreements, "confirmed")}
         />
         <StatCard
           label="Deaths"
-          value={stats.deaths.value}
+          value={statsData.deaths.value}
           quoteId={deathsQuoteId}
           disagreements={pickDisagreements(disagreements, "deaths")}
         />
+        {/* CFR is derived from deaths/confirmed — deaths quoteId is the representative source */}
         <StatCard label="CFR" value={cfrValue} quoteId={deathsQuoteId} />
-        <StatCard label="Zones affected" value={stats.zonesAffected} quoteId={null} />
+        {/* zonesAffected is counted from confirmed rows — confirmed quoteId is the representative source */}
+        <StatCard
+          label="Zones affected"
+          value={statsData.zonesAffected}
+          quoteId={confirmedQuoteId}
+        />
       </section>
 
       <DailyBriefSection brief={brief} />
@@ -132,7 +146,7 @@ function DailyBriefSection({
     <section>
       <div className="mb-2 flex items-center gap-2">
         <h2 className="font-semibold">{brief.headline}</h2>
-        <AiGeneratedLabel modelId={brief.modelId} reviewStatus="Editor-reviewed" />
+        <AiGeneratedLabel modelId={brief.modelId} reviewStatus={brief.reviewStatus} />
       </div>
       <details>
         <summary className="cursor-pointer font-mono text-[12px] text-accent">
@@ -178,15 +192,17 @@ function InlineOutbreakRow({ outbreak }: Readonly<{ outbreak: Outbreak }>) {
 
 async function loadTodayData(outbreakId: string, pathogenIcd11: string) {
   const today = new Date().toISOString().slice(0, 10);
-  const [stats, sparkline, sitreps, allOutbreaks, disagreements, brief] = await Promise.all([
-    getInternationalStatTotals(pathogenIcd11),
-    getSparkline14d(outbreakId, "confirmed"),
-    listRecentDocuments(5),
-    listOutbreaks({ status: "active" }),
-    getDisagreements(outbreakId),
-    getDailyBriefByDate(today),
-  ]);
-  return { stats, sparkline, sitreps, allOutbreaks, disagreements, brief };
+  const [stats, sparkline, sitreps, allOutbreaks, disagreements, brief, lastIngestedAt] =
+    await Promise.all([
+      getInternationalStatTotals(pathogenIcd11),
+      getSparkline14d(outbreakId, "confirmed"),
+      listRecentDocuments(5, outbreakId),
+      listOutbreaks({ status: "active" }),
+      getDisagreements(outbreakId),
+      getDailyBriefByDate(today),
+      getLastIngestedAt(outbreakId),
+    ]);
+  return { stats, sparkline, sitreps, allOutbreaks, disagreements, brief, lastIngestedAt };
 }
 
 /** Return the disagreement entries for the most recent date that has multi-source conflict. */

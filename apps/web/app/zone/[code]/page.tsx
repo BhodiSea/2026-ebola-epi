@@ -5,7 +5,7 @@ import { JsonLd } from "@/components/seo/json-ld";
 import type { Document } from "@/lib/queries/documents";
 import { getDocumentsForZone } from "@/lib/queries/documents";
 import { getActiveOutbreak } from "@/lib/queries/outbreaks";
-import { getZoneStatTotals } from "@/lib/queries/zone-detail";
+import { EMPTY_ZONE_STAT_TOTALS, getZoneStatTotals } from "@/lib/queries/zone-detail";
 import { buildBreadcrumbs } from "@/lib/seo/breadcrumbs";
 
 export async function generateMetadata({
@@ -33,11 +33,12 @@ export default async function ZonePage({
     );
   }
 
-  const [stats, docs] = await Promise.all([
+  const [statsResult, docs] = await Promise.all([
     getZoneStatTotals(outbreak.id, code, "all"),
     getDocumentsForZone(outbreak.id, code),
   ]);
 
+  const stats = statsResult.ok ? statsResult.data : EMPTY_ZONE_STAT_TOTALS;
   const confirmedQuoteId = stats.confirmed.quoteId ?? null;
   const deathsQuoteId = stats.deaths.quoteId ?? null;
   const cfrValue = stats.cfr === null ? "—" : `${stats.cfr.toFixed(1)}%`;

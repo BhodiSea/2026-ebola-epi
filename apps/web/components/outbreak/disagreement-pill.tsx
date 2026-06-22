@@ -28,7 +28,12 @@ function DisagreementPill({ count, entries }: Readonly<DisagreementPillProps>) {
           </p>
           {entries.map((e) => (
             <div key={e.rowId} className="flex items-center justify-between gap-2">
-              <span className="font-mono text-[12px] text-fg-muted">{e.sourceSlug}</span>
+              <div className="flex flex-col">
+                <span className="font-mono text-[12px] text-fg-muted">{e.sourceSlug}</span>
+                <span className="font-mono text-[10px] text-fg-muted opacity-60">
+                  trust {e.trustScore.toFixed(2)}
+                </span>
+              </div>
               <span
                 className={cn(
                   "font-mono text-[13px] tabular-nums",

@@ -15,7 +15,7 @@ import { SkeletonChart } from "@/components/provenance/skeleton-chart";
 import { JsonLd } from "@/components/seo/json-ld";
 import { buildChartAltText } from "@/lib/a11y/alt-text";
 import type { SparklinePoint, StatTotals } from "@/lib/queries/case-counts";
-import { getEpiCurveSeries, getStatTotals } from "@/lib/queries/case-counts";
+import { EMPTY_STAT_TOTALS, getEpiCurveSeries, getStatTotals } from "@/lib/queries/case-counts";
 import type { DailyBrief } from "@/lib/queries/daily-briefs";
 import { getDailyBriefByDate } from "@/lib/queries/daily-briefs";
 import type { Document } from "@/lib/queries/documents";
@@ -79,13 +79,14 @@ export default async function OutbreakDetailPage({
   }
 
   const today = new Date().toISOString().slice(0, 10);
-  const [stats, epiCurve, documents, brief] = await Promise.all([
+  const [statsResult, epiCurve, documents, brief] = await Promise.all([
     getStatTotals(outbreak.id),
     getEpiCurveSeries(outbreak.id),
     getDocumentsForOutbreak(outbreak.id),
     getDailyBriefByDate(today),
   ]);
 
+  const stats = statsResult.ok ? statsResult.data : EMPTY_STAT_TOTALS;
   const confirmedQuoteId = stats.confirmed.quoteId ?? null;
   const deathsQuoteId = stats.deaths.quoteId ?? null;
   const cfrLabel = stats.cfr === null ? "—" : `${stats.cfr.toFixed(1)}%`;

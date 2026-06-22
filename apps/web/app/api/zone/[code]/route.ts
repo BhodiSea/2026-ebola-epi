@@ -31,12 +31,18 @@ export async function GET(req: Request, ctx: { params: Promise<{ code: string }>
 
   const { code: zoneCode, outbreakId, window } = parsed.data;
 
-  const [totals, series, documents, rawRows] = await Promise.all([
+  const [totalsResult, series, documents, rawRows] = await Promise.all([
     getZoneStatTotals(outbreakId, zoneCode, window),
     getZoneEpiSeries(outbreakId, zoneCode, window),
     getDocumentsForZone(outbreakId, zoneCode),
     getZoneRawRows(outbreakId, zoneCode),
   ]);
+
+  if (!totalsResult.ok) {
+    return Response.json({ error: totalsResult.reason }, { status: 503 });
+  }
+
+  const totals = totalsResult.data;
 
   const [confirmed, deaths, firstDetected] = await Promise.all([
     resolveFigure(totals.confirmed),

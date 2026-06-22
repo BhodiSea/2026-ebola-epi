@@ -1,3 +1,4 @@
+// Refactor pass 3: use EMPTY_ZONE_STAT_TOTALS in zone page to eliminate optional chaining complexity
 import { describe, expect, it, vi } from "vitest";
 
 import {
@@ -71,24 +72,29 @@ describe("getZoneStatTotals", () => {
         error: null,
       }),
     );
-    const totals = await getZoneStatTotals(OUTBREAK, CODE, "all");
+    const result = await getZoneStatTotals(OUTBREAK, CODE, "all");
+    expect(result.ok).toBe(true);
+    if (!result.ok) {
+      return;
+    }
     // latest cumulative confirmed is 40 (05-08), not 40+10=50
-    expect(totals.confirmed.value).toBe(40);
-    expect(totals.confirmed.quoteId).toBe(Q1);
-    expect(totals.deaths.value).toBe(5);
-    expect(totals.cfr).toBe(12.5); // 5/40 = 12.5%
-    expect(totals.firstDetected.value).toBe("2026-05-01");
+    expect(result.data.confirmed.value).toBe(40);
+    expect(result.data.confirmed.quoteId).toBe(Q1);
+    expect(result.data.deaths.value).toBe(5);
+    expect(result.data.cfr).toBe(12.5); // 5/40 = 12.5%
+    expect(result.data.firstDetected.value).toBe("2026-05-01");
     // first-detected carries the provenance of the earliest confirmed row (hard rule #2)
-    expect(totals.firstDetected.quoteId).toBe(Q2);
+    expect(result.data.firstDetected.quoteId).toBe(Q2);
   });
 
-  it("returns zeros and null CFR when the zone has no rows", async () => {
+  it("returns no-rows when the zone has no rows", async () => {
     mockFrom.mockReturnValue(buildChain({ data: [], error: null }));
-    const totals = await getZoneStatTotals(OUTBREAK, CODE, "30d");
-    expect(totals.confirmed.value).toBe(0);
-    expect(totals.cfr).toBeNull();
-    expect(totals.firstDetected.value).toBeNull();
-    expect(totals.firstDetected.quoteId).toBeNull();
+    const result = await getZoneStatTotals(OUTBREAK, CODE, "30d");
+    expect(result.ok).toBe(false);
+    if (result.ok) {
+      return;
+    }
+    expect(result.reason).toBe("no-rows");
   });
 });
 

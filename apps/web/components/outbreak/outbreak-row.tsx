@@ -1,6 +1,6 @@
 import { FigureOrMissing } from "@/components/provenance/figure-or-missing";
 import { SeverityPill } from "@/components/provenance/severity-pill";
-import { getStatTotals } from "@/lib/queries/case-counts";
+import { EMPTY_STAT_TOTALS, getStatTotals } from "@/lib/queries/case-counts";
 import type { Outbreak } from "@/lib/queries/outbreaks";
 
 interface OutbreakRowProps {
@@ -16,7 +16,8 @@ function daysSinceOnset(onsetDate: string): number {
 }
 
 async function OutbreakRow({ outbreak, sparkline, lastUpdate }: Readonly<OutbreakRowProps>) {
-  const stats = await getStatTotals(outbreak.id);
+  const statsResult = await getStatTotals(outbreak.id);
+  const stats = statsResult.ok ? statsResult.data : EMPTY_STAT_TOTALS;
   const days = daysSinceOnset(outbreak.onsetDate);
   const level = toSeverityLevel(outbreak.severityLevel);
   const cfrLabel = stats.cfr === null ? "—" : `${stats.cfr.toFixed(1)}%`;

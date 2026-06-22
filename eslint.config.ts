@@ -414,6 +414,9 @@ export default defineConfig(
       "perfectionist/sort-named-imports": ["error", { type: "natural" }],
       "perfectionist/sort-objects": "off",
       "perfectionist/sort-jsx-props": "off",
+      // Allow /* --- section --- */ banner comments to act as partition boundaries
+      // so helpers can live before the exported functions they support.
+      "perfectionist/sort-modules": ["error", { type: "natural", partitionByComment: "---" }],
 
       // ---- promise ----
       "promise/no-return-wrap": "error",

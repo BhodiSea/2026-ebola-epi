@@ -13,6 +13,10 @@ export const BACKFILL_EMBEDDINGS_TRIGGER = {
   event: "source.quotes.embedding.backfill.requested",
 } as const;
 
+export const BACKFILL_EMBEDDINGS_CRON = {
+  cron: "0 2 * * *",
+} as const;
+
 const BATCH_SIZE = 100;
 // Prevent materialising the full table in heap; next trigger picks up the rest.
 const MAX_QUOTES = 10_000;
@@ -77,7 +81,7 @@ export async function embedQuotes(): Promise<
 
 export const backfillEmbeddings = inngest.createFunction(
   { id: "backfill-embeddings", retries: 2 },
-  BACKFILL_EMBEDDINGS_TRIGGER,
+  [BACKFILL_EMBEDDINGS_TRIGGER, BACKFILL_EMBEDDINGS_CRON],
   async ({ step }) => {
     const key = process.env.OPENAI_API_KEY;
     if (key === undefined || key.length === 0) {

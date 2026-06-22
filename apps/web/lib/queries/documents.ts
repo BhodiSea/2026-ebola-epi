@@ -70,8 +70,41 @@ export async function getDocumentById(id: string): Promise<Document | null> {
   return parsed.success ? toDocument(parsed.data) : null;
 }
 
-export async function listRecentDocuments(limit: number): Promise<Document[]> {
+export async function listRecentDocuments(limit: number, outbreakId?: string): Promise<Document[]> {
   const supabase = await createClient();
+
+  if (outbreakId !== undefined) {
+    const { data: ccData } = await supabase
+      .from("case_counts")
+      .select("source_quote:source_quotes(document_id)")
+      .eq("outbreak_id", outbreakId)
+      .eq("status", "published")
+      .is("superseded_by", null)
+      .limit(200);
+
+    if (ccData === null || ccData.length === 0) {
+      return [];
+    }
+
+    const docIds = extractDocumentIds(ccData);
+    if (docIds.length === 0) {
+      return [];
+    }
+
+    const { data } = await supabase
+      .from("documents")
+      .select(SELECT_COLS)
+      .in("id", docIds)
+      .order("published_at", { ascending: false })
+      .limit(limit);
+
+    if (data === null) {
+      return [];
+    }
+
+    const rows = z.array(DocumentRow).safeParse(data);
+    return rows.success ? rows.data.map((d) => toDocument(d)) : [];
+  }
 
   const { data } = await supabase
     .from("documents")
@@ -160,6 +193,41 @@ export async function getDocumentsForZone(
 
   const rows = z.array(DocumentRow).safeParse(data);
   return rows.success ? rows.data.map((d) => toDocument(d)) : [];
+}
+
+export async function getLastIngestedAt(outbreakId: string): Promise<null | string> {
+  const supabase = await createClient();
+
+  const { data: ccData } = await supabase
+    .from("case_counts")
+    .select("source_quote:source_quotes(document_id)")
+    .eq("outbreak_id", outbreakId)
+    .eq("status", "published")
+    .is("superseded_by", null)
+    .limit(200);
+
+  if (ccData === null || ccData.length === 0) {
+    return null;
+  }
+
+  const docIds = extractDocumentIds(ccData);
+  if (docIds.length === 0) {
+    return null;
+  }
+
+  const { data } = await supabase
+    .from("documents")
+    .select("ingested_at")
+    .in("id", docIds)
+    .order("ingested_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (data === null || typeof data !== "object" || !("ingested_at" in data)) {
+    return null;
+  }
+  const ts = (data as Record<string, unknown>).ingested_at;
+  return typeof ts === "string" ? ts : null;
 }
 
 export async function listSitreps(filter: ListSitrepsFilter): Promise<Document[]> {
