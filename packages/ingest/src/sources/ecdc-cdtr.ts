@@ -5,8 +5,8 @@ import RSSParser from "rss-parser";
 import type { FetchResult, ParseInput, ParseResult, RegisteredAdapter } from "../adapter.js";
 import { fetchWithConditionalGet } from "../fetch-helper.js";
 
-const ECDC_CDTR_RSS_URL =
-  "https://www.ecdc.europa.eu/en/publications-data/communicable-disease-threats-report/feed";
+// Taxonomy-term feed; the old /publications-data/.../feed path returns HTTP 404 since 2026.
+const ECDC_CDTR_RSS_URL = "https://www.ecdc.europa.eu/en/taxonomy/term/1505/feed";
 
 const OUTBREAK_KEYWORDS = [
   "bundibugyo",

@@ -20,6 +20,16 @@ describe("ecdcCDTRAdapter.poll()", () => {
     mockEcdcParseURL.mockRejectedValueOnce(new Error("ECONNREFUSED"));
     await expect(ecdcCDTRAdapter.poll()).rejects.toThrow("ecdc-cdtr RSS feed unavailable");
   });
+
+  // ECDC moved the CDTR feed from /publications-data/.../feed (404) to the taxonomy
+  // term URL. This test pins the exact URL so a future silent redirect is caught.
+  it("polls the taxonomy-term RSS URL, not the deprecated publications-data path", async () => {
+    mockEcdcParseURL.mockResolvedValueOnce({ items: [] });
+    await ecdcCDTRAdapter.poll();
+    expect(mockEcdcParseURL).toHaveBeenCalledWith(
+      "https://www.ecdc.europa.eu/en/taxonomy/term/1505/feed",
+    );
+  });
 });
 
 describe("ecdcCDTRAdapter", () => {
