@@ -125,3 +125,10 @@ export async function persistBatchResults(
     await persistExtraction(fetchedDoc, item.result.message);
   }
 }
+
+// --- pollDelayMinutes ---------------------------------------------------------
+
+/** Exponential back-off delay for batch polling: 5m → 10m → 20m → 40m → 60m (cap). */
+export function pollDelayMinutes(pollIndex: number): number {
+  return Math.min(5 * 2 ** pollIndex, 60);
+}

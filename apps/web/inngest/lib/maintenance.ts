@@ -234,15 +234,8 @@ export async function suggestParserFix(diff: string): Promise<string> {
     model: MODEL_SONNET,
     // eslint-disable-next-line @typescript-eslint/naming-convention -- Anthropic API field name
     max_tokens: 512,
-    system: [
-      {
-        type: "text",
-        text: "You are a web-scraping reliability engineer. Given a line-diff between last-known-good and current source content, suggest the minimal CSS/XPath selector or parsing code change needed to restore extraction. Be concise — one or two sentences.",
-        // @ts-expect-error: SDK 0.52 types CacheControlEphemeral without ttl; AGENTS.md Rule 13 requires explicit 1h
-        // eslint-disable-next-line @typescript-eslint/naming-convention -- Anthropic SDK field name
-        cache_control: { type: "ephemeral", ttl: "1h" },
-      },
-    ],
+    system:
+      "You are a web-scraping reliability engineer. Given a line-diff between last-known-good and current source content, suggest the minimal CSS/XPath selector or parsing code change needed to restore extraction. Be concise — one or two sentences.",
     messages: [{ role: "user", content: `Diff:\n${diff}` }],
   });
   const block = msg.content[0];

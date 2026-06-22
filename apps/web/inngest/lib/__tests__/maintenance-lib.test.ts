@@ -3,8 +3,10 @@ import { describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
 vi.mock("@ituri/extract", () => ({ MODEL_SONNET: "claude-sonnet-4-6" }));
+
+const mockAnthropicCreate = vi.hoisted(() => vi.fn());
 vi.mock("@/inngest/lib/persist-extraction", () => ({
-  anthropic: { messages: { create: vi.fn() } },
+  anthropic: { messages: { create: mockAnthropicCreate } },
 }));
 
 const mockFetch = vi.fn();
@@ -85,6 +87,36 @@ describe("computeLineDiff (multiset diff)", () => {
   it("returns empty string for two empty strings", async () => {
     const { computeLineDiff } = await import("@/inngest/lib/maintenance");
     expect(computeLineDiff("", "")).toBe("");
+  });
+});
+
+// --- suggestParserFix --------------------------------------------------------
+// Verifies the function calls the LLM and returns the text block content.
+// The system prompt is a tiny block (~50 tokens) so cache_control was removed —
+// it can't meet the 1024-token minimum for Anthropic's prompt cache.
+
+describe("suggestParserFix", () => {
+  it("returns the text from the LLM response", async () => {
+    mockAnthropicCreate.mockResolvedValueOnce({
+      content: [{ type: "text", text: "Update the CSS selector to .new-class." }],
+    });
+
+    const { suggestParserFix } = await import("@/inngest/lib/maintenance");
+    const result = await suggestParserFix("- <div class=old\n+ <div class=new");
+    expect(result).toBe("Update the CSS selector to .new-class.");
+    expect(mockAnthropicCreate).toHaveBeenCalledOnce();
+    vi.clearAllMocks();
+    vi.resetModules();
+  });
+
+  it("returns fallback string when content is empty", async () => {
+    mockAnthropicCreate.mockResolvedValueOnce({ content: [] });
+
+    const { suggestParserFix } = await import("@/inngest/lib/maintenance");
+    const result = await suggestParserFix("- old\n+ new");
+    expect(result).toBe("(no suggestion)");
+    vi.clearAllMocks();
+    vi.resetModules();
   });
 });
 

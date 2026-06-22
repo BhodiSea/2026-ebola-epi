@@ -1,16 +1,18 @@
 import "server-only";
 
 import type { MessageBatchIndividualResponse } from "@anthropic-ai/sdk/resources/messages/batches";
+import { agentActions } from "@ituri/db";
 import { z } from "zod";
 
 import { inngest } from "../client";
-import { buildBatchRequests, persistBatchResults } from "../lib/back-fill";
+import { buildBatchRequests, persistBatchResults, pollDelayMinutes } from "../lib/back-fill";
 import { evaluateCapacity } from "../lib/capacity-guard";
 import { anthropic } from "../lib/persist-extraction";
 import { BACK_FILL_FN_CONFIG, BACK_FILL_TRIGGER } from "./back-fill-config";
+import { db } from "@/lib/db";
 import { getExtractionCapacity } from "@/lib/kill-switch";
 
-const MAX_POLLS = 50;
+const MAX_TOTAL_MINUTES = 24 * 60; // 24h ceiling — replaces fixed 50 × 5m = 4h cap
 const backfillPayloadSchema = z.object({ documentIds: z.array(z.string()) });
 const batchResultTypeSchema = z.enum(["canceled", "errored", "expired", "succeeded"]);
 
@@ -41,16 +43,33 @@ export const backFillExtraction = inngest.createFunction(
     const batchId = batch.id;
     let status = batch.processing_status;
     let pollCount = 0;
+    let totalMinutes = 0;
 
-    while (status !== "ended" && pollCount < MAX_POLLS) {
+    while (status !== "ended") {
+      const delay = pollDelayMinutes(pollCount);
+      if (totalMinutes + delay > MAX_TOTAL_MINUTES) {
+        break;
+      }
       // eslint-disable-next-line no-await-in-loop
-      await step.sleep(`poll-delay-${pollCount}`, "5m");
+      await step.sleep(`poll-delay-${pollCount}`, `${delay}m`);
+      totalMinutes += delay;
       // eslint-disable-next-line no-await-in-loop
       const polled = await step.run(`poll-status-${pollCount}`, async () =>
         anthropic.messages.batches.retrieve(batchId),
       );
       status = polled.processing_status;
       pollCount += 1;
+    }
+
+    if (status !== "ended") {
+      await step.run("record-batch-timeout", async () => {
+        await db.insert(agentActions).values({
+          agent: "back-fill",
+          action: "batch_timeout",
+          payload: { batchId, documentCount: documentIds.length, pollCount, totalMinutes },
+        });
+      });
+      return { batchId, timedOut: true, documentCount: documentIds.length };
     }
 
     const results = await step.run("collect-results", async () => {

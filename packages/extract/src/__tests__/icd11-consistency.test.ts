@@ -94,6 +94,26 @@ describe("ICD-11 code consistency across triage and extraction prompts", () => {
     assertAllCodesAuthoritative(CANDIDATE_FEW_SHOTS, "CANDIDATE_FEW_SHOTS");
   });
 
+  it("STATIC_INSTRUCTIONS mentions every code in PATHOGEN_ICD11", () => {
+    // eslint-disable-next-line functional/no-loop-statements -- see top-of-file lint note
+    for (const code of Object.values(PATHOGEN_ICD11)) {
+      expect(
+        STATIC_INSTRUCTIONS.includes(code),
+        `STATIC_INSTRUCTIONS is missing ICD-11 code "${code}"`,
+      ).toBe(true);
+    }
+  });
+
+  it("CANDIDATE_STATIC_INSTRUCTIONS mentions every code in PATHOGEN_ICD11", () => {
+    // eslint-disable-next-line functional/no-loop-statements -- see top-of-file lint note
+    for (const code of Object.values(PATHOGEN_ICD11)) {
+      expect(
+        CANDIDATE_STATIC_INSTRUCTIONS.includes(code),
+        `CANDIDATE_STATIC_INSTRUCTIONS is missing ICD-11 code "${code}"`,
+      ).toBe(true);
+    }
+  });
+
   it("triage codes and extraction codes are from the same code family", () => {
     const triageCodes = [
       ...extractICD11CodesFromText(TRIAGE_SYSTEM),

@@ -56,6 +56,32 @@ vi.mock("drizzle-orm", () => ({
   inArray: vi.fn(),
 }));
 
+// --- pollDelayMinutes — exponential backoff schedule (declared after persistBatchResults) ----
+// Back-fill polling uses exponential backoff (5m → 10m → 20m → 40m → 60m cap)
+// instead of a fixed 5m × 50 = 4h ceiling, so long-running Anthropic batches
+// don't silently drop work after 4 hours.
+
+describe("pollDelayMinutes (exponential backoff schedule)", () => {
+  it("starts at 5 minutes for poll index 0", async () => {
+    const { pollDelayMinutes } = await import("@/inngest/lib/back-fill");
+    expect(pollDelayMinutes(0)).toBe(5);
+  });
+
+  it("doubles each step: 5 → 10 → 20 → 40", async () => {
+    const { pollDelayMinutes } = await import("@/inngest/lib/back-fill");
+    expect(pollDelayMinutes(1)).toBe(10);
+    expect(pollDelayMinutes(2)).toBe(20);
+    expect(pollDelayMinutes(3)).toBe(40);
+  });
+
+  it("caps at 60 minutes for poll index 4 and beyond", async () => {
+    const { pollDelayMinutes } = await import("@/inngest/lib/back-fill");
+    expect(pollDelayMinutes(4)).toBe(60);
+    expect(pollDelayMinutes(10)).toBe(60);
+    expect(pollDelayMinutes(100)).toBe(60);
+  });
+});
+
 // --- persistBatchResults — publishedAt null guard -----------------------------
 // `documents.published_at` is nullable. The old code used `publishedAt ?? new Date()`
 // as a fallback, silently stamping today as the publication date, corrupting every

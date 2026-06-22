@@ -9,7 +9,7 @@ Rules:
 - is_new_in_period: true when the document explicitly says "new" or "since the last report"; omit or false for cumulative totals.
 - Metrics: cases, deaths, suspected, confirmed, probable, vaccinated, contacts, healthcare_workers (total HCW cases), hcw_deaths (HCW fatalities), nosocomial (hospital-acquired cases), lab_positive (positive lab tests), in_treatment (current ETU/CTC occupancy).
 - If a figure is absent or ambiguous, do not include it.
-- ICD-11 codes: Ebola Sudan: 1D60.0, Ebola Zaire: 1D60.1, Bundibugyo virus: 1D60.2, Marburg: 1C90.0, mpox: 1E71, cholera: 1A00.`;
+- ICD-11 codes: Ebola Sudan: 1D60.0, Ebola Zaire: 1D60.1, Bundibugyo virus: 1D60.2, Ebola Reston: 1D60.3, Marburg: 1C90.0, mpox: 1E71, cholera: 1A00.`;
 
 // Candidate prompt — pre-WS1 baseline (7 base metrics, national-only few-shot).
 // Used by shadow-extraction to surface divergence from the production prompt.
@@ -23,7 +23,7 @@ Rules:
 - Required per extraction: pathogen_icd11, country_iso3, metric, value, as_of, source_quote.
 - Metrics: cases, deaths, suspected, confirmed, probable, vaccinated, contacts.
 - If a figure is absent or ambiguous, do not include it.
-- ICD-11 codes: Ebola Sudan: 1D60.0, Ebola Zaire: 1D60.1, Bundibugyo virus: 1D60.2, Marburg: 1C90.0, mpox: 1E71, cholera: 1A00.`;
+- ICD-11 codes: Ebola Sudan: 1D60.0, Ebola Zaire: 1D60.1, Bundibugyo virus: 1D60.2, Ebola Reston: 1D60.3, Marburg: 1C90.0, mpox: 1E71, cholera: 1A00.`;
 
 export const CANDIDATE_FEW_SHOTS = `\
 Example document: "As of 15 May 2026, 47 confirmed cases and 12 deaths have been reported."
