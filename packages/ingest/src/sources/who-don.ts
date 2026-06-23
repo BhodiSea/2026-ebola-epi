@@ -55,24 +55,9 @@ export async function fetchAndParseDocument(url: string): Promise<ParsedDocument
 // DON-specific feed (feeds/entity/csr/don/en/rss.xml) was deprecated in 2026.
 export const WHO_DON_FEED_URL = "https://www.who.int/rss-feeds/news-english.xml";
 
-// Slugs/titles that indicate outbreak situation reports vs. general WHO news.
-const OUTBREAK_KEYWORDS = [
-  "ebola",
-  "mpox",
-  "monkeypox",
-  "cholera",
-  "plague",
-  "hantavirus",
-  "marburg",
-  "lassa",
-  "dengue",
-  "outbreak",
-  "epidemic",
-  "disease-outbreak",
-  "ihr-emergency",
-  "pheic",
-  "public-health-emergency",
-];
+// WHO publishes Disease Outbreak News at this path prefix. All other WHO paths
+// (press releases, joint statements, WHA updates) are excluded.
+const DON_PATH_PREFIX = "/emergencies/disease-outbreak-news/";
 
 export async function pollWHODON(): Promise<WhodonItem[]> {
   const parser = new RSSParser();
@@ -81,7 +66,7 @@ export async function pollWHODON(): Promise<WhodonItem[]> {
     if (item.link == null || item.link === "" || item.pubDate == null || item.pubDate === "") {
       return [];
     }
-    if (!isOutbreakItem(item.link, item.title ?? "")) {
+    if (!isOutbreakItem(item.link)) {
       return [];
     }
     return [
@@ -109,9 +94,12 @@ async function getRobots(origin: string): Promise<ReturnType<typeof robotsParser
   return robots;
 }
 
-function isOutbreakItem(link: string, title: string): boolean {
-  const haystack = `${link} ${title}`.toLowerCase();
-  return OUTBREAK_KEYWORDS.some((kw) => haystack.includes(kw));
+function isOutbreakItem(link: string): boolean {
+  try {
+    return new URL(link).pathname.startsWith(DON_PATH_PREFIX);
+  } catch {
+    return false;
+  }
 }
 
 // RegisteredAdapter wrapper — allows who-don to participate in the typed

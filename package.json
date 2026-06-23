@@ -15,7 +15,7 @@
     "knip": "knip",
     "db:lint": "find supabase/migrations -name '*.sql' -print0 2>/dev/null | xargs -0 -I{} pglast --parse '{}'",
     "db:validate": "find supabase/migrations -name '*.sql' -print0 2>/dev/null | xargs -0 -I{} pglast --check '{}'",
-    "db:test": "supabase test db",
+    "db:test": "supabase db reset && supabase test db",
     "db:types": "supabase gen types typescript --local > packages/db/src/types.gen.ts",
     "db:types:remote": "supabase gen types typescript --linked > packages/db/src/types.gen.ts",
     "e2e": "pnpm --filter @ituri/web e2e",

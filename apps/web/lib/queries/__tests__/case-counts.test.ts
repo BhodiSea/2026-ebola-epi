@@ -146,6 +146,32 @@ describe("getStatTotals", () => {
     expect(result.data.confirmed.quoteId).toBe(Q1);
   });
 
+  it("prefers cumulative (null is_new_in_period) over weekly-delta rows at the same as_of", async () => {
+    // When a sitrep publishes both a weekly delta (is_new_in_period=true, 258) and a cumulative
+    // total (null, 808) at the same as_of, the secondary sort on is_new_in_period (nulls first,
+    // ascending) makes the DB return cumulative rows first. pickLatest takes the first match, so
+    // 808 wins. This mock reflects that DB-sorted order.
+    mockFrom.mockReturnValueOnce(
+      buildChain({
+        data: [
+          { metric: "confirmed", value: 808, as_of: "2026-06-14", source_quote_id: Q1 }, // cumulative
+          { metric: "confirmed", value: 258, as_of: "2026-06-14", source_quote_id: Q2 }, // delta
+          { metric: "deaths", value: 192, as_of: "2026-06-14", source_quote_id: Q1 },
+          { metric: "deaths", value: 91, as_of: "2026-06-14", source_quote_id: Q2 },
+        ],
+        error: null,
+      }),
+    );
+    mockFrom.mockReturnValueOnce(buildChain({ data: [], error: null }));
+    const result = await getStatTotals(OUTBREAK);
+    expect(result.ok).toBe(true);
+    if (!result.ok) {
+      return;
+    }
+    expect(result.data.confirmed.value).toBe(808);
+    expect(result.data.deaths.value).toBe(192);
+  });
+
   it("returns rpc-error when data is null", async () => {
     mockFrom.mockReturnValueOnce(buildChain({ data: null, error: { message: "oops" } }));
     const result = await getStatTotals(OUTBREAK);
@@ -277,6 +303,56 @@ describe("getInternationalStatTotals", () => {
       return;
     }
     expect(result.reason).toBe("no-rows");
+  });
+
+  it("prefers cumulative rows over weekly-delta rows when as_of ties across countries", async () => {
+    // DRC sitrep publishes both a weekly delta (258) and a cumulative total (808) at 2026-06-14.
+    // The secondary sort (is_new_in_period nulls first, ascending) makes cumulative arrive first;
+    // sumLatestPerCountry's seen-set takes the first row per (outbreak_id, metric), so 808 wins.
+    mockFrom.mockReturnValueOnce(buildChain({ data: [{ id: OUTBREAK_COD }], error: null }));
+    mockFrom.mockReturnValueOnce(
+      buildChain({
+        data: [
+          {
+            outbreak_id: OUTBREAK_COD,
+            metric: "confirmed",
+            value: 808,
+            as_of: "2026-06-14",
+            source_quote_id: Q1,
+          },
+          {
+            outbreak_id: OUTBREAK_COD,
+            metric: "confirmed",
+            value: 258,
+            as_of: "2026-06-14",
+            source_quote_id: Q2,
+          },
+          {
+            outbreak_id: OUTBREAK_COD,
+            metric: "deaths",
+            value: 192,
+            as_of: "2026-06-14",
+            source_quote_id: Q1,
+          },
+          {
+            outbreak_id: OUTBREAK_COD,
+            metric: "deaths",
+            value: 91,
+            as_of: "2026-06-14",
+            source_quote_id: Q2,
+          },
+        ],
+        error: null,
+      }),
+    );
+    mockFrom.mockReturnValueOnce(buildChain({ data: [], error: null }));
+    const result = await getInternationalStatTotals("1D60.2");
+    expect(result.ok).toBe(true);
+    if (!result.ok) {
+      return;
+    }
+    expect(result.data.confirmed.value).toBe(808);
+    expect(result.data.deaths.value).toBe(192);
   });
 });
 

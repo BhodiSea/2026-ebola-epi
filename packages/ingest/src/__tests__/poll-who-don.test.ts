@@ -8,12 +8,19 @@ vi.mock("rss-parser", () => ({
       return {
         items: [
           {
+            // true DON sitrep at the correct WHO path — the ONLY URL that should survive
+            link: "https://www.who.int/emergencies/disease-outbreak-news/item/2026-DON-001",
+            title: "Disease Outbreak News: Bundibugyo virus disease in DRC",
+            pubDate: "Mon, 01 Jan 2026 00:00:00 +0000",
+          },
+          {
+            // press release at /news/item/ — has outbreak keyword in title but wrong path
             link: "https://www.who.int/news/item/17-05-2026-epidemic-of-ebola-bundibugyo-virus",
             title: "Ebola epidemic in DRC",
             pubDate: "Mon, 01 Jan 2026 00:00:00 +0000",
           },
           {
-            // WHA daily update — no outbreak keywords — must be filtered out
+            // WHA daily update — wrong path, no outbreak keyword — rejected either way
             link: "https://www.who.int/news/item/23-05-2026-seventy-ninth-world-health-assembly-daily-update",
             title: "Seventy-ninth World Health Assembly – Daily update",
             pubDate: "Fri, 23 May 2026 00:00:00 +0000",
@@ -49,8 +56,24 @@ describe("pollWHODON", () => {
   it("drops items with no pubDate", async () => {
     const { pollWHODON } = await import("../sources/who-don.js");
     const result = await pollWHODON();
-    // Only the Ebola item qualifies: WHA item filtered by keyword, others by missing pubDate/link.
+    // Only the DON sitrep at /emergencies/disease-outbreak-news/ qualifies.
+    // The /news/item/ press release is rejected by the path allow-list; others by missing pubDate/link.
     expect(result).toHaveLength(1);
+  });
+
+  it("rejects /news/item/ press releases even when they contain outbreak keywords", async () => {
+    const { pollWHODON } = await import("../sources/who-don.js");
+    const result = await pollWHODON();
+    const pressReleaseUrl =
+      "https://www.who.int/news/item/17-05-2026-epidemic-of-ebola-bundibugyo-virus";
+    expect(result.some((item) => item.url === pressReleaseUrl)).toBe(false);
+  });
+
+  it("accepts DON sitreps at /emergencies/disease-outbreak-news/ paths", async () => {
+    const { pollWHODON } = await import("../sources/who-don.js");
+    const result = await pollWHODON();
+    const donUrl = "https://www.who.int/emergencies/disease-outbreak-news/item/2026-DON-001";
+    expect(result.some((item) => item.url === donUrl)).toBe(true);
   });
 
   it("drops items with no link", async () => {

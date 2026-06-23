@@ -244,7 +244,8 @@ export async function getInternationalStatTotals(
     .is("admin_name", null)
     .is("admin2_code", null)
     .in("metric", ["confirmed", "deaths"])
-    .order("as_of", { ascending: false });
+    .order("as_of", { ascending: false })
+    .order("is_new_in_period", { ascending: true, nullsFirst: true });
 
   if (data === null) {
     return { ok: false, reason: "rpc-error" };
@@ -334,7 +335,8 @@ export async function getStatTotals(outbreakId: string): Promise<TotalsResult<St
     .is("admin_name", null)
     .is("admin2_code", null)
     .in("metric", ["confirmed", "deaths"])
-    .order("as_of", { ascending: false });
+    .order("as_of", { ascending: false })
+    .order("is_new_in_period", { ascending: true, nullsFirst: true });
 
   if (data === null) {
     return { ok: false, reason: "rpc-error" };

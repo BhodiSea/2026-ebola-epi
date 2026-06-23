@@ -4,8 +4,10 @@ import { describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
 
 const mockPersistExtraction = vi.fn();
+const mockIsAlreadyExtracted = vi.fn().mockResolvedValue(false);
 vi.mock("@/inngest/lib/persist-extraction", () => ({
   persistExtraction: mockPersistExtraction,
+  isAlreadyExtracted: mockIsAlreadyExtracted,
 }));
 
 const dbChain = vi.hoisted(() => {
@@ -136,6 +138,36 @@ describe("persistBatchResults", () => {
       {
         custom_id: "backfill-doc-y",
         result: { type: "errored" },
+      },
+    ]);
+
+    expect(mockPersistExtraction).not.toHaveBeenCalled();
+  });
+
+  it("skips persistExtraction when isAlreadyExtracted returns true (idempotency guard)", async () => {
+    mockPersistExtraction.mockClear();
+    mockIsAlreadyExtracted.mockResolvedValueOnce(true);
+    dbChain.onConflictDoNothing.mockResolvedValueOnce({});
+    dbChain.where.mockResolvedValueOnce([
+      {
+        id: "doc-z",
+        fullText: "who don text",
+        publishedAt: new Date("2026-05-22"),
+        sourceSlug: "who-don",
+      },
+    ]);
+
+    const { persistBatchResults } = await import("@/inngest/lib/back-fill");
+    await persistBatchResults("batch-789", [
+      {
+        custom_id: "backfill-doc-z",
+        result: {
+          type: "succeeded",
+          message: {
+            content: [{ type: "tool_use", id: "tu1", name: "extract_case_counts", input: {} }],
+            usage: { input_tokens: 100, output_tokens: 50 },
+          },
+        },
       },
     ]);
 

@@ -7,7 +7,7 @@ import { buildExtractionParams, computePromptVersionHash } from "@ituri/extract"
 import { eq, inArray } from "drizzle-orm";
 
 import type { FetchedDocument } from "./persist-extraction";
-import { persistExtraction } from "./persist-extraction";
+import { isAlreadyExtracted, persistExtraction } from "./persist-extraction";
 import { db } from "@/lib/db";
 
 // --- types --------------------------------------------------------------------
@@ -108,6 +108,10 @@ export async function persistBatchResults(
     }
 
     const pvHash = computePromptVersionHash();
+    // eslint-disable-next-line no-await-in-loop
+    if (await isAlreadyExtracted(String(docRow.id), pvHash)) {
+      continue;
+    }
     const inputDocSha256Hex = createHash("sha256").update(docRow.fullText).digest("hex");
 
     const fetchedDoc: FetchedDocument = {
